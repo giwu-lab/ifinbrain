@@ -1,0 +1,226 @@
+/* ============================================================
+ *  fapiao_web 全局样式 + 设计令牌
+ *  - 主色：科技蓝 #2563eb / 成功 #10b981 / 警告 #f59e0b / 危险 #ef4444
+ *  - 字体：Inter / 系统无衬线
+ *  - 圆角 / 间距 / 阴影 统一
+ * ========================================================== */
+
+:root {
+  /* 色板 */
+  --color-primary:        #2563eb;
+  --color-primary-hover:  #1d4ed8;
+  --color-primary-soft:   rgba(37, 99, 235, 0.10);
+  --color-success:        #10b981;
+  --color-success-soft:   rgba(16, 185, 129, 0.10);
+  --color-warning:        #f59e0b;
+  --color-warning-soft:   rgba(245, 158, 11, 0.12);
+  --color-danger:         #ef4444;
+  --color-danger-soft:    rgba(239, 68, 68, 0.10);
+  --color-info:           #6366f1;
+  --color-info-soft:      rgba(99, 102, 241, 0.10);
+
+  /* 中性色 */
+  --color-bg:             #f5f7fb;
+  --color-bg-elev:        #ffffff;
+  --color-border:         #e5e7eb;
+  --color-border-soft:    #f1f3f7;
+  --color-text:           #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted:     #9ca3af;
+  --color-text-sidebar:   #1f2937;
+  --color-text-on-dark:   rgba(255, 255, 255, 0.92);
+  --color-text-on-dark-muted: rgba(255, 255, 255, 0.55);
+
+  /* 侧边栏深色 */
+  --sidebar-bg:           #0f172a;
+  --sidebar-bg-active:    #1e293b;
+  --sidebar-border:       rgba(255, 255, 255, 0.06);
+
+  /* 圆角 */
+  --radius-xs:            4px;
+  --radius-sm:            6px;
+  --radius-md:            10px;
+  --radius-lg:            14px;
+  --radius-xl:            20px;
+
+  /* 阴影 */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 8px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.05);
+
+  /* 间距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* 字体 */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 20px;
+  --font-size-xl: 28px;
+}
+
+/* ============== Reset ============== */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; padding: 0; font-family: var(--font-family); color: var(--color-text); }
+body { background: var(--color-bg); font-size: var(--font-size-base); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* ============== 工具类 ============== */
+.page-container { padding: var(--space-6); }
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.toolbar .filters { display: flex; gap: var(--space-3); align-items: center; }
+
+.muted { color: var(--color-text-muted); }
+.text-secondary { color: var(--color-text-secondary); }
+.danger-text { color: var(--color-danger); }
+.success-text { color: var(--color-success); }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+
+.card-table {
+  background: var(--color-bg-elev);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-soft);
+}
+
+.el-tag + .el-tag { margin-left: 4px; }
+
+/* ============== Element Plus 调优 ============== */
+.el-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-soft);
+  box-shadow: var(--shadow-sm) !important;
+}
+.el-card__header {
+  padding: var(--space-4) var(--space-5);
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+.el-button {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  transition: all 0.18s ease;
+}
+.el-button--primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.el-button--primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+.el-input__wrapper {
+  border-radius: var(--radius-sm);
+  transition: box-shadow 0.18s ease;
+}
+.el-tag {
+  border-radius: var(--radius-xs);
+}
+.el-pagination {
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+.el-pagination button, .el-pagination .el-pager li {
+  background: transparent !important;
+}
+.el-table {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.el-table th.el-table__cell {
+  background: var(--color-bg) !important;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.el-table .el-table__row:hover > td.el-table__cell {
+  background-color: var(--color-primary-soft) !important;
+}
+.el-table .el-table__row > td.el-table__cell {
+  border-bottom: 1px solid var(--color-border-soft) !important;
+}
+
+/* ============== 动画 ============== */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up {
+  animation: fade-in-up 0.28s ease-out both;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-border-soft) 0%, var(--color-border) 50%, var(--color-border-soft) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+/* ============================================================
+ * el-table fixed 列遮罩：避免操作列右侧冻结时透出底层数据
+ * element-plus 把 fixed 列 cell 设了 `background: inherit`，
+ * 父级 current-row / hover 是半透明 rgba，inherit 后会透。
+ * ========================================================== */
+.el-table__fixed-right,
+.el-table__fixed-right .el-table__fixed-body-wrapper,
+.el-table__fixed-right .el-table__fixed-header-wrapper {
+  background: var(--color-bg-elev) !important;
+  background-color: var(--color-bg-elev) !important;
+}
+/* body cell：默认白 */
+.el-table.el-table .el-table__cell.el-table-fixed-column--right,
+.el-table.el-table td.el-table__fixed-right-patch {
+  background: var(--color-bg-elev) !important;
+  background-color: var(--color-bg-elev) !important;
+}
+/* header cell：灰 */
+.el-table.el-table thead .el-table__cell.el-table-fixed-column--right {
+  background: var(--color-bg) !important;
+  background-color: var(--color-bg) !important;
+}
+/* hover 行 */
+.el-table.el-table tr:hover > .el-table__cell.el-table-fixed-column--right {
+  background: var(--color-primary-soft) !important;
+  background-color: var(--color-primary-soft) !important;
+}
+/* 选中行：保持白（不沿用父级 current-row 半透明色） */
+.el-table.el-table tr.current-row > .el-table__cell.el-table-fixed-column--right,
+.el-table.el-table tr.current-row > td.el-table__cell.el-table-fixed-column--right {
+  background: var(--color-bg-elev) !important;
+  background-color: var(--color-bg-elev) !important;
+}
+.el-table.el-table tr.current-row:hover > .el-table__cell.el-table-fixed-column--right,
+.el-table.el-table tr.current-row:hover > td.el-table__cell.el-table-fixed-column--right {
+  background: var(--color-primary-soft) !important;
+  background-color: var(--color-primary-soft) !important;
+}
+/* stripe 行 fixed cell 也白（即使父级 tr 是 stripe 半透明灰） */
+.el-table.el-table .el-table__row--striped > .el-table__cell.el-table-fixed-column--right {
+  background: var(--color-bg-elev) !important;
+  background-color: var(--color-bg-elev) !important;
+}
+
+.el-table__fixed-right {
+  box-shadow: -2px 0 6px rgba(15, 23, 42, 0.06);
+}

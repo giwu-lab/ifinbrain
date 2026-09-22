@@ -1,0 +1,66 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: fapiao-web
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 12MB
+      max-request-size: 60MB
+  # 项目默认时区：上海 (UTC+8)。与 dev.sh 里 TZ=Asia/Shanghai、FapiaoWebApplication 启动时
+  # TimeZone.setDefault 共同保证：JVM 默认、Hibernate JDBC、Jackson JSON 三处一致。
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Shanghai
+
+server:
+  port: 8080
+  forward-headers-strategy: native
+  error:
+    include-message: always
+    include-binding-errors: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+fapiao-web:
+  jwt:
+    access-secret: ${JWT_ACCESS_SECRET:dev-only-please-change-this-secret-key-min-32-bytes-long}
+    access-ttl-minutes: 30
+    refresh-ttl-days: 7
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:8088
+  fapiao-cn:
+    # 全部留空：识别 API 必须到 系统 → API 设置 中配置。未配置时识别会被拒绝。
+    base-url: ${FAPIAO_CN_BASE_URL:}
+    api-key: ${FAPIAO_CN_API_KEY:}
+    timeout-seconds: 60
+    max-batch-files: 50
+    max-single-file-mb: 10
+  storage:
+    type: local
+    local:
+      root: ${APP_STORAGE_LOCAL_ROOT:./data/storage}
+    s3:
+      endpoint: ${S3_ENDPOINT:}
+      region: ${S3_REGION:us-east-1}
+      bucket: ${S3_BUCKET:}
+      access-key: ${S3_ACCESS_KEY:}
+      secret-key: ${S3_SECRET_KEY:}
+      path-style: true
+  security:
+    master-key: ${FAPIAO_WEB_MASTER_KEY:}

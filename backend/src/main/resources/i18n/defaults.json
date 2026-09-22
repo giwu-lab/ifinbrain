@@ -1,0 +1,1447 @@
+[
+  {
+    "namespace": "common",
+    "items": [
+      {
+        "code": "actions",
+        "valueJson": "{\"zh-CN\":\"操作\",\"en-US\":\"Actions\"}"
+      },
+      {
+        "code": "appName",
+        "valueJson": "{\"zh-CN\":\"财会运营中心\",\"en-US\":\"Finance Ops Center\"}"
+      },
+      {
+        "code": "cancel",
+        "valueJson": "{\"zh-CN\":\"取消\",\"en-US\":\"Cancel\"}"
+      },
+      {
+        "code": "confirm",
+        "valueJson": "{\"zh-CN\":\"确定\",\"en-US\":\"Confirm\"}"
+      },
+      {
+        "code": "confirmDeleteTitle",
+        "valueJson": "{\"zh-CN\":\"确定要删除吗？\",\"en-US\":\"Are you sure to delete?\"}"
+      },
+      {
+        "code": "create",
+        "valueJson": "{\"zh-CN\":\"新增\",\"en-US\":\"Create\"}"
+      },
+      {
+        "code": "created",
+        "valueJson": "{\"zh-CN\":\"创建成功\",\"en-US\":\"Created\"}"
+      },
+      {
+        "code": "delete",
+        "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
+      },
+      {
+        "code": "deleted",
+        "valueJson": "{\"zh-CN\":\"删除成功\",\"en-US\":\"Deleted\"}"
+      },
+      {
+        "code": "disabled",
+        "valueJson": "{\"zh-CN\":\"禁用\",\"en-US\":\"Disabled\"}"
+      },
+      {
+        "code": "edit",
+        "valueJson": "{\"zh-CN\":\"编辑\",\"en-US\":\"Edit\"}"
+      },
+      {
+        "code": "enabled",
+        "valueJson": "{\"zh-CN\":\"启用\",\"en-US\":\"Enabled\"}"
+      },
+      {
+        "code": "failed",
+        "valueJson": "{\"zh-CN\":\"操作失败\",\"en-US\":\"Failed\"}"
+      },
+      {
+        "code": "loading",
+        "valueJson": "{\"zh-CN\":\"加载中…\",\"en-US\":\"Loading…\"}"
+      },
+      {
+        "code": "logout",
+        "valueJson": "{\"zh-CN\":\"退出登录\",\"en-US\":\"Logout\"}"
+      },
+      {
+        "code": "no",
+        "valueJson": "{\"zh-CN\":\"否\",\"en-US\":\"No\"}"
+      },
+      {
+        "code": "path",
+        "valueJson": "{\"zh-CN\":\"路径\",\"en-US\":\"Path\"}"
+      },
+      {
+        "code": "popupBlocked",
+        "valueJson": "{\"zh-CN\":\"浏览器拦截了新窗口，请允许弹窗后重试\",\"en-US\":\"Popup blocked by browser. Please allow popups and retry.\"}"
+      },
+      {
+        "code": "reload",
+        "valueJson": "{\"zh-CN\":\"刷新\",\"en-US\":\"Reload\"}"
+      },
+      {
+        "code": "required",
+        "valueJson": "{\"zh-CN\":\"不能为空\",\"en-US\":\"is required\"}"
+      },
+      {
+        "code": "reset",
+        "valueJson": "{\"zh-CN\":\"重置\",\"en-US\":\"Reset\"}"
+      },
+      {
+        "code": "save",
+        "valueJson": "{\"zh-CN\":\"保存\",\"en-US\":\"Save\"}"
+      },
+      {
+        "code": "search",
+        "valueJson": "{\"zh-CN\":\"搜索\",\"en-US\":\"Search\"}"
+      },
+      {
+        "code": "status",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
+      },
+      {
+        "code": "success",
+        "valueJson": "{\"zh-CN\":\"操作成功\",\"en-US\":\"Success\"}"
+      },
+      {
+        "code": "updated",
+        "valueJson": "{\"zh-CN\":\"更新成功\",\"en-US\":\"Updated\"}"
+      },
+      {
+        "code": "welcome",
+        "valueJson": "{\"zh-CN\":\"欢迎\",\"en-US\":\"Welcome\"}"
+      },
+      {
+        "code": "yes",
+        "valueJson": "{\"zh-CN\":\"是\",\"en-US\":\"Yes\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "dashboard",
+    "items": [
+      {
+        "code": "greetingAfternoon",
+        "valueJson": "{\"zh-CN\":\"下午好\",\"en-US\":\"Good afternoon\"}"
+      },
+      {
+        "code": "greetingEvening",
+        "valueJson": "{\"zh-CN\":\"晚上好\",\"en-US\":\"Good evening\"}"
+      },
+      {
+        "code": "greetingMorning",
+        "valueJson": "{\"zh-CN\":\"早上好\",\"en-US\":\"Good morning\"}"
+      },
+      {
+        "code": "greetingNight",
+        "valueJson": "{\"zh-CN\":\"夜深了\",\"en-US\":\"Good night\"}"
+      },
+      {
+        "code": "greetingNoon",
+        "valueJson": "{\"zh-CN\":\"中午好\",\"en-US\":\"Good noon\"}"
+      },
+      {
+        "code": "menusCount",
+        "valueJson": "{\"zh-CN\":\"菜单数\",\"en-US\":\"Menus\"}"
+      },
+      {
+        "code": "permissionsCount",
+        "valueJson": "{\"zh-CN\":\"权限数\",\"en-US\":\"Permissions\"}"
+      },
+      {
+        "code": "rolesCount",
+        "valueJson": "{\"zh-CN\":\"角色数\",\"en-US\":\"Roles\"}"
+      },
+      {
+        "code": "storageType",
+        "valueJson": "{\"zh-CN\":\"存储类型\",\"en-US\":\"Storage\"}"
+      },
+      {
+        "code": "welcome",
+        "valueJson": "{\"zh-CN\":\"欢迎使用 fapiao_web\",\"en-US\":\"Welcome to fapiao_web\"}"
+      },
+      {
+        "code": "welcomeDesc",
+        "valueJson": "{\"zh-CN\":\"使用左侧导航管理用户、角色、菜单与存储设置。\",\"en-US\":\"Use the left navigation to manage users, roles, menus and storage.\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "dict",
+    "items": [
+      {
+        "code": "auditTitle",
+        "valueJson": "{\"zh-CN\":\"变更日志\",\"en-US\":\"Change log\"}"
+      },
+      {
+        "code": "cacheLoadedAt",
+        "valueJson": "{\"zh-CN\":\"缓存时间 {time}\",\"en-US\":\"Cache loaded at {time}\"}"
+      },
+      {
+        "code": "cacheRefreshed",
+        "valueJson": "{\"zh-CN\":\"字典缓存已刷新\",\"en-US\":\"Dictionary cache refreshed\"}"
+      },
+      {
+        "code": "codeLabelRequired",
+        "valueJson": "{\"zh-CN\":\"编码与显示文案均不能为空\",\"en-US\":\"Code and label are required\"}"
+      },
+      {
+        "code": "codeNameRequired",
+        "valueJson": "{\"zh-CN\":\"编码与名称均不能为空\",\"en-US\":\"Code and name are required\"}"
+      },
+      {
+        "code": "codePlaceholder",
+        "valueJson": "{\"zh-CN\":\"小写字母开头，仅含 a-z / 0-9 / _\",\"en-US\":\"Lowercase, a-z / 0-9 / _ only\"}"
+      },
+      {
+        "code": "colCode",
+        "valueJson": "{\"zh-CN\":\"编码\",\"en-US\":\"Code\"}"
+      },
+      {
+        "code": "colItemCount",
+        "valueJson": "{\"zh-CN\":\"条目数\",\"en-US\":\"Items\"}"
+      },
+      {
+        "code": "colLabel",
+        "valueJson": "{\"zh-CN\":\"显示文案\",\"en-US\":\"Label\"}"
+      },
+      {
+        "code": "collapseAll",
+        "valueJson": "{\"zh-CN\":\"全部折叠\",\"en-US\":\"Collapse all\"}"
+      },
+      {
+        "code": "colName",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
+      },
+      {
+        "code": "colParent",
+        "valueJson": "{\"zh-CN\":\"父条目\",\"en-US\":\"Parent\"}"
+      },
+      {
+        "code": "colRemark",
+        "valueJson": "{\"zh-CN\":\"备注\",\"en-US\":\"Remark\"}"
+      },
+      {
+        "code": "colSort",
+        "valueJson": "{\"zh-CN\":\"排序\",\"en-US\":\"Sort\"}"
+      },
+      {
+        "code": "colStatus",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
+      },
+      {
+        "code": "colValue",
+        "valueJson": "{\"zh-CN\":\"原始值\",\"en-US\":\"Value\"}"
+      },
+      {
+        "code": "confirmDeleteItem",
+        "valueJson": "{\"zh-CN\":\"确认删除条目「{code}」？\",\"en-US\":\"Delete item \\\"{code}\\\"?\"}"
+      },
+      {
+        "code": "confirmDeleteType",
+        "valueJson": "{\"zh-CN\":\"确认删除字典「{name}」？所有条目将一并删除。\",\"en-US\":\"Delete dictionary \\\"{name}\\\"? All items will be removed.\"}"
+      },
+      {
+        "code": "desc",
+        "valueJson": "{\"zh-CN\":\"维护业务字典类型与条目，供其他模块引用\",\"en-US\":\"Manage business dictionary types and items for other modules\"}"
+      },
+      {
+        "code": "expandAll",
+        "valueJson": "{\"zh-CN\":\"全部展开\",\"en-US\":\"Expand all\"}"
+      },
+      {
+        "code": "exportBtn",
+        "valueJson": "{\"zh-CN\":\"导出全部\",\"en-US\":\"Export all\"}"
+      },
+      {
+        "code": "exportFail",
+        "valueJson": "{\"zh-CN\":\"导出失败：{msg}\",\"en-US\":\"Export failed: {msg}\"}"
+      },
+      {
+        "code": "exportOk",
+        "valueJson": "{\"zh-CN\":\"已导出 {count} 条\",\"en-US\":\"Exported {count} record(s)\"}"
+      },
+      {
+        "code": "i18nAdd",
+        "valueJson": "{\"zh-CN\":\"新增\",\"en-US\":\"Add\"}"
+      },
+      {
+        "code": "i18nAddTitle",
+        "valueJson": "{\"zh-CN\":\"新增翻译\",\"en-US\":\"Add translation\"}"
+      },
+      {
+        "code": "i18nCodePh",
+        "valueJson": "{\"zh-CN\":\"如 invoice.List\",\"en-US\":\"e.g. invoice.List\"}"
+      },
+      {
+        "code": "i18nCodeRequired",
+        "valueJson": "{\"zh-CN\":\"请填写命名空间和 Key\",\"en-US\":\"Namespace and Key are required\"}"
+      },
+      {
+        "code": "i18nColCode",
+        "valueJson": "{\"zh-CN\":\"Key\",\"en-US\":\"Key\"}"
+      },
+      {
+        "code": "i18nColEn",
+        "valueJson": "{\"zh-CN\":\"英文 (en-US)\",\"en-US\":\"English (en-US)\"}"
+      },
+      {
+        "code": "i18nColUpdatedAt",
+        "valueJson": "{\"zh-CN\":\"更新时间\",\"en-US\":\"Updated at\"}"
+      },
+      {
+        "code": "i18nColZh",
+        "valueJson": "{\"zh-CN\":\"中文 (zh-CN)\",\"en-US\":\"Chinese (zh-CN)\"}"
+      },
+      {
+        "code": "i18nDeleteConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除 [{ns}] {code} ？\",\"en-US\":\"Delete [{ns}] {code}?\"}"
+      },
+      {
+        "code": "i18nEditTitle",
+        "valueJson": "{\"zh-CN\":\"编辑翻译\",\"en-US\":\"Edit translation\"}"
+      },
+      {
+        "code": "i18nExport",
+        "valueJson": "{\"zh-CN\":\"导出 JSON\",\"en-US\":\"Export JSON\"}"
+      },
+      {
+        "code": "i18nImport",
+        "valueJson": "{\"zh-CN\":\"导入 JSON\",\"en-US\":\"Import JSON\"}"
+      },
+      {
+        "code": "i18nImportChoose",
+        "valueJson": "{\"zh-CN\":\"选择 JSON 文件\",\"en-US\":\"Choose JSON file\"}"
+      },
+      {
+        "code": "i18nImportDone",
+        "valueJson": "{\"zh-CN\":\"导入完成：新增 {inserted} / 更新 {updated} / 跳过 {skipped}\",\"en-US\":\"Import done: inserted {inserted}, updated {updated}, skipped {skipped}\"}"
+      },
+      {
+        "code": "i18nImportFile",
+        "valueJson": "{\"zh-CN\":\"文件\",\"en-US\":\"File\"}"
+      },
+      {
+        "code": "i18nImportMode",
+        "valueJson": "{\"zh-CN\":\"导入模式\",\"en-US\":\"Import mode\"}"
+      },
+      {
+        "code": "i18nImportModeMerge",
+        "valueJson": "{\"zh-CN\":\"合并（已存在则更新）\",\"en-US\":\"Merge (update existing)\"}"
+      },
+      {
+        "code": "i18nImportModeReplace",
+        "valueJson": "{\"zh-CN\":\"替换（先清空再导入）\",\"en-US\":\"Replace (clear then import)\"}"
+      },
+      {
+        "code": "i18nImportOneOnly",
+        "valueJson": "{\"zh-CN\":\"仅允许选择一个文件\",\"en-US\":\"Only one file is allowed\"}"
+      },
+      {
+        "code": "i18nImportSubmit",
+        "valueJson": "{\"zh-CN\":\"开始导入\",\"en-US\":\"Import\"}"
+      },
+      {
+        "code": "i18nImportTip",
+        "valueJson": "{\"zh-CN\":\"格式：[{\\\"namespace\\\":\\\"menu\\\",\\\"items\\\":[{\\\"code\\\":\\\"invoice.List\\\",\\\"valueJson\\\":\\\"{\\\"zh-CN\\\":\\\"...\\\",\\\"en-US\\\":\\\"...\\\"}\\\"}]}]\",\"en-US\":\"Format: [{\\\"namespace\\\":\\\"menu\\\",\\\"items\\\":[{\\\"code\\\":\\\"invoice.List\\\",\\\"valueJson\\\":\\\"{\\\"zh-CN\\\":\\\"...\\\",\\\"en-US\\\":\\\"...\\\"}\\\"}]}]\"}"
+      },
+      {
+        "code": "i18nImportTitle",
+        "valueJson": "{\"zh-CN\":\"导入翻译 JSON\",\"en-US\":\"Import translation JSON\"}"
+      },
+      {
+        "code": "i18nItemsTitle",
+        "valueJson": "{\"zh-CN\":\"翻译条目\",\"en-US\":\"Translation items\"}"
+      },
+      {
+        "code": "i18nNamespace",
+        "valueJson": "{\"zh-CN\":\"命名空间\",\"en-US\":\"Namespace\"}"
+      },
+      {
+        "code": "i18nNamespacePh",
+        "valueJson": "{\"zh-CN\":\"如 menu / invoice / dict\",\"en-US\":\"e.g. menu / invoice / dict\"}"
+      },
+      {
+        "code": "i18nNoItems",
+        "valueJson": "{\"zh-CN\":\"该命名空间暂无翻译\",\"en-US\":\"No items in this namespace\"}"
+      },
+      {
+        "code": "i18nNoNs",
+        "valueJson": "{\"zh-CN\":\"暂无翻译数据\",\"en-US\":\"No translation data\"}"
+      },
+      {
+        "code": "i18nNsSearch",
+        "valueJson": "{\"zh-CN\":\"搜索命名空间\",\"en-US\":\"Search namespaces\"}"
+      },
+      {
+        "code": "i18nNsTitle",
+        "valueJson": "{\"zh-CN\":\"命名空间\",\"en-US\":\"Namespaces\"}"
+      },
+      {
+        "code": "i18nRefresh",
+        "valueJson": "{\"zh-CN\":\"刷新\",\"en-US\":\"Refresh\"}"
+      },
+      {
+        "code": "i18nReset",
+        "valueJson": "{\"zh-CN\":\"重置为默认\",\"en-US\":\"Reset to default\"}"
+      },
+      {
+        "code": "i18nResetConfirm",
+        "valueJson": "{\"zh-CN\":\"确认重置 [{ns}] 命名空间下所有翻译为 ts 文件默认？\",\"en-US\":\"Reset all translations in [{ns}] back to defaults?\"}"
+      },
+      {
+        "code": "i18nResetDone",
+        "valueJson": "{\"zh-CN\":\"已重置\",\"en-US\":\"Reset complete\"}"
+      },
+      {
+        "code": "i18nSelectNsFirst",
+        "valueJson": "{\"zh-CN\":\"请先选择左侧命名空间\",\"en-US\":\"Select a namespace on the left first\"}"
+      },
+      {
+        "code": "i18nSyncConfirm",
+        "valueJson": "{\"zh-CN\":\"确认把 9 个命名空间、约 345 条 ts 默认值写入 sys_i18n_message？已存在的值将被覆盖。\",\"en-US\":\"Write all 9 namespaces (~345 entries) from TS defaults into sys_i18n_message? Existing values will be overwritten.\"}"
+      },
+      {
+        "code": "i18nSyncDefaults",
+        "valueJson": "{\"zh-CN\":\"同步 TS 默认值\",\"en-US\":\"Sync TS defaults\"}"
+      },
+      {
+        "code": "i18nSyncDone",
+        "valueJson": "{\"zh-CN\":\"同步完成：新增 {inserted} / 覆盖 {updated} / 跳过 {skipped}\",\"en-US\":\"Sync done: inserted {inserted}, updated {updated}, skipped {skipped}\"}"
+      },
+      {
+        "code": "i18nSyncTip",
+        "valueJson": "{\"zh-CN\":\"把 ts 文件默认值全部写入数据库，已存在的 key 会被覆盖为默认值\",\"en-US\":\"Write all TS default values to DB. Existing keys will be overwritten with default values.\"}"
+      },
+      {
+        "code": "importBtn",
+        "valueJson": "{\"zh-CN\":\"批量导入\",\"en-US\":\"Batch import\"}"
+      },
+      {
+        "code": "importChooseFile",
+        "valueJson": "{\"zh-CN\":\"选择文件\",\"en-US\":\"Choose file\"}"
+      },
+      {
+        "code": "importConfirm",
+        "valueJson": "{\"zh-CN\":\"确认导入\",\"en-US\":\"Import\"}"
+      },
+      {
+        "code": "importDryRun",
+        "valueJson": "{\"zh-CN\":\"预演模式（不写入）\",\"en-US\":\"Dry run (no writes)\"}"
+      },
+      {
+        "code": "importDryRunOk",
+        "valueJson": "{\"zh-CN\":\"预演完成：{ok} 条可导入，{skip} 条跳过，{err} 条错误\",\"en-US\":\"Dry run: {ok} importable, {skip} skipped, {err} errors\"}"
+      },
+      {
+        "code": "importFail",
+        "valueJson": "{\"zh-CN\":\"导入失败：{msg}\",\"en-US\":\"Import failed: {msg}\"}"
+      },
+      {
+        "code": "importFormatHint",
+        "valueJson": "{\"zh-CN\":\"支持 JSON / CSV，UTF-8 编码。文件最大 5MB。\",\"en-US\":\"Supports JSON / CSV, UTF-8. Max 5MB.\"}"
+      },
+      {
+        "code": "importInvalidFile",
+        "valueJson": "{\"zh-CN\":\"文件为空或格式无法解析\",\"en-US\":\"Empty or invalid file\"}"
+      },
+      {
+        "code": "importOk",
+        "valueJson": "{\"zh-CN\":\"导入完成：{ok} 条新增，{update} 条更新，{skip} 条跳过，{err} 条错误\",\"en-US\":\"Imported: {ok} new, {update} updated, {skip} skipped, {err} errors\"}"
+      },
+      {
+        "code": "importPreview",
+        "valueJson": "{\"zh-CN\":\"将导入 {count} 条记录\",\"en-US\":\"Will import {count} record(s)\"}"
+      },
+      {
+        "code": "importSelectType",
+        "valueJson": "{\"zh-CN\":\"请先选择左侧字典类型\",\"en-US\":\"Select a dictionary type on the left first\"}"
+      },
+      {
+        "code": "importTip",
+        "valueJson": "{\"zh-CN\":\"JSON: [{...}] 或 CSV: type_code,type_name,...,item_code,label,...\",\"en-US\":\"JSON: [{...}] or CSV: type_code,type_name,...,item_code,label,...\"}"
+      },
+      {
+        "code": "importTitle",
+        "valueJson": "{\"zh-CN\":\"批量导入字典\",\"en-US\":\"Batch import dictionary\"}"
+      },
+      {
+        "code": "itemEditTitle",
+        "valueJson": "{\"zh-CN\":\"编辑字典条目\",\"en-US\":\"Edit dictionary item\"}"
+      },
+      {
+        "code": "itemNewTitle",
+        "valueJson": "{\"zh-CN\":\"新建字典条目\",\"en-US\":\"New dictionary item\"}"
+      },
+      {
+        "code": "itemTitle",
+        "valueJson": "{\"zh-CN\":\"字典条目\",\"en-US\":\"Items\"}"
+      },
+      {
+        "code": "newItem",
+        "valueJson": "{\"zh-CN\":\"新建条目\",\"en-US\":\"New item\"}"
+      },
+      {
+        "code": "newType",
+        "valueJson": "{\"zh-CN\":\"新建类型\",\"en-US\":\"New type\"}"
+      },
+      {
+        "code": "refreshCache",
+        "valueJson": "{\"zh-CN\":\"刷新缓存\",\"en-US\":\"Refresh cache\"}"
+      },
+      {
+        "code": "searchTypePlaceholder",
+        "valueJson": "{\"zh-CN\":\"搜索字典类型…\",\"en-US\":\"Search dictionary types…\"}"
+      },
+      {
+        "code": "selectTypeFirst",
+        "valueJson": "{\"zh-CN\":\"请先选择左侧字典类型\",\"en-US\":\"Select a dictionary type on the left\"}"
+      },
+      {
+        "code": "tabDicts",
+        "valueJson": "{\"zh-CN\":\"字典\",\"en-US\":\"Dictionaries\"}"
+      },
+      {
+        "code": "tabI18n",
+        "valueJson": "{\"zh-CN\":\"国际化\",\"en-US\":\"I18N\"}"
+      },
+      {
+        "code": "title",
+        "valueJson": "{\"zh-CN\":\"字典管理\",\"en-US\":\"Dictionary\"}"
+      },
+      {
+        "code": "typeEditTitle",
+        "valueJson": "{\"zh-CN\":\"编辑字典类型\",\"en-US\":\"Edit dictionary type\"}"
+      },
+      {
+        "code": "typeNewTitle",
+        "valueJson": "{\"zh-CN\":\"新建字典类型\",\"en-US\":\"New dictionary type\"}"
+      },
+      {
+        "code": "typeTitle",
+        "valueJson": "{\"zh-CN\":\"字典类型\",\"en-US\":\"Types\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "error",
+    "items": [
+      {
+        "code": "forbidden",
+        "valueJson": "{\"zh-CN\":\"您没有权限访问此页面\",\"en-US\":\"You don't have permission to access this page.\"}"
+      },
+      {
+        "code": "networkError",
+        "valueJson": "{\"zh-CN\":\"网络错误\",\"en-US\":\"Network error\"}"
+      },
+      {
+        "code": "notFound",
+        "valueJson": "{\"zh-CN\":\"页面不存在\",\"en-US\":\"Page not found.\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "invoice",
+    "items": [
+      {
+        "code": "blockDbDupDesc",
+        "valueJson": "{\"zh-CN\":\"下方「核销文件已使用」卡片中列出的发票号已存在于系统，无法重复保存。请删除对应文件后再保存。\",\"en-US\":\"The invoice numbers listed in the \\\"Used verification files\\\" card already exist in the system and cannot be saved again. Remove the corresponding files before saving.\"}"
+      },
+      {
+        "code": "blockDbDupTitle",
+        "valueJson": "{\"zh-CN\":\"存在核销文件已使用的记录\",\"en-US\":\"Some files have already been used for verification\"}"
+      },
+      {
+        "code": "blockDupDesc",
+        "valueJson": "{\"zh-CN\":\"下方「重复发票（本批次）」卡片中列出的同一发票号 + 文件格式在本批次内出现多次，请移除重复文件后再保存。\",\"en-US\":\"The same invoice number + format appears more than once within this batch (see \\\"Duplicates (this batch)\\\" card). Remove duplicate files before saving.\"}"
+      },
+      {
+        "code": "blockDupTitle",
+        "valueJson": "{\"zh-CN\":\"本次上传存在重复发票\",\"en-US\":\"Duplicate invoices in this batch\"}"
+      },
+      {
+        "code": "blockErrDesc",
+        "valueJson": "{\"zh-CN\":\"请删除识别失败的文件或修正后重新上传，再保存到数据库。\",\"en-US\":\"Remove failed files or fix them and re-upload before saving to the database.\"}"
+      },
+      {
+        "code": "blockErrTitle",
+        "valueJson": "{\"zh-CN\":\"存在识别失败的文件\",\"en-US\":\"Recognition failed for some files\"}"
+      },
+      {
+        "code": "clear",
+        "valueJson": "{\"zh-CN\":\"清空\",\"en-US\":\"Clear\"}"
+      },
+      {
+        "code": "colBuyer",
+        "valueJson": "{\"zh-CN\":\"购买方\",\"en-US\":\"Buyer\"}"
+      },
+      {
+        "code": "colBuyerTaxId",
+        "valueJson": "{\"zh-CN\":\"购买方税号\",\"en-US\":\"Buyer Tax ID\"}"
+      },
+      {
+        "code": "colCreatedDate",
+        "valueJson": "{\"zh-CN\":\"创建日期\",\"en-US\":\"Created Date\"}"
+      },
+      {
+        "code": "colDrawer",
+        "valueJson": "{\"zh-CN\":\"开票人\",\"en-US\":\"Drawer\"}"
+      },
+      {
+        "code": "colFile",
+        "valueJson": "{\"zh-CN\":\"文件\",\"en-US\":\"File\"}"
+      },
+      {
+        "code": "colFileExt",
+        "valueJson": "{\"zh-CN\":\"文件格式\",\"en-US\":\"Format\"}"
+      },
+      {
+        "code": "colFormat",
+        "valueJson": "{\"zh-CN\":\"文件格式\",\"en-US\":\"Format\"}"
+      },
+      {
+        "code": "colInvoiceNo",
+        "valueJson": "{\"zh-CN\":\"发票号\",\"en-US\":\"Invoice No\"}"
+      },
+      {
+        "code": "colIssueDate",
+        "valueJson": "{\"zh-CN\":\"开票日期\",\"en-US\":\"Issue Date\"}"
+      },
+      {
+        "code": "colMessage",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
+      },
+      {
+        "code": "colNet",
+        "valueJson": "{\"zh-CN\":\"不含税金额\",\"en-US\":\"Net\"}"
+      },
+      {
+        "code": "colPageCount",
+        "valueJson": "{\"zh-CN\":\"页数\",\"en-US\":\"Pages\"}"
+      },
+      {
+        "code": "colPayee",
+        "valueJson": "{\"zh-CN\":\"收款人\",\"en-US\":\"Payee\"}"
+      },
+      {
+        "code": "colReviewer",
+        "valueJson": "{\"zh-CN\":\"复核人\",\"en-US\":\"Reviewer\"}"
+      },
+      {
+        "code": "colSeller",
+        "valueJson": "{\"zh-CN\":\"销售方\",\"en-US\":\"Seller\"}"
+      },
+      {
+        "code": "colSellerTaxId",
+        "valueJson": "{\"zh-CN\":\"销售方税号\",\"en-US\":\"Seller Tax ID\"}"
+      },
+      {
+        "code": "colTax",
+        "valueJson": "{\"zh-CN\":\"税额\",\"en-US\":\"Tax\"}"
+      },
+      {
+        "code": "colTotal",
+        "valueJson": "{\"zh-CN\":\"价税合计\",\"en-US\":\"Total\"}"
+      },
+      {
+        "code": "colTotalUpper",
+        "valueJson": "{\"zh-CN\":\"价税合计(大写)\",\"en-US\":\"Total (Upper)\"}"
+      },
+      {
+        "code": "colType",
+        "valueJson": "{\"zh-CN\":\"票种\",\"en-US\":\"Type\"}"
+      },
+      {
+        "code": "colVerificationDate",
+        "valueJson": "{\"zh-CN\":\"核销日期\",\"en-US\":\"Verification Date\"}"
+      },
+      {
+        "code": "colVerificationNo",
+        "valueJson": "{\"zh-CN\":\"核销单号\",\"en-US\":\"Verification No.\"}"
+      },
+      {
+        "code": "colVerifier",
+        "valueJson": "{\"zh-CN\":\"核销人\",\"en-US\":\"Verifier\"}"
+      },
+      {
+        "code": "dbDupHintAll",
+        "valueJson": "{\"zh-CN\":\"下列为本批次上传发票号中已存在于数据库的记录 + 数据库中按「发票号 + 文件格式」分组的重复记录。\",\"en-US\":\"Records in the database matching the invoice numbers in this batch, plus duplicates grouped by (invoice number + file format).\"}"
+      },
+      {
+        "code": "dbDupHintClean",
+        "valueJson": "{\"zh-CN\":\"当前数据库无重复记录。\",\"en-US\":\"No duplicates currently in the database.\"}"
+      },
+      {
+        "code": "dbDupHits",
+        "valueJson": "{\"zh-CN\":\"共 {count} 条记录\",\"en-US\":\"{count} record(s)\"}"
+      },
+      {
+        "code": "dbDupInvoiceNumbers",
+        "valueJson": "{\"zh-CN\":\"涉及 {count} 个发票号\",\"en-US\":\"{count} invoice number(s)\"}"
+      },
+      {
+        "code": "dbDupTitle",
+        "valueJson": "{\"zh-CN\":\"核销文件已使用\",\"en-US\":\"Used verification files\"}"
+      },
+      {
+        "code": "deleteGroupConfirm",
+        "valueJson": "{\"zh-CN\":\"此发票号共 {n} 条记录，确认全部删除？\",\"en-US\":\"This invoice has {n} record(s). Delete all?\"}"
+      },
+      {
+        "code": "deleteGroupTitle",
+        "valueJson": "{\"zh-CN\":\"批量删除\",\"en-US\":\"Delete group\"}"
+      },
+      {
+        "code": "dropHere",
+        "valueJson": "{\"zh-CN\":\"将文件拖到此处，或点击选择文件\",\"en-US\":\"Drop files here, or click to select files\"}"
+      },
+      {
+        "code": "dupGroupTitle",
+        "valueJson": "{\"zh-CN\":\"发票号 {no}（{ext}）出现 {count} 次\",\"en-US\":\"Invoice {no} ({ext}) appears {count} times\"}"
+      },
+      {
+        "code": "editBuyer",
+        "valueJson": "{\"zh-CN\":\"购买方\",\"en-US\":\"Buyer\"}"
+      },
+      {
+        "code": "editBuyerTaxId",
+        "valueJson": "{\"zh-CN\":\"购买方税号\",\"en-US\":\"Buyer Tax ID\"}"
+      },
+      {
+        "code": "editInvoiceNo",
+        "valueJson": "{\"zh-CN\":\"发票号\",\"en-US\":\"Invoice No\"}"
+      },
+      {
+        "code": "editIssueDate",
+        "valueJson": "{\"zh-CN\":\"开票日期\",\"en-US\":\"Issue Date\"}"
+      },
+      {
+        "code": "editMessage",
+        "valueJson": "{\"zh-CN\":\"备注\",\"en-US\":\"Remark\"}"
+      },
+      {
+        "code": "editNet",
+        "valueJson": "{\"zh-CN\":\"不含税金额\",\"en-US\":\"Amount (Net)\"}"
+      },
+      {
+        "code": "editSeller",
+        "valueJson": "{\"zh-CN\":\"销售方\",\"en-US\":\"Seller\"}"
+      },
+      {
+        "code": "editSellerTaxId",
+        "valueJson": "{\"zh-CN\":\"销售方税号\",\"en-US\":\"Seller Tax ID\"}"
+      },
+      {
+        "code": "editTax",
+        "valueJson": "{\"zh-CN\":\"税额\",\"en-US\":\"Tax\"}"
+      },
+      {
+        "code": "editTitle",
+        "valueJson": "{\"zh-CN\":\"编辑发票\",\"en-US\":\"Edit Invoice\"}"
+      },
+      {
+        "code": "editTotal",
+        "valueJson": "{\"zh-CN\":\"价税合计\",\"en-US\":\"Total\"}"
+      },
+      {
+        "code": "exportCsv",
+        "valueJson": "{\"zh-CN\":\"导出 CSV\",\"en-US\":\"Export CSV\"}"
+      },
+      {
+        "code": "exportFail",
+        "valueJson": "{\"zh-CN\":\"导出失败\",\"en-US\":\"Export failed\"}"
+      },
+      {
+        "code": "exportOk",
+        "valueJson": "{\"zh-CN\":\"已导出 {kind}\",\"en-US\":\"Exported {kind}\"}"
+      },
+      {
+        "code": "exportXlsx",
+        "valueJson": "{\"zh-CN\":\"导出 Excel\",\"en-US\":\"Export Excel\"}"
+      },
+      {
+        "code": "formatOfd",
+        "valueJson": "{\"zh-CN\":\"OFD\",\"en-US\":\"OFD\"}"
+      },
+      {
+        "code": "formatPdf",
+        "valueJson": "{\"zh-CN\":\"PDF\",\"en-US\":\"PDF\"}"
+      },
+      {
+        "code": "formatXml",
+        "valueJson": "{\"zh-CN\":\"XML\",\"en-US\":\"XML\"}"
+      },
+      {
+        "code": "listTitle",
+        "valueJson": "{\"zh-CN\":\"发票列表\",\"en-US\":\"Invoice Records\"}"
+      },
+      {
+        "code": "listTitleDesc",
+        "valueJson": "{\"zh-CN\":\"查看已识别的发票，可改字段、重新下载\",\"en-US\":\"View recognized invoices, edit them, or re-download\"}"
+      },
+      {
+        "code": "msgEmpty",
+        "valueJson": "{\"zh-CN\":\"未识别\",\"en-US\":\"empty\"}"
+      },
+      {
+        "code": "msgProcessing",
+        "valueJson": "{\"zh-CN\":\"处理中\",\"en-US\":\"processing\"}"
+      },
+      {
+        "code": "msgSuccess",
+        "valueJson": "{\"zh-CN\":\"识别成功\",\"en-US\":\"success\"}"
+      },
+      {
+        "code": "ocrNotConfiguredGoto",
+        "valueJson": "{\"zh-CN\":\"前往配置\",\"en-US\":\"Configure now\"}"
+      },
+      {
+        "code": "ocrNotConfiguredMsg",
+        "valueJson": "{\"zh-CN\":\"当前未启用自定义识别 API，无法进行发票识别。请先在此填写 Base URL 与 API Key。\",\"en-US\":\"No custom OCR API is enabled, so invoice recognition cannot run. Please set the Base URL and API Key here first.\"}"
+      },
+      {
+        "code": "ocrNotConfiguredTitle",
+        "valueJson": "{\"zh-CN\":\"识别 API 未配置\",\"en-US\":\"OCR API not configured\"}"
+      },
+      {
+        "code": "previewFailOfd",
+        "valueJson": "{\"zh-CN\":\"OFD 格式浏览器暂不支持预览，将下载文件\",\"en-US\":\"OFD preview not supported by browser. File will be downloaded.\"}"
+      },
+      {
+        "code": "previewFailXml",
+        "valueJson": "{\"zh-CN\":\"XML 格式浏览器暂不支持预览，已在新标签打开\",\"en-US\":\"XML preview not supported by browser. Opened in a new tab.\"}"
+      },
+      {
+        "code": "previewTitle",
+        "valueJson": "{\"zh-CN\":\"文件预览\",\"en-US\":\"File Preview\"}"
+      },
+      {
+        "code": "queryKeywordLabel",
+        "valueJson": "{\"zh-CN\":\"关键字\",\"en-US\":\"Keyword\"}"
+      },
+      {
+        "code": "queryVerificationDateLabel",
+        "valueJson": "{\"zh-CN\":\"核销期间\",\"en-US\":\"Verif. Period\"}"
+      },
+      {
+        "code": "queryVerificationNoLabel",
+        "valueJson": "{\"zh-CN\":\"核销单号\",\"en-US\":\"Verif. No.\"}"
+      },
+      {
+        "code": "queryVerifierLabel",
+        "valueJson": "{\"zh-CN\":\"核销人\",\"en-US\":\"Verifier\"}"
+      },
+      {
+        "code": "recordsCount",
+        "valueJson": "{\"zh-CN\":\"{count} 条记录\",\"en-US\":\"{count} record(s)\"}"
+      },
+      {
+        "code": "resultsDupTitle",
+        "valueJson": "{\"zh-CN\":\"重复发票（本批次）\",\"en-US\":\"Duplicates (this batch)\"}"
+      },
+      {
+        "code": "resultsErrTitle",
+        "valueJson": "{\"zh-CN\":\"识别异常\",\"en-US\":\"Recognition errors\"}"
+      },
+      {
+        "code": "resultsOkTitle",
+        "valueJson": "{\"zh-CN\":\"识别成功\",\"en-US\":\"Recognized\"}"
+      },
+      {
+        "code": "resultsTitle",
+        "valueJson": "{\"zh-CN\":\"识别结果\",\"en-US\":\"Recognition Results\"}"
+      },
+      {
+        "code": "saveBlocked",
+        "valueJson": "{\"zh-CN\":\"当前存在阻断项，无法保存到数据库。请按上方红色提示处理。\",\"en-US\":\"Saving is blocked. Please resolve the red alerts above.\"}"
+      },
+      {
+        "code": "saveBtn",
+        "valueJson": "{\"zh-CN\":\"保存 ({count}) 条到数据库\",\"en-US\":\"Save ({count}) to database\"}"
+      },
+      {
+        "code": "saveHint",
+        "valueJson": "{\"zh-CN\":\"点击后将按\\\"发票号码_核销单号\\\"重命名文件并入库\",\"en-US\":\"Files will be renamed to \\\"invoiceNo_verificationNo\\\" and persisted\"}"
+      },
+      {
+        "code": "saveNoSuccess",
+        "valueJson": "{\"zh-CN\":\"暂无可保存的识别成功记录\",\"en-US\":\"No successful records to save\"}"
+      },
+      {
+        "code": "saveOk",
+        "valueJson": "{\"zh-CN\":\"已保存 {count} 条\",\"en-US\":\"Saved {count} record(s)\"}"
+      },
+      {
+        "code": "searchPlaceholder",
+        "valueJson": "{\"zh-CN\":\"搜索发票号 / 销售方 / 购买方\",\"en-US\":\"Search invoice / seller / buyer\"}"
+      },
+      {
+        "code": "statusError",
+        "valueJson": "{\"zh-CN\":\"错误\",\"en-US\":\"Error\"}"
+      },
+      {
+        "code": "statusSuccess",
+        "valueJson": "{\"zh-CN\":\"成功\",\"en-US\":\"Success\"}"
+      },
+      {
+        "code": "submit",
+        "valueJson": "{\"zh-CN\":\"开始识别 ({count})\",\"en-US\":\"Upload & Recognize ({count})\"}"
+      },
+      {
+        "code": "uploadDesc",
+        "valueJson": "{\"zh-CN\":\"支持 PDF / XML，单次最多 50 个文件 / 每个 10MB\",\"en-US\":\"PDF / XML, max 50 files / 10MB per file\"}"
+      },
+      {
+        "code": "uploadError",
+        "valueJson": "{\"zh-CN\":\"上传失败\",\"en-US\":\"Upload failed\"}"
+      },
+      {
+        "code": "uploadTitle",
+        "valueJson": "{\"zh-CN\":\"上传并识别发票\",\"en-US\":\"Upload & Recognize Invoices\"}"
+      },
+      {
+        "code": "verificationDateLabel",
+        "valueJson": "{\"zh-CN\":\"核销日期\",\"en-US\":\"Verification Date\"}"
+      },
+      {
+        "code": "verificationDatePlaceholder",
+        "valueJson": "{\"zh-CN\":\"选择核销日期\",\"en-US\":\"Pick a verification date\"}"
+      },
+      {
+        "code": "verificationDateRangePlaceholder",
+        "valueJson": "{\"zh-CN\":\"选择开始与结束日期\",\"en-US\":\"Pick start and end dates\"}"
+      },
+      {
+        "code": "verificationNoLabel",
+        "valueJson": "{\"zh-CN\":\"核销单号\",\"en-US\":\"Verification No.\"}"
+      },
+      {
+        "code": "verificationNoPlaceholder",
+        "valueJson": "{\"zh-CN\":\"输入核销单号\",\"en-US\":\"Enter verification No.\"}"
+      },
+      {
+        "code": "verificationNoRequired",
+        "valueJson": "{\"zh-CN\":\"请先填写核销单号\",\"en-US\":\"Please enter the verification number\"}"
+      },
+      {
+        "code": "verifierLabel",
+        "valueJson": "{\"zh-CN\":\"核销人\",\"en-US\":\"Verifier\"}"
+      },
+      {
+        "code": "verifierPlaceholder",
+        "valueJson": "{\"zh-CN\":\"输入核销人\",\"en-US\":\"Enter verifier name\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "layout",
+    "items": [
+      {
+        "code": "brand",
+        "valueJson": "{\"zh-CN\":\"财会运营中心\",\"en-US\":\"Finance Ops Center\"}"
+      },
+      {
+        "code": "brandShort",
+        "valueJson": "{\"zh-CN\":\"财\",\"en-US\":\"F\"}"
+      },
+      {
+        "code": "brandSub",
+        "valueJson": "{\"zh-CN\":\"财会 · 运营 · 管理\",\"en-US\":\"Finance · Ops · Mgmt\"}"
+      },
+      {
+        "code": "collapsedHint",
+        "valueJson": "{\"zh-CN\":\"折叠侧边栏\",\"en-US\":\"Collapse sidebar\"}"
+      },
+      {
+        "code": "expandHint",
+        "valueJson": "{\"zh-CN\":\"展开侧边栏\",\"en-US\":\"Expand sidebar\"}"
+      },
+      {
+        "code": "home",
+        "valueJson": "{\"zh-CN\":\"首页\",\"en-US\":\"Home\"}"
+      },
+      {
+        "code": "language",
+        "valueJson": "{\"zh-CN\":\"语言\",\"en-US\":\"Language\"}"
+      },
+      {
+        "code": "logoutConfirm",
+        "valueJson": "{\"zh-CN\":\"确定要退出登录吗？\",\"en-US\":\"Are you sure to logout?\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "login",
+    "items": [
+      {
+        "code": "invalidCredentials",
+        "valueJson": "{\"zh-CN\":\"用户名或密码错误\",\"en-US\":\"Invalid username or password\"}"
+      },
+      {
+        "code": "loggedInAs",
+        "valueJson": "{\"zh-CN\":\"当前登录：\",\"en-US\":\"Logged in as:\"}"
+      },
+      {
+        "code": "password",
+        "valueJson": "{\"zh-CN\":\"密码\",\"en-US\":\"Password\"}"
+      },
+      {
+        "code": "passwordPlaceholder",
+        "valueJson": "{\"zh-CN\":\"admin 默认密码\",\"en-US\":\"default password\"}"
+      },
+      {
+        "code": "submit",
+        "valueJson": "{\"zh-CN\":\"登录\",\"en-US\":\"Login\"}"
+      },
+      {
+        "code": "subtitle",
+        "valueJson": "{\"zh-CN\":\"登录以继续\",\"en-US\":\"Login to continue\"}"
+      },
+      {
+        "code": "title",
+        "valueJson": "{\"zh-CN\":\"财会运营中心\",\"en-US\":\"Finance Ops Center\"}"
+      },
+      {
+        "code": "userDisabled",
+        "valueJson": "{\"zh-CN\":\"用户已被禁用\",\"en-US\":\"User is disabled\"}"
+      },
+      {
+        "code": "username",
+        "valueJson": "{\"zh-CN\":\"用户名\",\"en-US\":\"Username\"}"
+      },
+      {
+        "code": "usernamePlaceholder",
+        "valueJson": "{\"zh-CN\":\"admin\",\"en-US\":\"admin\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "menu",
+    "items": [
+      {
+        "code": "dashboard._",
+        "valueJson": "{\"zh-CN\":\"仪表盘\",\"en-US\":\"Dashboard\"}"
+      },
+      {
+        "code": "dashboard.Index",
+        "valueJson": "{\"zh-CN\":\"仪表盘\",\"en-US\":\"Dashboard\"}"
+      },
+      {
+        "code": "invoice._",
+        "valueJson": "{\"zh-CN\":\"发票管理\",\"en-US\":\"Invoice\"}"
+      },
+      {
+        "code": "invoice.List",
+        "valueJson": "{\"zh-CN\":\"发票列表\",\"en-US\":\"Records\"}"
+      },
+      {
+        "code": "invoice.Upload",
+        "valueJson": "{\"zh-CN\":\"上传识别\",\"en-US\":\"Upload\"}"
+      },
+      {
+        "code": "invoiceList",
+        "valueJson": "{\"zh-CN\":\"记录\",\"en-US\":\"Records\"}"
+      },
+      {
+        "code": "invoiceUpload",
+        "valueJson": "{\"zh-CN\":\"识别\",\"en-US\":\"Upload\"}"
+      },
+      {
+        "code": "system._",
+        "valueJson": "{\"zh-CN\":\"系统设置\",\"en-US\":\"System\"}"
+      },
+      {
+        "code": "system.dict.Index",
+        "valueJson": "{\"zh-CN\":\"字典管理\",\"en-US\":\"Dictionaries\"}"
+      },
+      {
+        "code": "system.menu.Index",
+        "valueJson": "{\"zh-CN\":\"菜单管理\",\"en-US\":\"Menus\"}"
+      },
+      {
+        "code": "system.ocr.Index",
+        "valueJson": "{\"zh-CN\":\"API设置\",\"en-US\":\"OCR API\"}"
+      },
+      {
+        "code": "system.role.Index",
+        "valueJson": "{\"zh-CN\":\"角色管理\",\"en-US\":\"Roles\"}"
+      },
+      {
+        "code": "system.storage.Index",
+        "valueJson": "{\"zh-CN\":\"存储设置\",\"en-US\":\"Storage\"}"
+      },
+      {
+        "code": "system.user.Index",
+        "valueJson": "{\"zh-CN\":\"用户管理\",\"en-US\":\"Users\"}"
+      },
+      {
+        "code": "systemMenu",
+        "valueJson": "{\"zh-CN\":\"菜单\",\"en-US\":\"Menus\"}"
+      },
+      {
+        "code": "systemOcr",
+        "valueJson": "{\"zh-CN\":\"API设置\",\"en-US\":\"OCR API\"}"
+      },
+      {
+        "code": "systemRole",
+        "valueJson": "{\"zh-CN\":\"角色\",\"en-US\":\"Roles\"}"
+      },
+      {
+        "code": "systemStorage",
+        "valueJson": "{\"zh-CN\":\"存储\",\"en-US\":\"Storage\"}"
+      },
+      {
+        "code": "systemUser",
+        "valueJson": "{\"zh-CN\":\"用户\",\"en-US\":\"Users\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "system",
+    "items": [
+      {
+        "code": "colCode",
+        "valueJson": "{\"zh-CN\":\"角色代码\",\"en-US\":\"Code\"}"
+      },
+      {
+        "code": "colComponent",
+        "valueJson": "{\"zh-CN\":\"组件路径\",\"en-US\":\"Component\"}"
+      },
+      {
+        "code": "colCreatedAt",
+        "valueJson": "{\"zh-CN\":\"创建时间\",\"en-US\":\"Created\"}"
+      },
+      {
+        "code": "colDisplayName",
+        "valueJson": "{\"zh-CN\":\"显示名\",\"en-US\":\"Display Name\"}"
+      },
+      {
+        "code": "colEmail",
+        "valueJson": "{\"zh-CN\":\"邮箱\",\"en-US\":\"Email\"}"
+      },
+      {
+        "code": "colIcon",
+        "valueJson": "{\"zh-CN\":\"图标\",\"en-US\":\"Icon\"}"
+      },
+      {
+        "code": "colId",
+        "valueJson": "{\"zh-CN\":\"ID\",\"en-US\":\"ID\"}"
+      },
+      {
+        "code": "colLastLogin",
+        "valueJson": "{\"zh-CN\":\"最后登录\",\"en-US\":\"Last Login\"}"
+      },
+      {
+        "code": "colName",
+        "valueJson": "{\"zh-CN\":\"角色名\",\"en-US\":\"Name\"}"
+      },
+      {
+        "code": "colParent",
+        "valueJson": "{\"zh-CN\":\"父菜单\",\"en-US\":\"Parent\"}"
+      },
+      {
+        "code": "colPermission",
+        "valueJson": "{\"zh-CN\":\"权限码\",\"en-US\":\"Permission\"}"
+      },
+      {
+        "code": "colPermissions",
+        "valueJson": "{\"zh-CN\":\"权限\",\"en-US\":\"Permissions\"}"
+      },
+      {
+        "code": "colPhone",
+        "valueJson": "{\"zh-CN\":\"电话\",\"en-US\":\"Phone\"}"
+      },
+      {
+        "code": "colRemark",
+        "valueJson": "{\"zh-CN\":\"备注\",\"en-US\":\"Remark\"}"
+      },
+      {
+        "code": "colRoles",
+        "valueJson": "{\"zh-CN\":\"角色\",\"en-US\":\"Roles\"}"
+      },
+      {
+        "code": "colSort",
+        "valueJson": "{\"zh-CN\":\"排序\",\"en-US\":\"Sort\"}"
+      },
+      {
+        "code": "colType",
+        "valueJson": "{\"zh-CN\":\"类型\",\"en-US\":\"Type\"}"
+      },
+      {
+        "code": "colUsername",
+        "valueJson": "{\"zh-CN\":\"用户名\",\"en-US\":\"Username\"}"
+      },
+      {
+        "code": "confirmDeleteMenu",
+        "valueJson": "{\"zh-CN\":\"确定要删除该菜单吗？\",\"en-US\":\"Delete this menu?\"}"
+      },
+      {
+        "code": "confirmDeleteRole",
+        "valueJson": "{\"zh-CN\":\"确定要删除该角色吗？\",\"en-US\":\"Delete this role?\"}"
+      },
+      {
+        "code": "confirmDeleteUser",
+        "valueJson": "{\"zh-CN\":\"确定要删除该用户吗？\",\"en-US\":\"Delete this user?\"}"
+      },
+      {
+        "code": "deleteMenuWithChildren",
+        "valueJson": "{\"zh-CN\":\"该菜单包含子项，将一起删除\",\"en-US\":\"This menu has children that will be deleted together\"}"
+      },
+      {
+        "code": "editMenuTitle",
+        "valueJson": "{\"zh-CN\":\"编辑菜单\",\"en-US\":\"Edit Menu\"}"
+      },
+      {
+        "code": "editRoleTitle",
+        "valueJson": "{\"zh-CN\":\"编辑角色\",\"en-US\":\"Edit Role\"}"
+      },
+      {
+        "code": "editUserTitle",
+        "valueJson": "{\"zh-CN\":\"编辑用户\",\"en-US\":\"Edit User\"}"
+      },
+      {
+        "code": "localDiskSection",
+        "valueJson": "{\"zh-CN\":\"本地磁盘\",\"en-US\":\"Local Disk\"}"
+      },
+      {
+        "code": "menuTitle",
+        "valueJson": "{\"zh-CN\":\"菜单管理\",\"en-US\":\"Menus\"}"
+      },
+      {
+        "code": "menuTitleDesc",
+        "valueJson": "{\"zh-CN\":\"维护左侧导航菜单树\",\"en-US\":\"Maintain the sidebar menu tree\"}"
+      },
+      {
+        "code": "newMenu",
+        "valueJson": "{\"zh-CN\":\"新增菜单\",\"en-US\":\"New Menu\"}"
+      },
+      {
+        "code": "newMenuTitle",
+        "valueJson": "{\"zh-CN\":\"新增菜单\",\"en-US\":\"New Menu\"}"
+      },
+      {
+        "code": "newRole",
+        "valueJson": "{\"zh-CN\":\"新增角色\",\"en-US\":\"New Role\"}"
+      },
+      {
+        "code": "newRoleTitle",
+        "valueJson": "{\"zh-CN\":\"新增角色\",\"en-US\":\"New Role\"}"
+      },
+      {
+        "code": "newUser",
+        "valueJson": "{\"zh-CN\":\"新增用户\",\"en-US\":\"New User\"}"
+      },
+      {
+        "code": "newUserTitle",
+        "valueJson": "{\"zh-CN\":\"新增用户\",\"en-US\":\"New User\"}"
+      },
+      {
+        "code": "ocrApiKeyChange",
+        "valueJson": "{\"zh-CN\":\"修改\",\"en-US\":\"Change\"}"
+      },
+      {
+        "code": "ocrApiKeyConfigured",
+        "valueJson": "{\"zh-CN\":\"已配置\",\"en-US\":\"Configured\"}"
+      },
+      {
+        "code": "ocrApiKeyHint",
+        "valueJson": "{\"zh-CN\":\"保存后加密落库；返回时仅显示掩码\",\"en-US\":\"Encrypted on save; only masked on read\"}"
+      },
+      {
+        "code": "ocrApiKeyKeepPlaceholder",
+        "valueJson": "{\"zh-CN\":\"留空表示不修改（已配置）\",\"en-US\":\"Leave blank to keep existing key\"}"
+      },
+      {
+        "code": "ocrApiKeyLabel",
+        "valueJson": "{\"zh-CN\":\"API Key\",\"en-US\":\"API Key\"}"
+      },
+      {
+        "code": "ocrApiKeyPlaceholder",
+        "valueJson": "{\"zh-CN\":\"输入新的 API Key\",\"en-US\":\"Enter new API Key\"}"
+      },
+      {
+        "code": "ocrBannerDesc",
+        "valueJson": "{\"zh-CN\":\"启用并填写 Base URL + API Key 后才能进行发票识别；上传文件时若未配置会提示。\",\"en-US\":\"Enable it and fill in the Base URL + API Key before uploading invoices; otherwise uploads will be blocked with a prompt.\"}"
+      },
+      {
+        "code": "ocrBannerTitle",
+        "valueJson": "{\"zh-CN\":\"未启用自定义识别 API\",\"en-US\":\"Custom OCR API is disabled\"}"
+      },
+      {
+        "code": "ocrBaseUrlLabel",
+        "valueJson": "{\"zh-CN\":\"Base URL\",\"en-US\":\"Base URL\"}"
+      },
+      {
+        "code": "ocrEnabledHint",
+        "valueJson": "{\"zh-CN\":\"关闭时使用 application.yml / 环境变量中的默认配置\",\"en-US\":\"When off, application.yml / env defaults are used\"}"
+      },
+      {
+        "code": "ocrEnabledLabel",
+        "valueJson": "{\"zh-CN\":\"启用自定义识别API\",\"en-US\":\"Use custom OCR API\"}"
+      },
+      {
+        "code": "ocrEnabledOff",
+        "valueJson": "{\"zh-CN\":\"关闭\",\"en-US\":\"Off\"}"
+      },
+      {
+        "code": "ocrEnabledOn",
+        "valueJson": "{\"zh-CN\":\"启用\",\"en-US\":\"On\"}"
+      },
+      {
+        "code": "ocrEndpointSection",
+        "valueJson": "{\"zh-CN\":\"识别服务\",\"en-US\":\"Recognition Endpoint\"}"
+      },
+      {
+        "code": "ocrSaved",
+        "valueJson": "{\"zh-CN\":\"保存成功，新上传将使用自定义识别服务\",\"en-US\":\"Saved. New uploads will use the custom OCR service\"}"
+      },
+      {
+        "code": "ocrStatusOff",
+        "valueJson": "{\"zh-CN\":\"使用默认配置\",\"en-US\":\"Using defaults\"}"
+      },
+      {
+        "code": "ocrStatusOffDesc",
+        "valueJson": "{\"zh-CN\":\"由 application.yml / 环境变量决定\",\"en-US\":\"From application.yml / environment\"}"
+      },
+      {
+        "code": "ocrStatusOn",
+        "valueJson": "{\"zh-CN\":\"已启用自定义\",\"en-US\":\"Custom enabled\"}"
+      },
+      {
+        "code": "ocrStatusTitle",
+        "valueJson": "{\"zh-CN\":\"当前状态\",\"en-US\":\"Current Status\"}"
+      },
+      {
+        "code": "ocrTestBtn",
+        "valueJson": "{\"zh-CN\":\"测试连通\",\"en-US\":\"Test Connection\"}"
+      },
+      {
+        "code": "ocrTestFail",
+        "valueJson": "{\"zh-CN\":\"连通失败，请检查 URL\",\"en-US\":\"Connection failed, check the URL\"}"
+      },
+      {
+        "code": "ocrTestOk",
+        "valueJson": "{\"zh-CN\":\"连通正常\",\"en-US\":\"Connection OK\"}"
+      },
+      {
+        "code": "ocrTimeoutLabel",
+        "valueJson": "{\"zh-CN\":\"请求超时\",\"en-US\":\"Timeout\"}"
+      },
+      {
+        "code": "ocrTitle",
+        "valueJson": "{\"zh-CN\":\"识别API\",\"en-US\":\"OCR API\"}"
+      },
+      {
+        "code": "ocrTitleDesc",
+        "valueJson": "{\"zh-CN\":\"自定义识别服务地址与密钥（启用后立即生效，加密存储）\",\"en-US\":\"Customize the recognition endpoint and key (encrypted at rest, hot-reloaded)\"}"
+      },
+      {
+        "code": "parentRoot",
+        "valueJson": "{\"zh-CN\":\"（顶级）\",\"en-US\":\"(root)\"}"
+      },
+      {
+        "code": "passwordHint",
+        "valueJson": "{\"zh-CN\":\"留空表示不修改\",\"en-US\":\"Leave blank to keep\"}"
+      },
+      {
+        "code": "passwordLabel",
+        "valueJson": "{\"zh-CN\":\"密码\",\"en-US\":\"Password\"}"
+      },
+      {
+        "code": "roleTitle",
+        "valueJson": "{\"zh-CN\":\"角色管理\",\"en-US\":\"Roles\"}"
+      },
+      {
+        "code": "roleTitleDesc",
+        "valueJson": "{\"zh-CN\":\"配置角色及对应权限\",\"en-US\":\"Configure roles and their permissions\"}"
+      },
+      {
+        "code": "rootPathLabel",
+        "valueJson": "{\"zh-CN\":\"根目录\",\"en-US\":\"Root Path\"}"
+      },
+      {
+        "code": "s3AccessKeyLabel",
+        "valueJson": "{\"zh-CN\":\"Access Key\",\"en-US\":\"Access Key\"}"
+      },
+      {
+        "code": "s3BucketLabel",
+        "valueJson": "{\"zh-CN\":\"Bucket\",\"en-US\":\"Bucket\"}"
+      },
+      {
+        "code": "s3ConfigSection",
+        "valueJson": "{\"zh-CN\":\"S3 兼容存储\",\"en-US\":\"S3 Compatible\"}"
+      },
+      {
+        "code": "s3EndpointLabel",
+        "valueJson": "{\"zh-CN\":\"Endpoint\",\"en-US\":\"Endpoint\"}"
+      },
+      {
+        "code": "s3PathStyleLabel",
+        "valueJson": "{\"zh-CN\":\"路径模式\",\"en-US\":\"Path Style\"}"
+      },
+      {
+        "code": "s3RegionLabel",
+        "valueJson": "{\"zh-CN\":\"Region\",\"en-US\":\"Region\"}"
+      },
+      {
+        "code": "s3SecretKeyLabel",
+        "valueJson": "{\"zh-CN\":\"Secret Key\",\"en-US\":\"Secret Key\"}"
+      },
+      {
+        "code": "saved",
+        "valueJson": "{\"zh-CN\":\"保存成功，下次上传将使用 {type}\",\"en-US\":\"Saved. New uploads will use {type}\"}"
+      },
+      {
+        "code": "statusOff",
+        "valueJson": "{\"zh-CN\":\"禁用\",\"en-US\":\"Disabled\"}"
+      },
+      {
+        "code": "statusOn",
+        "valueJson": "{\"zh-CN\":\"启用\",\"en-US\":\"Enabled\"}"
+      },
+      {
+        "code": "storageTitle",
+        "valueJson": "{\"zh-CN\":\"存储设置\",\"en-US\":\"Storage\"}"
+      },
+      {
+        "code": "storageTitleDesc",
+        "valueJson": "{\"zh-CN\":\"切换本地磁盘 / S3 兼容存储\",\"en-US\":\"Switch between local disk / S3 compatible storage\"}"
+      },
+      {
+        "code": "storageTypeLabel",
+        "valueJson": "{\"zh-CN\":\"存储类型\",\"en-US\":\"Storage Type\"}"
+      },
+      {
+        "code": "storageTypeLocal",
+        "valueJson": "{\"zh-CN\":\"本地磁盘\",\"en-US\":\"Local Disk\"}"
+      },
+      {
+        "code": "storageTypeS3",
+        "valueJson": "{\"zh-CN\":\"S3 兼容\",\"en-US\":\"S3 Compatible\"}"
+      },
+      {
+        "code": "typeButton",
+        "valueJson": "{\"zh-CN\":\"按钮\",\"en-US\":\"Button\"}"
+      },
+      {
+        "code": "typeDir",
+        "valueJson": "{\"zh-CN\":\"目录\",\"en-US\":\"Directory\"}"
+      },
+      {
+        "code": "typeMenu",
+        "valueJson": "{\"zh-CN\":\"菜单\",\"en-US\":\"Menu\"}"
+      },
+      {
+        "code": "userSearchPlaceholder",
+        "valueJson": "{\"zh-CN\":\"搜索用户名 / 显示名\",\"en-US\":\"Search username / display name\"}"
+      },
+      {
+        "code": "userTitle",
+        "valueJson": "{\"zh-CN\":\"用户管理\",\"en-US\":\"Users\"}"
+      },
+      {
+        "code": "userTitleDesc",
+        "valueJson": "{\"zh-CN\":\"管理系统用户、角色与权限\",\"en-US\":\"Manage users, roles and permissions\"}"
+      }
+    ]
+  }
+]

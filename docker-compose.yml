@@ -1,0 +1,34 @@
+name: fapiao_web
+
+# 仅用于生产部署（prod 模式）。dev 模式请用源码启动：
+#   backend : mvn -DskipTests spring-boot:run
+#   frontend: npm run dev
+# 详见 README 的「dev 模式」章节。
+#
+# 默认模式：SQLite + 本地磁盘存储。开箱即用，仅需提供 fapiao_cn 的连接信息。
+# 切到 PostgreSQL：取消下方注释中的 SPRING_PROFILES_ACTIVE=prod 与 PG_*，重启即可。
+
+services:
+  backend:
+    build: ./backend
+    image: fapiao_web-backend:latest
+    env_file: .env
+    environment:
+      # 默认走 application.yml 的 active: dev（SQLite）；要切 PG 时在 .env 里覆盖。
+      SQLITE_PATH: /app/data/fapiao-web.db
+      APP_STORAGE_LOCAL_ROOT: /app/data/storage
+    volumes:
+      - backend_data:/app/data
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    image: fapiao_web-frontend:latest
+    depends_on:
+      - backend
+    ports:
+      - "8088:80"
+
+volumes:
+  backend_data:

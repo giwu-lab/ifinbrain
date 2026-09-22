@@ -1,0 +1,39 @@
+# 敏感配置 — 真实密钥、证书、本机覆盖
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# 日志
+logs/
+*.log
+
+# 后端构建产物
+backend/target/
+backend/data/
+backend/logs/
+
+# 前端构建产物
+frontend/dist/
+frontend/node_modules/
+frontend/tsconfig.tsbuildinfo
+frontend/auto-imports.d.ts
+frontend/components.d.ts
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# OpenCode 自身
+.opencode/
+
+# 本机私有脚本（不入库）
+scripts/*.local.sh
