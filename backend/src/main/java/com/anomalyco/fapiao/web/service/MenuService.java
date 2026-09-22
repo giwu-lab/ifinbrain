@@ -44,9 +44,9 @@ public class MenuService {
         existing.setName(menu.getName() != null ? menu.getName() : existing.getName());
         existing.setPath(menu.getPath());
         existing.setComponent(menu.getComponent());
-        existing.setIcon(menu.getIcon());
+        if (menu.getIcon() != null) existing.setIcon(menu.getIcon());
         existing.setSort(menu.getSort() != null ? menu.getSort() : existing.getSort());
-        existing.setPermission(menu.getPermission());
+        if (menu.getPermission() != null) existing.setPermission(menu.getPermission());
         existing.setType(menu.getType() != null ? menu.getType() : existing.getType());
         existing.setStatus(menu.getStatus() != null ? menu.getStatus() : existing.getStatus());
         menuRepo.save(existing);

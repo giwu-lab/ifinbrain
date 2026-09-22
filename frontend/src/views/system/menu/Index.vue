@@ -21,8 +21,10 @@
         v-loading="loading"
         row-key="id"
         :tree-props="{ children: 'children' }"
+        :indent-size="24"
         border
         default-expand-all
+        row-class-name="menu-row"
       >
         <el-table-column :label="t('system.colUsername').replace('名','称')" prop="name" min-width="180">
           <template #default="{ row }">
@@ -147,13 +149,13 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="t('system.colIcon')">
-          <el-input v-model="form.icon" placeholder="Document" />
+          <IconPicker v-model="form.icon" />
         </el-form-item>
         <el-form-item :label="t('system.colSort')">
           <el-input-number v-model="form.sort" :min="0" :max="9999" />
         </el-form-item>
         <el-form-item :label="t('system.colPermission')">
-          <el-input v-model="form.permission" placeholder="module:action:verb" />
+          <PermissionSelect v-model="form.permission" />
         </el-form-item>
         <el-form-item :label="t('common.status')">
           <el-switch
@@ -179,6 +181,8 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, type FormInstance } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import * as ElIcons from '@element-plus/icons-vue';
+import IconPicker from '@/components/IconPicker.vue';
+import PermissionSelect from '@/components/PermissionSelect.vue';
 import { useAuthStore } from '@/stores/auth';
 import { menuApi, type MenuItem } from '@/api/system';
 
@@ -259,5 +263,25 @@ onMounted(reload);
   font-family: 'SF Mono', Menlo, monospace;
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+/* 层级引导线：让多层子菜单的缩进更易识别 */
+:deep(.el-table__indent) {
+  position: relative;
+}
+:deep(.el-table__indent)::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-border-soft);
+  border-radius: 1px;
+  opacity: 0.7;
+}
+:deep(tr.is-leaf .el-table__indent)::before {
+  display: none;
 }
 </style>

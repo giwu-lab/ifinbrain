@@ -32,6 +32,12 @@ public class PermissionChecker {
         }
     }
 
+    public void requireAny(String first, String... rest) {
+        if (has(first)) return;
+        if (rest != null) for (String c : rest) if (has(c)) return;
+        throw new BizException(403, "Missing permission: " + first);
+    }
+
     public Long currentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) return null;

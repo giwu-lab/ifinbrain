@@ -21,7 +21,8 @@ public class PermissionController {
 
     @GetMapping
     public Result<List<Map<String, Object>>> list() {
-        perm.require("system:perm:list");
+        // 菜单管理需要在下拉里选权限码， 因此拥有 system:menu:create / :update 的用户也能拉取
+        perm.requireAny("system:perm:list", "system:menu:create", "system:menu:update");
         return Result.ok(roleService.allPermissions());
     }
 }
