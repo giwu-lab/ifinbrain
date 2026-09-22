@@ -63,12 +63,8 @@ mvn -DskipTests spring-boot:run
 
 默认 profile = `dev`，SQLite 文件落在 `./data/fapiao-web.db`，本地存储落在 `./data/storage/`。
 
-> 可覆盖环境变量：
-> ```bash
-> FAPIAO_CN_BASE_URL=http://localhost:8091 \
-> FAPIAO_CN_API_KEY=$(cat /home/coder/workspace/fapiao_cn/keys.json | python3 -c "import json,sys;print(json.load(sys.stdin)[0]['key'])") \
-> mvn -DskipTests spring-boot:run
-> ```
+> 必填的环境变量：`JWT_ACCESS_SECRET`（≥32 字节）、`FAPIAO_WEB_MASTER_KEY`（≥32 字节）。
+> 识别 API（fapiao_cn 的 base-url / api-key）**不在 .env 中配置**，请在「系统 → API 设置」页面填写。
 
 后端起来：`curl http://localhost:8080/actuator/health` → `{"status":"UP"}`
 
@@ -105,15 +101,12 @@ cp .env.example .env
 # 编辑 .env，填入：
 #   JWT_ACCESS_SECRET=<≥32 字节随机串>            # openssl rand -base64 32
 #   FAPIAO_WEB_MASTER_KEY=<≥32 字节随机串>        # openssl rand -base64 48
-#   FAPIAO_CN_BASE_URL=http://<fapiao_cn 主机>:8091
-#   FAPIAO_CN_API_KEY=<key from fapiao_cn/keys.json>
 docker compose up -d
 ```
 
 > ⚠️ **2026-09-22 安全轮换**：历史 `.env` 曾误提交真实密钥到工作目录（且日志 `backend/logs/console.log` 前 3 行曾包含明文 `FC_API_KEY`)。已作如下处理：
 > - `.env` 中的 `JWT_ACCESS_SECRET` / `FAPIAO_WEB_MASTER_KEY` 已轮换为新随机值（旧值作废，请同步更新所有部署环境）
 > - 新增 `.gitignore`，把 `.env` / `logs/` / `*.log` 等敏感路径排除
-> - 变量名统一为 `FAPIAO_CN_API_KEY`（旧 `FC_API_KEY` 不再被识别）
 > - **fapiao_cn 侧的 API Key 需要用户自行轮换**（因为它在 fapiao_cn 项目内，不在本仓库）
 > - 由于 master key 轮换，**旧的 sys_setting 加密字段将无法解密**——首次启动后到「系统 → API 设置 / 存储设置」重新填一次密钥即可
 
@@ -200,13 +193,11 @@ Flyway 由 `FlywayConfig` 按 `spring.profiles.active` 自动挑选迁移目录�
 | `fapiao-web.jwt.access-ttl-minutes` | Access token 有效期 |
 | `fapiao-web.jwt.refresh-ttl-days` | Refresh token 有效期 |
 | `fapiao-web.cors.allowed-origins` | 允许跨域的前端地址 |
-| `fapiao-web.fapiao-cn.base-url` | `fapiao_cn` 服务地址 |
-| `fapiao-web.fapiao-cn.api-key` | `fapiao_cn` 的 Bearer Token |
-| `fapiao-web.fapiao-cn.max-batch-files` | 单次最大文件数（默认 50） |
-| `fapiao-web.fapiao-cn.max-single-file-mb` | 单文件最大 MB（默认 10） |
 | `fapiao-web.storage.type` | `local` / `s3` |
 | `fapiao-web.storage.local.root` | 本地存储根目录 |
 | `fapiao-web.storage.s3.*` | S3 兼容存储配置（运行时可通过「存储设置」覆盖） |
+
+> **fapiao_cn（识别服务）的 base-url / api-key / timeout 不在 `application.yml` 中**，而是通过「系统 → API 设置」页面写入 `sys_setting` 表的 `ocr.*` key，由 `FapiaoCnClient` 直接读取。
 
 环境变量（部署期可覆盖）：
 - `SQLITE_PATH`：dev profile 下 SQLite 文件路径

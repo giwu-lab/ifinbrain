@@ -44,13 +44,8 @@ fapiao-web:
     allowed-origins:
       - http://localhost:5173
       - http://localhost:8088
-  fapiao-cn:
-    # 全部留空：识别 API 必须到 系统 → API 设置 中配置。未配置时识别会被拒绝。
-    base-url: ${FAPIAO_CN_BASE_URL:}
-    api-key: ${FAPIAO_CN_API_KEY:}
-    timeout-seconds: 60
-    max-batch-files: 50
-    max-single-file-mb: 10
+  # 识别 API 配置（base-url / api-key / timeout）必须到 系统 → API 设置 中配置，
+  # 存储在 sys_setting 表的 ocr.* key，由 FapiaoCnClient 直接读取， 无 yaml 字段绑定。
   storage:
     type: local
     local:

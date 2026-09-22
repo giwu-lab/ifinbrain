@@ -11,7 +11,6 @@ import java.util.List;
 public class FapiaoWebProperties {
 
     private final Cors cors = new Cors();
-    private final FapiaoCn fapiaoCn = new FapiaoCn();
     private final Storage storage = new Storage();
     private final Security security = new Security();
 
@@ -24,15 +23,6 @@ public class FapiaoWebProperties {
     @Data
     public static class Cors {
         private List<String> allowedOrigins = new ArrayList<>();
-    }
-
-    @Data
-    public static class FapiaoCn {
-        private String baseUrl;
-        private String apiKey;
-        private int timeoutSeconds = 60;
-        private int maxBatchFiles = 50;
-        private int maxSingleFileMb = 10;
     }
 
     @Data
