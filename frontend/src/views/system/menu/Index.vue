@@ -21,7 +21,6 @@
         v-loading="loading"
         row-key="id"
         :tree-props="{ children: 'children' }"
-        :indent="28"
         border
         default-expand-all
         row-class-name="menu-row"
@@ -265,23 +264,28 @@ onMounted(reload);
   color: var(--color-text-secondary);
 }
 
-/* 层级引导线：让多层子菜单的缩进更易识别 */
-:deep(.el-table__indent) {
-  position: relative;
+/* 缩进：Element Plus 内部生成的 <span class="el-table__indent"> 在 row 第一个 cell 内。
+ * 直接用 EP 自身生成的 row class 'el-table__row--level-{N}' 控制第一列的 padding-left，
+ * 不依赖 :indent prop，更稳。默认缩进 16px，每级加 28px。*/
+:deep(tr.el-table__row--level-1 > td:first-child) {
+  padding-left: 44px !important;
 }
-:deep(.el-table__indent)::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--color-border-soft);
-  border-radius: 1px;
-  opacity: 0.7;
+:deep(tr.el-table__row--level-2 > td:first-child) {
+  padding-left: 72px !important;
 }
-:deep(tr.is-leaf .el-table__indent)::before {
-  display: none;
+:deep(tr.el-table__row--level-3 > td:first-child) {
+  padding-left: 100px !important;
+}
+/* EP 默认会把 indent span 隐藏（level 0 时），所以根行自然靠左。 */
+
+/* 层级引导线：在第一列 cell 左侧加 2px 软色竖线 */
+:deep(tr.el-table__row--level-1 > td:first-child) {
+  border-left: 2px solid var(--color-border-soft);
+}
+:deep(tr.el-table__row--level-2 > td:first-child) {
+  border-left: 2px solid var(--color-primary-soft);
+}
+:deep(tr.el-table__row--level-3 > td:first-child) {
+  border-left: 2px solid var(--color-primary);
 }
 </style>
