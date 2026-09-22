@@ -2,8 +2,8 @@
   <div class="page-container fade-in-up">
     <div class="page-header">
       <div>
-        <h1 class="page-title">{{ t('system.ocrTitle') }}</h1>
-        <p class="page-desc muted">{{ t('system.ocrTitleDesc') }}</p>
+        <h1 class="page-title">{{ t('system.parserTitle') }}</h1>
+        <p class="page-desc muted">{{ t('system.parserTitleDesc') }}</p>
       </div>
       <div class="header-actions">
         <el-button @click="reload" :loading="loading">{{ t('common.reload') }}</el-button>
@@ -18,36 +18,32 @@
       show-icon
       class="banner"
     >
-      <template #title>
-        {{ t('system.ocrBannerTitle') }}
-      </template>
-      <template #default>
-        {{ t('system.ocrBannerDesc') }}
-      </template>
+      <template #title>{{ t('system.parserBannerTitle') }}</template>
+      <template #default>{{ t('system.parserBannerDesc') }}</template>
     </el-alert>
 
     <el-row :gutter="20">
       <el-col :md="24" :lg="14">
         <el-card class="card-table" shadow="never">
           <el-form :model="form" label-width="160px">
-            <el-form-item :label="t('system.ocrEnabledLabel')">
+            <el-form-item :label="t('system.parserEnabledLabel')">
               <el-switch
                 v-model="form.enabled"
-                :active-text="t('system.ocrEnabledOn')"
-                :inactive-text="t('system.ocrEnabledOff')"
+                :active-text="t('system.parserEnabledOn')"
+                :inactive-text="t('system.parserEnabledOff')"
                 inline-prompt
               />
-              <span class="form-hint">{{ t('system.ocrEnabledHint') }}</span>
+              <span class="form-hint">{{ t('system.parserEnabledHint') }}</span>
             </el-form-item>
 
             <el-divider content-position="left">
               <span class="divider-text">
                 <el-icon><MagicStick /></el-icon>
-                {{ t('system.ocrEndpointSection') }}
+                {{ t('system.parserEndpointSection') }}
               </span>
             </el-divider>
 
-            <el-form-item :label="t('system.ocrBaseUrlLabel')">
+            <el-form-item :label="t('system.parserBaseUrlLabel')">
               <el-input
                 v-model="form.baseUrl"
                 :disabled="!form.enabled"
@@ -58,15 +54,15 @@
               </el-input>
             </el-form-item>
 
-            <el-form-item :label="t('system.ocrApiKeyLabel')">
+            <el-form-item :label="t('system.parserApiKeyLabel')">
               <div class="api-key-row">
                 <template v-if="hadKey && !editingKey">
                   <el-tag type="success" effect="light" round>
                     <el-icon style="margin-right:4px;"><CircleCheckFilled /></el-icon>
-                    {{ t('system.ocrApiKeyConfigured') }}
+                    {{ t('system.parserApiKeyConfigured') }}
                   </el-tag>
                   <el-button link type="primary" size="small" @click="startEditKey">
-                    {{ t('system.ocrApiKeyChange') }}
+                    {{ t('system.parserApiKeyChange') }}
                   </el-button>
                 </template>
                 <el-input
@@ -78,11 +74,11 @@
                   :placeholder="apiKeyPlaceholder"
                   clearable
                 />
-                <span class="form-hint">{{ t('system.ocrApiKeyHint') }}</span>
+                <span class="form-hint">{{ t('system.parserApiKeyHint') }}</span>
               </div>
             </el-form-item>
 
-            <el-form-item :label="t('system.ocrTimeoutLabel')">
+            <el-form-item :label="t('system.parserTimeoutLabel')">
               <el-input-number
                 v-model="form.timeoutSeconds"
                 :disabled="!form.enabled"
@@ -102,31 +98,84 @@
                 @click="testConnection"
               >
                 <el-icon><Connection /></el-icon>
-                <span style="margin-left: 4px;">{{ t('system.ocrTestBtn') }}</span>
+                <span style="margin-left: 4px;">{{ t('system.parserTestBtn') }}</span>
               </el-button>
+              <span v-if="lastTestUrl" class="test-url">{{ lastTestUrl }}</span>
             </el-form-item>
+
+            <!-- 高级选项：endpoint 路径可配，对接第三方 OCR / 自定义服务时改 -->
+            <el-collapse v-model="advancedOpen" class="advanced-collapse">
+              <el-collapse-item :title="t('system.parserAdvanced')" name="adv">
+                <el-form-item :label="t('system.parserExtractPathLabel')">
+                  <el-input
+                    v-model="form.extractPath"
+                    :disabled="!form.enabled"
+                    placeholder="/extract"
+                    clearable
+                  />
+                </el-form-item>
+                <el-form-item :label="t('system.parserBatchPathLabel')">
+                  <el-input
+                    v-model="form.batchPath"
+                    :disabled="!form.enabled"
+                    placeholder="/extract/batch"
+                    clearable
+                  />
+                </el-form-item>
+                <el-form-item :label="t('system.parserHealthPathLabel')">
+                  <el-input
+                    v-model="form.healthPath"
+                    :disabled="!form.enabled"
+                    placeholder="/health"
+                    clearable
+                  />
+                  <span class="form-hint">{{ t('system.parserPathHint') }}</span>
+                </el-form-item>
+              </el-collapse-item>
+            </el-collapse>
           </el-form>
+        </el-card>
+
+        <!-- 预留：未来扩展 OCR API 等其他解析服务 -->
+        <el-card class="card-table reserved-card" shadow="never">
+          <template #header>
+            <span class="card-title">
+              <el-icon class="reserved-tag"><Star /></el-icon>
+              {{ t('system.parserReservedTitle') }}
+            </span>
+          </template>
+          <p class="reserved-desc">{{ t('system.parserReservedDesc') }}</p>
+          <div class="reserved-grid">
+            <div class="reserved-item">
+              <el-icon><PictureFilled /></el-icon>
+              <div>
+                <strong>{{ t('system.parserOcrPlaceholderTitle') }}</strong>
+                <p>{{ t('system.parserOcrPlaceholderDesc') }}</p>
+              </div>
+              <el-tag size="small" type="info" effect="plain" round>{{ t('system.parserOcrPlaceholderStatus') }}</el-tag>
+            </div>
+          </div>
         </el-card>
       </el-col>
 
       <el-col :md="24" :lg="10">
         <el-card class="card-table status-card" shadow="never">
           <template #header>
-            <span class="card-title">{{ t('system.ocrStatusTitle') }}</span>
+            <span class="card-title">{{ t('system.parserStatusTitle') }}</span>
           </template>
           <div class="status-display">
             <div class="big-icon" :class="form.enabled ? 'on' : 'off'">
               <el-icon><MagicStick /></el-icon>
             </div>
             <h2 class="status-name">
-              {{ form.enabled ? t('system.ocrStatusOn') : t('system.ocrStatusOff') }}
+              {{ form.enabled ? t('system.parserStatusOn') : t('system.parserStatusOff') }}
             </h2>
             <p class="status-detail">
               <template v-if="form.enabled">
                 {{ form.baseUrl || '—' }}
               </template>
               <template v-else>
-                {{ t('system.ocrStatusOffDesc') }}
+                {{ t('system.parserStatusOffDesc') }}
               </template>
             </p>
           </div>
@@ -140,8 +189,8 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import { MagicStick, Link, Connection, CircleCheckFilled } from '@element-plus/icons-vue';
-import { settingApi, type OcrConfig } from '@/api/setting';
+import { MagicStick, Link, Connection, CircleCheckFilled, Star, PictureFilled } from '@element-plus/icons-vue';
+import { settingApi, type ParserConfig } from '@/api/setting';
 
 const { t } = useI18n();
 const loading = ref(false);
@@ -149,22 +198,27 @@ const saving = ref(false);
 const testing = ref(false);
 const hadKey = ref(false);
 const editingKey = ref(false);
+const advancedOpen = ref<string[]>([]);
+const lastTestUrl = ref('');
 
-const form = reactive<OcrConfig>({
+const form = reactive<ParserConfig>({
   enabled: false,
   baseUrl: '',
   apiKey: '',
   timeoutSeconds: 60,
+  extractPath: '/extract',
+  batchPath: '/extract/batch',
+  healthPath: '/health',
 });
 
 const apiKeyPlaceholder = computed(() =>
-  hadKey.value ? t('system.ocrApiKeyKeepPlaceholder') : t('system.ocrApiKeyPlaceholder'),
+  hadKey.value ? t('system.parserApiKeyKeepPlaceholder') : t('system.parserApiKeyPlaceholder'),
 );
 
 async function reload() {
   loading.value = true;
   try {
-    const r = await settingApi.ocr();
+    const r = await settingApi.parser();
     Object.assign(form, r);
     hadKey.value = !!(r.apiKey && r.apiKey.length > 0);
     form.apiKey = '';
@@ -182,11 +236,10 @@ function startEditKey() {
 async function save() {
   saving.value = true;
   try {
-    // 当未修改 key 时，不要把空字符串发上去——空串会被当作「清空」。
-    const payload: OcrConfig = { ...form };
+    const payload: ParserConfig = { ...form };
     if (!editingKey.value) payload.apiKey = '';
-    await settingApi.saveOcr(payload);
-    ElMessage.success(t('system.ocrSaved'));
+    await settingApi.saveParser(payload);
+    ElMessage.success(t('system.parserSaved'));
     await reload();
   } finally {
     saving.value = false;
@@ -195,15 +248,17 @@ async function save() {
 
 async function testConnection() {
   testing.value = true;
+  lastTestUrl.value = '';
   try {
-    const result = await settingApi.testOcr({ baseUrl: form.baseUrl });
+    const result = await settingApi.testParser({ baseUrl: form.baseUrl });
+    lastTestUrl.value = result.url || '';
     if (result && result.ok) {
-      ElMessage.success(t('system.ocrTestOk'));
+      ElMessage.success(t('system.parserTestOk'));
     } else {
-      ElMessage.warning(t('system.ocrTestFail'));
+      ElMessage.warning(t('system.parserTestFail'));
     }
   } catch {
-    ElMessage.error(t('system.ocrTestFail'));
+    ElMessage.error(t('system.parserTestFail'));
   } finally {
     testing.value = false;
   }
@@ -221,6 +276,7 @@ onMounted(reload);
 .card-title { font-weight: 600; }
 .form-hint { margin-left: 12px; font-size: 12px; color: var(--color-text-muted); }
 .api-key-row { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.test-url { margin-left: 12px; font-size: 12px; color: var(--color-text-muted); font-family: 'SF Mono', Menlo, monospace; }
 
 .status-card { display: flex; flex-direction: column; }
 .banner { margin-bottom: 16px; }
@@ -243,4 +299,33 @@ onMounted(reload);
 .big-icon.off { background: linear-gradient(135deg, #9ca3af, #6b7280); }
 .status-name { margin: 0; font-size: 18px; font-weight: 700; }
 .status-detail { margin: 8px 0 0; font-size: 13px; color: var(--color-text-secondary); word-break: break-all; }
+
+.advanced-collapse { margin-top: 16px; }
+:deep(.el-collapse-item__header) {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.reserved-card { margin-top: 16px; }
+.reserved-tag { color: var(--color-warning); margin-right: 6px; vertical-align: -2px; }
+.reserved-desc {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.reserved-grid { display: flex; flex-direction: column; gap: 10px; }
+.reserved-item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+}
+.reserved-item .el-icon { font-size: 20px; color: var(--color-info); }
+.reserved-item strong { color: var(--color-text); font-weight: 600; }
+.reserved-item p { margin: 2px 0 0; font-size: 12px; }
 </style>

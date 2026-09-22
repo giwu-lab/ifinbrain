@@ -2,7 +2,7 @@ package com.anomalyco.fapiao.web.service;
 
 import com.anomalyco.fapiao.web.client.FapiaoCnClient;
 import com.anomalyco.fapiao.web.common.BizException;
-import com.anomalyco.fapiao.web.dto.setting.OcrConfigDto;
+import com.anomalyco.fapiao.web.dto.setting.ParserConfigDto;
 import com.anomalyco.fapiao.web.dto.setting.StorageConfigDto;
 import com.anomalyco.fapiao.web.entity.SysSetting;
 import com.anomalyco.fapiao.web.repository.SysSettingRepository;
@@ -12,11 +12,7 @@ import com.anomalyco.fapiao.web.storage.StorageSelector;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import reactor.core.publisher.Mono;
-
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -76,66 +72,63 @@ public class SettingService {
     }
 
     /**
-     * 读取识别 API 设置。apiKey 字段**永远返回占位字符串**（前端有值时显示掩码，留空表示不变）。
+     * 读取解析 API 设置。apiKey 字段**永远返回占位字符串**（前端有值时显示掩码，留空表示不变）。
      */
     @Transactional(readOnly = true)
-    public OcrConfigDto getOcrConfig() {
+    public ParserConfigDto getParserConfig() {
         perm.require("ocr:view");
-        OcrConfigDto dto = new OcrConfigDto();
-        dto.setEnabled(Boolean.parseBoolean(getString("ocr.enabled", "false")));
-        dto.setBaseUrl(getString("ocr.baseUrl", ""));
-        String stored = getString("ocr.apiKey", "");
+        ParserConfigDto dto = new ParserConfigDto();
+        dto.setEnabled(Boolean.parseBoolean(getString("parser.enabled", "false")));
+        dto.setBaseUrl(getString("parser.baseUrl", ""));
+        String stored = getString("parser.apiKey", "");
         dto.setApiKey(stored.isEmpty() ? "" : "********");
-        try { dto.setTimeoutSeconds(Integer.parseInt(getString("ocr.timeoutSeconds", "60"))); }
+        try { dto.setTimeoutSeconds(Integer.parseInt(getString("parser.timeoutSeconds", "60"))); }
         catch (Exception e) { dto.setTimeoutSeconds(60); }
+        dto.setExtractPath(getString("parser.extractPath", "/extract"));
+        dto.setBatchPath(getString("parser.batchPath", "/extract/batch"));
+        dto.setHealthPath(getString("parser.healthPath", "/health"));
         return dto;
     }
 
     @Transactional
-    public void saveOcrConfig(OcrConfigDto dto) {
+    public void saveParserConfig(ParserConfigDto dto) {
         perm.require("ocr:update");
         if (dto == null) throw new BizException(400, "body is required");
-        save("ocr.enabled", String.valueOf(dto.isEnabled()));
-        if (dto.getBaseUrl() != null) save("ocr.baseUrl", dto.getBaseUrl().trim());
+        save("parser.enabled", String.valueOf(dto.isEnabled()));
+        if (dto.getBaseUrl() != null) save("parser.baseUrl", dto.getBaseUrl().trim());
         if (dto.getTimeoutSeconds() != null && dto.getTimeoutSeconds() > 0) {
-            save("ocr.timeoutSeconds", String.valueOf(dto.getTimeoutSeconds()));
+            save("parser.timeoutSeconds", String.valueOf(dto.getTimeoutSeconds()));
+        }
+        if (dto.getExtractPath() != null && !dto.getExtractPath().isBlank()) {
+            save("parser.extractPath", dto.getExtractPath().trim());
+        }
+        if (dto.getBatchPath() != null && !dto.getBatchPath().isBlank()) {
+            save("parser.batchPath", dto.getBatchPath().trim());
+        }
+        if (dto.getHealthPath() != null && !dto.getHealthPath().isBlank()) {
+            save("parser.healthPath", dto.getHealthPath().trim());
         }
         // apiKey：空串表示保留旧值；非空才覆盖
         if (dto.getApiKey() != null && !dto.getApiKey().isEmpty()
                 && !"********".equals(dto.getApiKey())) {
-            save("ocr.apiKey", crypto.encrypt(dto.getApiKey()));
+            save("parser.apiKey", crypto.encrypt(dto.getApiKey()));
         }
         fapiaoCnClient.reload();
     }
 
     /**
-     * 仅用于前端「测试连通」按钮的轻量探活：直接 GET 外部 {baseUrl}/health，
-     * 走 WebClient 不带认证，绕开浏览器 CORS 前置预检。
-     * 返回结构：{ok: bool, httpStatus, body}，前端只看 ok。
+     * 测试连通：调用 FapiaoCnClient.probeHealth（内部用 parser.healthPath 配置）。
+     * 支持 override：前端可传任意 baseUrl 临时测试；不传则用已存配置。
+     * 返回结构：{ok: bool, body, url}，前端 ok / 和 url 两个字段都展示。
      */
-    public Map<String, Object> testOcrConnection(OcrConfigDto dto) {
+    public Map<String, Object> testParserConnection(ParserConfigDto dto) {
         perm.require("ocr:view");
-        String url = dto != null && dto.getBaseUrl() != null ? dto.getBaseUrl().trim() : "";
-        if (url.isEmpty()) {
-            // 没传 baseUrl 就用当前已存的配置
-            url = getString("ocr.baseUrl", "");
+        String overrideUrl = dto != null && dto.getBaseUrl() != null ? dto.getBaseUrl().trim() : "";
+        if (overrideUrl.isEmpty()) {
+            overrideUrl = getString("parser.baseUrl", "");
         }
-        if (url.isEmpty()) throw new BizException(400, "baseUrl is required");
-        String healthUrl = url.replaceAll("/+$", "") + "/health";
-        try {
-            WebClient probe = WebClient.builder().baseUrl(healthUrl).build();
-            Map<?, ?> body = probe.get()
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .timeout(Duration.ofSeconds(5))
-                    .onErrorResume(e -> Mono.just(Map.of("error", String.valueOf(e.getMessage()))))
-                    .block();
-            boolean ok = body != null && ("ok".equals(String.valueOf(body.get("status")))
-                    || "UP".equals(String.valueOf(body.get("status"))));
-            return Map.of("ok", ok, "body", body == null ? "" : body);
-        } catch (Exception e) {
-            throw new BizException(502, "连通失败: " + e.getMessage());
-        }
+        if (overrideUrl.isEmpty()) throw new BizException(400, "baseUrl is required");
+        return fapiaoCnClient.probeHealth(overrideUrl);
     }
 
     private String getString(String key, String def) {

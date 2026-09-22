@@ -1,7 +1,7 @@
 package com.anomalyco.fapiao.web.controller;
 
 import com.anomalyco.fapiao.web.common.Result;
-import com.anomalyco.fapiao.web.dto.setting.OcrConfigDto;
+import com.anomalyco.fapiao.web.dto.setting.ParserConfigDto;
 import com.anomalyco.fapiao.web.dto.setting.StorageConfigDto;
 import com.anomalyco.fapiao.web.security.PermissionChecker;
 import com.anomalyco.fapiao.web.service.SettingService;
@@ -31,22 +31,23 @@ public class SettingController {
         return Result.ok();
     }
 
-    @GetMapping("/ocr")
-    public Result<OcrConfigDto> ocr() {
+    /** 解析 API（通用 OCR/发票解析服务）的配置入口。 */
+    @GetMapping("/parser")
+    public Result<ParserConfigDto> parser() {
         perm.require("ocr:view");
-        return Result.ok(settingService.getOcrConfig());
+        return Result.ok(settingService.getParserConfig());
     }
 
-    @PutMapping("/ocr")
-    public Result<Void> saveOcr(@RequestBody OcrConfigDto dto) {
+    @PutMapping("/parser")
+    public Result<Void> saveParser(@RequestBody ParserConfigDto dto) {
         perm.require("ocr:update");
-        settingService.saveOcrConfig(dto);
+        settingService.saveParserConfig(dto);
         return Result.ok();
     }
 
-    @PostMapping("/ocr/test")
-    public Result<Map<String, Object>> testOcr(@RequestBody(required = false) OcrConfigDto dto) {
+    @PostMapping("/parser/test")
+    public Result<Map<String, Object>> testParser(@RequestBody(required = false) ParserConfigDto dto) {
         perm.require("ocr:view");
-        return Result.ok(settingService.testOcrConnection(dto));
+        return Result.ok(settingService.testParserConnection(dto));
     }
 }
