@@ -71,7 +71,7 @@ system: {
       role:  { Index: 'Roles' },
       menu:  { Index: 'Menus' },
       storage: { Index: 'Storage' },
-      ocr: { Index: 'OCR API' },
+      ocr: { Index: 'Parser API' },
       dict: { Index: 'Dictionaries' }
     },
 
@@ -385,6 +385,11 @@ system: {
     parserEnabledHint: 'When off, all invoice parsing uses fapiao_cn defaults',
     parserEndpointSection: 'Parser Endpoint',
     parserBaseUrlLabel: 'Base URL',
+    parserBaseUrlPlaceholder: 'http://localhost:8091',
+    parserExtractPathPlaceholder: '/extract',
+    parserBatchPathPlaceholder: '/extract/batch',
+    parserHealthPathPlaceholder: '/health',
+    parserTimeoutUnit: 's',
     parserApiKeyLabel: 'API Key',
     parserApiKeyPlaceholder: 'Enter new API Key',
     parserApiKeyKeepPlaceholder: 'Leave blank to keep existing key',

@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { ElMessage } from 'element-plus';
 import type { Result } from '@/types';
+import i18n from '@/i18n';
 
 let isRefreshing = false;
 let pendingQueue: Array<(token: string | null) => void> = [];
@@ -83,7 +84,7 @@ http.interceptors.response.use(
         }
       }
     }
-    const msg = (body && body.message) || err.message || 'Network error';
+    const msg = (body && body.message) || err.message || i18n.global.t('error.networkError');
     ElMessage.error(msg);
     return Promise.reject(err);
   }

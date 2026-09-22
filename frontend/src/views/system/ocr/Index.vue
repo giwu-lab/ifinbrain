@@ -47,7 +47,7 @@
               <el-input
                 v-model="form.baseUrl"
                 :disabled="!form.enabled"
-                placeholder="http://localhost:8091"
+                :placeholder="t('system.parserBaseUrlPlaceholder')"
                 clearable
               >
                 <template #prefix><el-icon><Link /></el-icon></template>
@@ -86,7 +86,7 @@
                 :max="600"
                 :step="5"
               />
-              <span class="form-hint">s</span>
+              <span class="form-hint">{{ t('system.parserTimeoutUnit') }}</span>
             </el-form-item>
 
             <el-form-item>
@@ -110,7 +110,7 @@
                   <el-input
                     v-model="form.extractPath"
                     :disabled="!form.enabled"
-                    placeholder="/extract"
+                    :placeholder="t('system.parserExtractPathPlaceholder')"
                     clearable
                   />
                 </el-form-item>
@@ -118,7 +118,7 @@
                   <el-input
                     v-model="form.batchPath"
                     :disabled="!form.enabled"
-                    placeholder="/extract/batch"
+                    :placeholder="t('system.parserBatchPathPlaceholder')"
                     clearable
                   />
                 </el-form-item>
@@ -126,7 +126,7 @@
                   <el-input
                     v-model="form.healthPath"
                     :disabled="!form.enabled"
-                    placeholder="/health"
+                    :placeholder="t('system.parserHealthPathPlaceholder')"
                     clearable
                   />
                   <span class="form-hint">{{ t('system.parserPathHint') }}</span>

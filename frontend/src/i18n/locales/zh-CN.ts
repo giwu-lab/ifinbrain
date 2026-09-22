@@ -73,7 +73,7 @@ export default {
       role:  { Index: '角色管理' },
       menu:  { Index: '菜单管理' },
       storage: { Index: '存储设置' },
-      ocr: { Index: 'API设置' },
+      ocr: { Index: '解析 API' },
       dict: { Index: '字典管理' }
     },
 
@@ -387,6 +387,11 @@ export default {
     parserEnabledHint: '关闭时所有发票识别走 fapiao_cn 默认配置',
     parserEndpointSection: '解析服务',
     parserBaseUrlLabel: 'Base URL',
+    parserBaseUrlPlaceholder: 'http://localhost:8091',
+    parserExtractPathPlaceholder: '/extract',
+    parserBatchPathPlaceholder: '/extract/batch',
+    parserHealthPathPlaceholder: '/health',
+    parserTimeoutUnit: '秒',
     parserApiKeyLabel: 'API Key',
     parserApiKeyPlaceholder: '输入新的 API Key',
     parserApiKeyKeepPlaceholder: '留空表示不修改（已配置）',
