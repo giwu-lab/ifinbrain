@@ -21,7 +21,7 @@
         v-loading="loading"
         row-key="id"
         :tree-props="{ children: 'children' }"
-        :indent-size="24"
+        :indent="28"
         border
         default-expand-all
         row-class-name="menu-row"
