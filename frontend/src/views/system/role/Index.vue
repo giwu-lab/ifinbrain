@@ -30,27 +30,34 @@
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('system.colPermissions')" min-width="240">
+        <el-table-column :label="t('system.colPermissions')" min-width="280">
           <template #default="{ row }">
-            <el-tag
-              v-for="p in (row as RoleItem).permissionCodes.slice(0, 4)"
-              :key="p"
-              size="small"
-              effect="plain"
-              round
-              type="success"
-              style="margin-bottom: 4px;"
-            >
-              {{ p }}
-            </el-tag>
-            <el-tag
-              v-if="(row as RoleItem).permissionCodes.length > 4"
-              size="small"
-              effect="plain"
-              round
-            >
-              +{{ (row as RoleItem).permissionCodes.length - 4 }}
-            </el-tag>
+            <div class="perm-cluster">
+              <div v-for="mod in groupedRolePerms(row as RoleItem)" :key="mod.name" class="perm-cluster-row">
+                <span class="mod-label">{{ t(`system.permModule.${mod.name}`, mod.name) }}</span>
+                <el-tag
+                  v-for="p in mod.perms.slice(0, 4)"
+                  :key="p.code"
+                  size="small"
+                  effect="plain"
+                  round
+                  type="success"
+                  class="perm-tag"
+                >
+                  {{ actionOf(p.code) }}
+                </el-tag>
+                <el-tag
+                  v-if="mod.perms.length > 4"
+                  size="small"
+                  effect="plain"
+                  round
+                  class="perm-tag"
+                >
+                  +{{ mod.perms.length - 4 }}
+                </el-tag>
+              </div>
+              <div v-if="(row as RoleItem).permissionCodes.length === 0" class="muted small">—</div>
+            </div>
           </template>
         </el-table-column>
         <el-table-column :label="t('common.status')" width="100">
@@ -113,11 +120,30 @@
           />
         </el-form-item>
         <el-form-item :label="t('system.colPermissions')">
-          <el-checkbox-group v-model="form.permissionIds" class="perm-grid">
-            <el-checkbox v-for="p in allPermissions" :key="p.id" :value="p.id" :label="p.id">
-              {{ p.code }}
-            </el-checkbox>
-          </el-checkbox-group>
+          <div class="perm-by-module">
+            <div v-for="mod in groupedPermissions" :key="mod.name" class="perm-section">
+              <div class="perm-section-title">
+                <span class="perm-section-name">
+                  {{ t(`system.permModule.${mod.name}`, mod.name) }}
+                  <span class="muted small">({{ mod.perms.length }})</span>
+                </span>
+                <div class="section-actions">
+                  <el-button link size="small" @click="toggleSection(mod, true)">
+                    {{ t('system.permSelectAll') }}
+                  </el-button>
+                  <el-button link size="small" @click="toggleSection(mod, false)">
+                    {{ t('system.permDeselectAll') }}
+                  </el-button>
+                </div>
+              </div>
+              <el-checkbox-group v-model="form.permissionIds" class="perm-grid">
+                <el-checkbox v-for="p in mod.perms" :key="p.id" :value="p.id">
+                  <span class="perm-code">{{ p.code }}</span>
+                  <span class="perm-name muted small">{{ p.name }}</span>
+                </el-checkbox>
+              </el-checkbox-group>
+            </div>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -135,6 +161,7 @@ import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { roleApi, type RoleItem, type PermissionItem } from '@/api/system';
+import { groupByModule, actionOf, moduleOf } from '@/utils/permission';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -159,6 +186,37 @@ async function reload() {
 }
 
 async function loadPerms() { allPermissions.value = await roleApi.permissions(); }
+
+/** 编辑对话框用：按 module 分组（用于 sectioned checkbox UI） */
+const groupedPermissions = computed(() => groupByModule(allPermissions.value));
+
+/** 按 module 全选 / 清空 */
+function toggleSection(mod: { name: string; perms: PermissionItem[] }, on: boolean) {
+  const ids = mod.perms.map(p => p.id);
+  if (on) {
+    form.permissionIds = Array.from(new Set([...form.permissionIds, ...ids]));
+  } else {
+    const set = new Set(ids);
+    form.permissionIds = form.permissionIds.filter(id => !set.has(id));
+  }
+}
+
+/** 角色列表展示用：把 code 列表 join 到 allPermissions 拿到 name + 按 module 分组 */
+const permByCode = computed(() => {
+  const m = new Map<string, PermissionItem>();
+  for (const p of allPermissions.value) m.set(p.code, p);
+  return m;
+});
+
+function groupedRolePerms(row: RoleItem): { name: string; perms: PermissionItem[] }[] {
+  const codes = row.permissionCodes || [];
+  const items: PermissionItem[] = [];
+  for (const c of codes) {
+    const found = permByCode.value.get(c);
+    if (found) items.push(found);
+  }
+  return groupByModule(items);
+}
 
 function openCreate() {
   dialog.mode = 'create'; dialog.title = t('system.newRoleTitle');
@@ -205,13 +263,49 @@ onMounted(async () => { await loadPerms(); await reload(); });
 .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .page-desc { margin: 4px 0 0; font-size: 13px; }
 
+.perm-by-module {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--line-soft, #ebeef5);
+  border-radius: 4px;
+  padding: 4px 0;
+  background: var(--color-bg, #fafaf7);
+}
+.perm-section {
+  border-bottom: 1px solid var(--line-soft, #ebeef5);
+  padding: 8px 12px;
+}
+.perm-section:last-child { border-bottom: 0; }
+.perm-section-title {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+  font-weight: 600; font-size: 13px;
+  color: var(--color-text, #1a1a1a);
+}
+.perm-section-name { display: inline-flex; align-items: center; gap: 6px; }
+.section-actions { display: inline-flex; gap: 4px; }
+
 :deep(.perm-grid) {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px 16px;
-  max-height: 280px;
-  overflow-y: auto;
-  padding: 8px 0;
+  gap: 4px 12px;
+  padding: 0;
 }
 :deep(.perm-grid .el-checkbox) { margin-right: 0; }
+:deep(.perm-code) {
+  font-family: 'SF Mono', Menlo, ui-monospace, monospace;
+  font-size: 12px; color: var(--color-text, #1a1a1a);
+  margin-right: 6px;
+}
+:deep(.perm-name) { font-size: 11px; }
+
+.perm-cluster { display: flex; flex-direction: column; gap: 4px; line-height: 22px; }
+.perm-cluster-row {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.mod-label {
+  font-size: 11px; color: var(--color-text-secondary, #6b6b65);
+  min-width: 56px; font-weight: 500;
+}
+.perm-tag { font-family: 'SF Mono', Menlo, ui-monospace, monospace; }
 </style>

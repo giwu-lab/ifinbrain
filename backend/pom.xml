@@ -11,11 +11,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.anomalyco.fapiao</groupId>
-    <artifactId>fapiao-web</artifactId>
+    <groupId>com.anomalyco.ifinbrain</groupId>
+    <artifactId>ifinbrain-web</artifactId>
     <version>0.1.0</version>
-    <name>caiouca-finance-ops</name>
-    <description>Finance Ops Center (Spring Boot + Vue)</description>
+    <name>iFinBrain</name>
+    <description>iFinBrain (Spring Boot + Vue)</description>
 
     <properties>
         <java.version>21</java.version>
@@ -118,10 +118,24 @@
             <version>${sqlite-jdbc.version}</version>
         </dependency>
 
-        <!-- PostgreSQL (prod) -->
+        <!-- PostgreSQL (prod + data source management) -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- MySQL JDBC driver (data source management) -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Microsoft SQL Server JDBC driver (data source management) -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
             <scope>runtime</scope>
         </dependency>
 

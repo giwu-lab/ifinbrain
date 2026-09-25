@@ -2,13 +2,13 @@ spring:
   profiles:
     active: dev
   application:
-    name: fapiao-web
+    name: ifinbrain
   servlet:
     multipart:
       enabled: true
-      max-file-size: 12MB
-      max-request-size: 60MB
-  # 项目默认时区：上海 (UTC+8)。与 dev.sh 里 TZ=Asia/Shanghai、FapiaoWebApplication 启动时
+      max-file-size: 100MB
+      max-request-size: 110MB
+  # 项目默认时区：上海 (UTC+8)。与 dev.sh 里 TZ=Asia/Shanghai、iFinBrainApplication 启动时
   # TimeZone.setDefault 共同保证：JVM 默认、Hibernate JDBC、Jackson JSON 三处一致。
   jackson:
     time-zone: Asia/Shanghai
@@ -35,7 +35,7 @@ management:
     health:
       show-details: when-authorized
 
-fapiao-web:
+ifinbrain:
   jwt:
     access-secret: ${JWT_ACCESS_SECRET:dev-only-please-change-this-secret-key-min-32-bytes-long}
     access-ttl-minutes: 30
@@ -58,4 +58,4 @@ fapiao-web:
       secret-key: ${S3_SECRET_KEY:}
       path-style: true
   security:
-    master-key: ${FAPIAO_WEB_MASTER_KEY:}
+    master-key: ${IFINBRAIN_MASTER_KEY:}

@@ -16,6 +16,6 @@ if [ -f "$PID_FILE" ]; then
   rm -f "$PID_FILE"
 fi
 # Fallback: brute force
-pkill -9 -f "FapiaoWebApplication" 2>/dev/null
+pkill -9 -f "iFinBrainApplication" 2>/dev/null
 pkill -9 -f "spring-boot:run" 2>/dev/null
 echo "Backend stopped"

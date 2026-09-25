@@ -66,7 +66,8 @@
           :data="items"
           v-loading="loading"
           height="100%"
-          size="default"
+          size="small"
+          border
           stripe
           class="i18n-table"
         >
@@ -206,7 +207,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
-  Plus as PlusEl, Refresh, RefreshLeft, Search, Download, UploadFilled, MagicStick,
+  Plus, Refresh, RefreshLeft, Search, Download, UploadFilled, MagicStick,
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { i18nApi, type I18nMessage } from '@/api/i18n';
@@ -215,8 +216,6 @@ import { useI18nStore } from '@/stores/i18n';
 const { t } = useI18n();
 const auth = useAuthStore();
 const i18nStore = useI18nStore();
-
-const Plus = PlusEl;
 
 const namespaces = computed(() => i18nStore.namespaces);
 const counts = computed(() => i18nStore.counts);
@@ -486,11 +485,11 @@ onMounted(async () => {
 
 .i18n-pane {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 360px 1fr;
   gap: 12px;
   height: 100%;
   background: #fff;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -500,21 +499,22 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 16px;
+  background: #fff;
 }
 
 .i18n-namespaces {
-  border-right: 1px solid #ebeef5;
-  background: #fafbfc;
+  border-right: 1px solid var(--line);
 }
 
 .ns-filter {
-  margin: 0 12px 8px;
+  margin: 0 0 8px;
 }
 
 .ns-list {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 8px 12px;
+  padding: 4px 0 12px;
 }
 
 .ns-item {
@@ -526,17 +526,17 @@ onMounted(async () => {
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
-  color: #303133;
+  color: var(--color-text);
   transition: background 0.15s;
 }
 
 .ns-item:hover {
-  background: #f0f2f5;
+  background: var(--bg-soft);
 }
 
 .ns-item.active {
-  background: #ecf5ff;
-  color: #409eff;
+  background: rgba(79, 70, 229, 0.08);
+  color: var(--accent);
   font-weight: 500;
 }
 
@@ -549,16 +549,12 @@ onMounted(async () => {
 }
 
 .items-header {
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--line);
 }
 
 .ns-tag {
   margin-left: 8px;
   font-family: ui-monospace, 'JetBrains Mono', monospace;
-}
-
-.i18n-items :deep(.pane-header) {
-  padding: 10px 16px;
 }
 
 .i18n-items :deep(.el-table) {
@@ -573,8 +569,8 @@ onMounted(async () => {
 .code-text {
   font-family: ui-monospace, 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: #606266;
-  background: #f5f7fa;
+  color: var(--color-text-secondary, #606266);
+  background: var(--bg-soft, #f5f7fa);
   padding: 2px 6px;
   border-radius: 3px;
 }
@@ -583,14 +579,14 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid #ebeef5;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
 }
 
 .pane-title {
   font-weight: 600;
   font-size: 14px;
-  color: #303133;
+  color: var(--color-text);
 }
 
 .pane-tools {

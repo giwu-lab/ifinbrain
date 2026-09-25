@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import { defineStore } from 'pinia';
 import { dictApi, type DictItem, type DictType } from '@/api/dict';
 
-const STORAGE_KEY = 'fapiao_web.dict-cache.v1';
+const STORAGE_KEY = 'ifinbrain.dict-cache.v1';
 const TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface CacheEnvelope {

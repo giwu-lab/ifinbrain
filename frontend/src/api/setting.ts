@@ -23,6 +23,13 @@ export interface ParserConfig {
   baseUrl: string;
   /** 后端返回时是占位 "********" 表示「已存有值，留空 = 不修改」 */
   apiKey: string;
+  /**
+   * apiKey 真实状态：missing / ok / failed
+   *  - missing: 未存
+   *  - ok: 已存且能解密（apiKey="********"）
+   *  - failed: 已存但当前主密钥无法解密（apiKey=""）— 通常是密钥轮换后未重新填写
+   */
+  apiKeyStatus?: 'missing' | 'ok' | 'failed';
   timeoutSeconds: number;
   /** 单文件解析路径（默认 /extract） */
   extractPath: string;
@@ -35,6 +42,9 @@ export interface ParserConfig {
 export const settingApi = {
   storage: () => http.get<unknown, StorageConfig>('/system/settings/storage'),
   saveStorage: (data: StorageConfig) => http.put('/system/settings/storage', data),
+  testStorage: (data: StorageConfig) =>
+    http.post<unknown, { ok: boolean; message: string; latencyMs: number; bucket: string }>(
+      '/system/settings/storage/test', data),
   parser: () => http.get<unknown, ParserConfig>('/system/settings/parser'),
   saveParser: (data: ParserConfig) => http.put('/system/settings/parser', data),
   testParser: (data?: { baseUrl?: string }) =>

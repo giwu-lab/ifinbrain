@@ -2,6 +2,7 @@
   <el-select
     :model-value="modelValue || undefined"
     filterable
+    :filter-method="filterMethod"
     allow-create
     clearable
     :placeholder="placeholder"
@@ -10,39 +11,69 @@
     @update:model-value="onChange"
     @visible-change="onVisible"
   >
-    <el-option
-      v-for="p in options"
-      :key="p.id ?? p.code"
-      :value="p.code"
-      :label="`${p.code}  ·  ${p.name}`"
+    <el-option-group
+      v-for="mod in filteredGroups"
+      :key="mod.name"
+      :label="modLabel(mod)"
     >
-      <div class="opt-row">
-        <span class="opt-code">{{ p.code }}</span>
-        <span class="opt-name">{{ p.name }}</span>
-        <el-tag v-if="p.type" size="small" effect="plain" round class="opt-tag">
-          {{ typeLabel(p.type) }}
-        </el-tag>
-      </div>
-    </el-option>
+      <el-option
+        v-for="p in mod.perms"
+        :key="p.id ?? p.code"
+        :value="p.code"
+        :label="`${p.code} · ${p.name}`"
+      >
+        <div class="opt-row">
+          <span class="opt-code">{{ p.code }}</span>
+          <span class="opt-name">{{ p.name }}</span>
+          <el-tag v-if="p.type" size="small" effect="plain" round class="opt-tag">
+            {{ typeLabel(p.type) }}
+          </el-tag>
+        </div>
+      </el-option>
+    </el-option-group>
   </el-select>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { permissionApi, type PermissionItem } from '@/api/system';
+import { groupByModule, type PermissionLike } from '@/utils/permission';
+
+const { t: _t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
     modelValue?: string | null;
     placeholder?: string;
   }>(),
-  { placeholder: '选择权限码（可输入自定义后回车）' }
+  { placeholder: '选择权限（可输入自定义码）' }
 );
 
 const emit = defineEmits<{ 'update:modelValue': [string | null] }>();
 
 const options = ref<PermissionItem[]>([]);
 const loading = ref(false);
+const keyword = ref('');
+
+const groupedOptions = computed(() => groupByModule(options.value));
+
+const filteredGroups = computed(() => {
+  if (!keyword.value.trim()) return groupedOptions.value;
+  const q = keyword.value.trim().toLowerCase();
+  return groupedOptions.value
+    .map(mod => ({
+      name: mod.name,
+      perms: mod.perms.filter((p: PermissionLike) =>
+        p.code.toLowerCase().includes(q) || (p.name || '').toLowerCase().includes(q)
+      ),
+    }))
+    .filter(mod => mod.perms.length > 0);
+});
+
+function filterMethod(val: string) {
+  keyword.value = val || '';
+}
 
 async function load() {
   if (options.value.length > 0) return;
@@ -66,6 +97,11 @@ function onChange(v: string | undefined | null) {
 
 function onVisible(open: boolean) {
   if (open) load();
+}
+
+function modLabel(mod: { name: string; perms: PermissionLike[] }) {
+  const name = _t(`system.permModule.${mod.name}`, mod.name);
+  return `${name} · ${mod.perms.length}`;
 }
 
 const typeLabels: Record<string, string> = {

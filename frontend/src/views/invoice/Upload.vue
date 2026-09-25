@@ -110,8 +110,6 @@
         stripe
         size="small"
         max-height="640"
-        :header-cell-style="{background:'var(--color-bg)', color:'var(--color-text)', fontWeight:600, fontSize:'13px'}"
-        :cell-style="cellStyle"
       >
         <el-table-column :label="t('invoice.colFile')" width="280" fixed>
           <template #default="{ row }">
@@ -245,8 +243,6 @@
         size="small"
         max-height="480"
         :row-class-name="dupRowClass"
-        :header-cell-style="{background:'var(--color-bg)', color:'var(--color-text)', fontWeight:600, fontSize:'13px'}"
-        :cell-style="cellStyle"
       >
         <el-table-column :label="t('invoice.colInvoiceNo')" min-width="160">
           <template #default="{ row }">
@@ -327,8 +323,6 @@
         stripe
         size="small"
         max-height="480"
-        :header-cell-style="{background:'var(--color-bg)', color:'var(--color-text)', fontWeight:600, fontSize:'13px'}"
-        :cell-style="cellStyle"
       >
         <el-table-column :label="t('invoice.colFile')" width="280" fixed>
           <template #default="{ row }">
@@ -411,8 +405,6 @@
         stripe
         size="small"
         max-height="480"
-        :header-cell-style="{background:'var(--color-bg)', color:'var(--color-text)', fontWeight:600, fontSize:'13px'}"
-        :cell-style="cellStyle"
       >
         <el-table-column :label="t('invoice.colFile')" min-width="180">
           <template #default="{ row }">
@@ -434,7 +426,7 @@
               :disabled="!row.message"
               :content="row.message || ''"
             >
-              <el-tag type="danger" effect="dark" size="small" class="msg-tag">{{ row.message }}</el-tag>
+              <el-tag type="danger" effect="dark" size="small" class="msg-tag">{{ humanMsg(row.message) }}</el-tag>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -625,9 +617,17 @@ const dbDupTotalRecords = computed(() =>
 /** 已存在记录中，剔除已在 dbDupGroups 中显示的，避免重复展示 */
 const existingOnlyInBatch = computed(() => {
   const dupKeys = new Set(dbDupGroups.value.map((g) => g.key));
+  // 仅展示「本批次实际提交的 (发票号, 文件格式)」：用户上传 XML，则只匹配 DB 中
+  // 同发票号的 XML，避免 PDF 也被错列为「数据库已有重复」。
+  const uploadedKeys = new Set(
+    successRows.value.map(
+      (r) => `${(r.invoiceNumber || '').trim()}::${extOf(r.originalFilename)}`,
+    ),
+  );
   return existingInDb.value.filter((r) => {
     const ext = extOf(r.originalFilename);
-    return !dupKeys.has(`${r.invoiceNumber}::${ext}`);
+    const key = `${r.invoiceNumber || ''}::${ext}`;
+    return uploadedKeys.has(key) && !dupKeys.has(key);
   });
 });
 /** 「数据库已有重复」卡片中的全部记录：合并全库重复组 + 本批次独有的已存在单条 */
@@ -659,7 +659,18 @@ const blocking = computed(() => ({
 }));
 const hasBlocking = computed(() => blocking.value.dup || blocking.value.dbDup || blocking.value.err);
 
-function cellStyle() { return { fontSize: '13px' }; }
+
+/**
+ * 把后端 tag（如 "OCR_NOT_CONFIGURED"）翻译成 i18n 友好文案。
+ * 其它自由文本（连接失败、timeout 等）原样显示，方便定位问题。
+ */
+function humanMsg(raw: string | undefined | null): string {
+  if (!raw) return '';
+  if (raw.includes('DECRYPTION_FAILED')) return t('invoice.ocrDecryptionFailedMsg');
+  if (raw.includes('OCR_NOT_CONFIGURED')) return t('invoice.ocrNotConfiguredMsg');
+  if (raw.includes('OCR_EXTRACT_FAILED')) return t('invoice.ocrExtractFailedMsg');
+  return raw;
+}
 
 function extOf(name: string | undefined | null): string {
   if (!name) return '';
@@ -686,15 +697,36 @@ async function submit() {
   try {
     const resp = await invoiceApi.uploadAndRecognize(raw as File[]);
     results.value = resp;
+    // 后端 tag 形如 "OCR_NOT_CONFIGURED" / "DECRYPTION_FAILED" / "OCR_EXTRACT_FAILED"
     const needConfig = resp.some((r) => r.message === 'OCR_NOT_CONFIGURED');
-    if (needConfig) {
+    const needDecryptFix = resp.some((r) => r.message === 'DECRYPTION_FAILED');
+    const needExtractFix = resp.some((r) => r.message === 'OCR_EXTRACT_FAILED');
+    if (needDecryptFix) {
+      ElMessageBox.alert(t('invoice.ocrDecryptionFailedMsg'), t('invoice.ocrDecryptionFailedTitle'), {
+        type: 'error',
+        confirmButtonText: t('invoice.ocrDecryptionFailedGoto'),
+        cancelButtonText: t('common.cancel'),
+        showCancelButton: true,
+      })
+        .then(() => router.push('/invoice/parser'))
+        .catch(() => { /* dismissed */ });
+    } else if (needExtractFix) {
+      ElMessageBox.alert(t('invoice.ocrExtractFailedMsg'), t('invoice.ocrExtractFailedTitle'), {
+        type: 'warning',
+        confirmButtonText: t('invoice.ocrExtractFailedGoto'),
+        cancelButtonText: t('common.cancel'),
+        showCancelButton: true,
+      })
+        .then(() => router.push('/invoice/parser'))
+        .catch(() => { /* dismissed */ });
+    } else if (needConfig) {
       ElMessageBox.alert(t('invoice.ocrNotConfiguredMsg'), t('invoice.ocrNotConfiguredTitle'), {
         type: 'warning',
         confirmButtonText: t('invoice.ocrNotConfiguredGoto'),
         cancelButtonText: t('common.cancel'),
         showCancelButton: true,
       })
-        .then(() => router.push('/system/customurl'))
+        .then(() => router.push('/invoice/parser'))
         .catch(() => { /* dismissed */ });
     }
     // 识别成功后查 db 已有重复（按当前核销单号过滤）

@@ -85,8 +85,6 @@
         max-height="640"
         :column-resizable="true"
         @header-dragend="onColumnResize"
-        :header-cell-style="{background:'var(--color-bg)', color:'var(--color-text)', fontWeight:600, fontSize:'13px'}"
-        :cell-style="cellStyle"
       >
         <!-- 发票号码：第一列，冻结 -->
         <el-table-column
@@ -343,10 +341,6 @@ const saving = ref(false);
 const form = reactive<Partial<InvoiceGroupItem>>({});
 
 const { widthOf, onResize: onColumnResize } = useColumnWidths('invoice-list');
-
-function cellStyle() {
-  return { fontSize: '13px' };
-}
 
 async function reload() {
   loading.value = true;

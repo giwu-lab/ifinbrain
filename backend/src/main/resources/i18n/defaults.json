@@ -7,24 +7,8 @@
         "valueJson": "{\"zh-CN\":\"操作\",\"en-US\":\"Actions\"}"
       },
       {
-        "code": "appName",
-        "valueJson": "{\"zh-CN\":\"财会运营中心\",\"en-US\":\"Finance Ops Center\"}"
-      },
-      {
         "code": "cancel",
         "valueJson": "{\"zh-CN\":\"取消\",\"en-US\":\"Cancel\"}"
-      },
-      {
-        "code": "confirm",
-        "valueJson": "{\"zh-CN\":\"确定\",\"en-US\":\"Confirm\"}"
-      },
-      {
-        "code": "confirmDeleteTitle",
-        "valueJson": "{\"zh-CN\":\"确定要删除吗？\",\"en-US\":\"Are you sure to delete?\"}"
-      },
-      {
-        "code": "create",
-        "valueJson": "{\"zh-CN\":\"新增\",\"en-US\":\"Create\"}"
       },
       {
         "code": "created",
@@ -51,20 +35,8 @@
         "valueJson": "{\"zh-CN\":\"启用\",\"en-US\":\"Enabled\"}"
       },
       {
-        "code": "failed",
-        "valueJson": "{\"zh-CN\":\"操作失败\",\"en-US\":\"Failed\"}"
-      },
-      {
-        "code": "loading",
-        "valueJson": "{\"zh-CN\":\"加载中…\",\"en-US\":\"Loading…\"}"
-      },
-      {
         "code": "logout",
         "valueJson": "{\"zh-CN\":\"退出登录\",\"en-US\":\"Logout\"}"
-      },
-      {
-        "code": "no",
-        "valueJson": "{\"zh-CN\":\"否\",\"en-US\":\"No\"}"
       },
       {
         "code": "path",
@@ -99,20 +71,12 @@
         "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
       },
       {
-        "code": "success",
-        "valueJson": "{\"zh-CN\":\"操作成功\",\"en-US\":\"Success\"}"
-      },
-      {
         "code": "updated",
         "valueJson": "{\"zh-CN\":\"更新成功\",\"en-US\":\"Updated\"}"
       },
       {
         "code": "welcome",
         "valueJson": "{\"zh-CN\":\"欢迎\",\"en-US\":\"Welcome\"}"
-      },
-      {
-        "code": "yes",
-        "valueJson": "{\"zh-CN\":\"是\",\"en-US\":\"Yes\"}"
       }
     ]
   },
@@ -156,22 +120,887 @@
         "valueJson": "{\"zh-CN\":\"存储类型\",\"en-US\":\"Storage\"}"
       },
       {
-        "code": "welcome",
-        "valueJson": "{\"zh-CN\":\"欢迎使用 fapiao_web\",\"en-US\":\"Welcome to fapiao_web\"}"
-      },
-      {
         "code": "welcomeDesc",
         "valueJson": "{\"zh-CN\":\"使用左侧导航管理用户、角色、菜单与存储设置。\",\"en-US\":\"Use the left navigation to manage users, roles, menus and storage.\"}"
       }
     ]
   },
   {
-    "namespace": "dict",
+    "namespace": "dataMgmt",
     "items": [
       {
-        "code": "auditTitle",
-        "valueJson": "{\"zh-CN\":\"变更日志\",\"en-US\":\"Change log\"}"
+        "code": "colCreatedBy",
+        "valueJson": "{\"zh-CN\":\"创建人\",\"en-US\":\"Created by\"}"
       },
+      {
+        "code": "colDbType",
+        "valueJson": "{\"zh-CN\":\"类型\",\"en-US\":\"Type\"}"
+      },
+      {
+        "code": "colEndpoint",
+        "valueJson": "{\"zh-CN\":\"连接地址\",\"en-US\":\"Endpoint\"}"
+      },
+      {
+        "code": "colLastRun",
+        "valueJson": "{\"zh-CN\":\"最近执行\",\"en-US\":\"Last run\"}"
+      },
+      {
+        "code": "colLastTest",
+        "valueJson": "{\"zh-CN\":\"最近测试\",\"en-US\":\"Last test\"}"
+      },
+      {
+        "code": "colName",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
+      },
+      {
+        "code": "colParams",
+        "valueJson": "{\"zh-CN\":\"参数\",\"en-US\":\"Params\"}"
+      },
+      {
+        "code": "colRemark",
+        "valueJson": "{\"zh-CN\":\"备注\",\"en-US\":\"Remark\"}"
+      },
+      {
+        "code": "colStatus",
+        "valueJson": "{\"zh-CN\":\"启用\",\"en-US\":\"Enabled\"}"
+      },
+      {
+        "code": "colType",
+        "valueJson": "{\"zh-CN\":\"类型\",\"en-US\":\"Type\"}"
+      },
+      {
+        "code": "colUpdatedAt",
+        "valueJson": "{\"zh-CN\":\"更新于\",\"en-US\":\"Updated\"}"
+      },
+      {
+        "code": "createTitle",
+        "valueJson": "{\"zh-CN\":\"新建数据源\",\"en-US\":\"New datasource\"}"
+      },
+      {
+        "code": "dbTypeMssql",
+        "valueJson": "{\"zh-CN\":\"SQL Server\",\"en-US\":\"SQL Server\"}"
+      },
+      {
+        "code": "dbTypeMysql",
+        "valueJson": "{\"zh-CN\":\"MySQL\",\"en-US\":\"MySQL\"}"
+      },
+      {
+        "code": "dbTypePostgresql",
+        "valueJson": "{\"zh-CN\":\"PostgreSQL\",\"en-US\":\"PostgreSQL\"}"
+      },
+      {
+        "code": "deleteConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除数据源 \\\"{name}\\\" ？删除后无法恢复。\",\"en-US\":\"Delete datasource \\\"{name}\\\"? This cannot be undone.\"}"
+      },
+      {
+        "code": "desc",
+        "valueJson": "{\"zh-CN\":\"管理外部数据库连接；查询与报表开发将在二期上线。\",\"en-US\":\"Manage external database connections. Saved queries and reports ship in phase 2.\"}"
+      },
+      {
+        "code": "dsDesc",
+        "valueJson": "{\"zh-CN\":\"MySQL / SQL Server / PostgreSQL 连接配置，用于后续自定义 SQL 查询与报表。\",\"en-US\":\"MySQL / SQL Server / PostgreSQL connection settings for upcoming custom SQL and reports.\"}"
+      },
+      {
+        "code": "dsTitle",
+        "valueJson": "{\"zh-CN\":\"数据源\",\"en-US\":\"Data Sources\"}"
+      },
+      {
+        "code": "editTitle",
+        "valueJson": "{\"zh-CN\":\"编辑数据源\",\"en-US\":\"Edit datasource\"}"
+      },
+      {
+        "code": "emptyAction",
+        "valueJson": "{\"zh-CN\":\"新建数据源\",\"en-US\":\"New datasource\"}"
+      },
+      {
+        "code": "emptyDesc",
+        "valueJson": "{\"zh-CN\":\"添加第一个数据库连接，以便后续查询与报表使用。\",\"en-US\":\"Add your first database connection to use in upcoming queries and reports.\"}"
+      },
+      {
+        "code": "emptyTitle",
+        "valueJson": "{\"zh-CN\":\"还没有数据源\",\"en-US\":\"No datasources yet\"}"
+      },
+      {
+        "code": "fieldDatabase",
+        "valueJson": "{\"zh-CN\":\"数据库名\",\"en-US\":\"Database\"}"
+      },
+      {
+        "code": "fieldDbType",
+        "valueJson": "{\"zh-CN\":\"数据库类型\",\"en-US\":\"Database\"}"
+      },
+      {
+        "code": "fieldHost",
+        "valueJson": "{\"zh-CN\":\"主机\",\"en-US\":\"Host\"}"
+      },
+      {
+        "code": "fieldName",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
+      },
+      {
+        "code": "fieldPassword",
+        "valueJson": "{\"zh-CN\":\"密码\",\"en-US\":\"Password\"}"
+      },
+      {
+        "code": "fieldPort",
+        "valueJson": "{\"zh-CN\":\"端口\",\"en-US\":\"Port\"}"
+      },
+      {
+        "code": "fieldRemark",
+        "valueJson": "{\"zh-CN\":\"备注\",\"en-US\":\"Remark\"}"
+      },
+      {
+        "code": "fieldUsername",
+        "valueJson": "{\"zh-CN\":\"用户名\",\"en-US\":\"Username\"}"
+      },
+      {
+        "code": "passwordChange",
+        "valueJson": "{\"zh-CN\":\"修改\",\"en-US\":\"Change\"}"
+      },
+      {
+        "code": "passwordConfigured",
+        "valueJson": "{\"zh-CN\":\"已配置\",\"en-US\":\"Configured\"}"
+      },
+      {
+        "code": "passwordFailed",
+        "valueJson": "{\"zh-CN\":\"密钥失效\",\"en-US\":\"Key failed\"}"
+      },
+      {
+        "code": "passwordMissing",
+        "valueJson": "{\"zh-CN\":\"未配置\",\"en-US\":\"Not set\"}"
+      },
+      {
+        "code": "phase2Desc",
+        "valueJson": "{\"zh-CN\":\"本模块将在二期上线。基于已配置的数据源，提供 SQL 编辑、查询执行、结果导出与报表生成。\",\"en-US\":\"This module ships in phase 2. Edit and run arbitrary SQL against the datasources you have configured, then export results to Excel / CSV or save as a report.\"}"
+      },
+      {
+        "code": "phase2Step1",
+        "valueJson": "{\"zh-CN\":\"配置数据源\",\"en-US\":\"Configure datasources\"}"
+      },
+      {
+        "code": "phase2Step1Desc",
+        "valueJson": "{\"zh-CN\":\"在「数据源管理」添加并测试数据库连接。\",\"en-US\":\"Add and test database connections in Data Sources.\"}"
+      },
+      {
+        "code": "phase2Step2",
+        "valueJson": "{\"zh-CN\":\"编辑查询\",\"en-US\":\"Edit a query\"}"
+      },
+      {
+        "code": "phase2Step2Desc",
+        "valueJson": "{\"zh-CN\":\"从左侧列表选择数据源，编写自定义 SQL。\",\"en-US\":\"Pick a datasource from the list and write a custom SQL statement.\"}"
+      },
+      {
+        "code": "phase2Step3",
+        "valueJson": "{\"zh-CN\":\"执行与导出\",\"en-US\":\"Run & export\"}"
+      },
+      {
+        "code": "phase2Step3Desc",
+        "valueJson": "{\"zh-CN\":\"运行查询并导出为 Excel / CSV，或保存为报表。\",\"en-US\":\"Execute the query and export results, or save it as a reusable report.\"}"
+      },
+      {
+        "code": "phase2Title",
+        "valueJson": "{\"zh-CN\":\"自定义 SQL 查询与报表\",\"en-US\":\"Custom SQL queries & reports\"}"
+      },
+      {
+        "code": "placeholderExample",
+        "valueJson": "{\"zh-CN\":\"例：127.0.0.1 · 3306 · fin_erp\",\"en-US\":\"e.g. 127.0.0.1 · 3306 · fin_erp\"}"
+      },
+      {
+        "code": "placeholderName",
+        "valueJson": "{\"zh-CN\":\"如：财务 ERP\",\"en-US\":\"e.g. Finance ERP\"}"
+      },
+      {
+        "code": "qpBackToList",
+        "valueJson": "{\"zh-CN\":\"返回查询页面列表\",\"en-US\":\"Back to list\"}"
+      },
+      {
+        "code": "qpColumnProps",
+        "valueJson": "{\"zh-CN\":\"表格字段\",\"en-US\":\"Table fields\"}"
+      },
+      {
+        "code": "qpConfirmDelete",
+        "valueJson": "{\"zh-CN\":\"确认永久删除 \\\"{name}\\\"？此操作不可撤销。\",\"en-US\":\"Permanently delete \\\"{name}\\\"? This cannot be undone.\"}"
+      },
+      {
+        "code": "qpConfirmTitle",
+        "valueJson": "{\"zh-CN\":\"确认\",\"en-US\":\"Confirm\"}"
+      },
+      {
+        "code": "qpConfirmUnpublish",
+        "valueJson": "{\"zh-CN\":\"确认取消发布 \\\"{name}\\\"？\",\"en-US\":\"Unpublish \\\"{name}\\\"?\"}"
+      },
+      {
+        "code": "qpDelete",
+        "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
+      },
+      {
+        "code": "qpDeleted",
+        "valueJson": "{\"zh-CN\":\"已删除\",\"en-US\":\"Deleted\"}"
+      },
+      {
+        "code": "qpDeleteFailed",
+        "valueJson": "{\"zh-CN\":\"删除失败\",\"en-US\":\"Delete failed\"}"
+      },
+      {
+        "code": "qpDesc",
+        "valueJson": "{\"zh-CN\":\"把已保存的查询一键发布为可访问的列表页\",\"en-US\":\"One-click publish a saved query as a navigable list page\"}"
+      },
+      {
+        "code": "qpEdit",
+        "valueJson": "{\"zh-CN\":\"编辑\",\"en-US\":\"Edit\"}"
+      },
+      {
+        "code": "qpEditTitle",
+        "valueJson": "{\"zh-CN\":\"编辑已发布页\",\"en-US\":\"Edit published page\"}"
+      },
+      {
+        "code": "qpEmptyOutput",
+        "valueJson": "{\"zh-CN\":\"结果会显示在这里。填参数、点 ▶ 运行。\",\"en-US\":\"Results will appear here. Fill parameters, press ▶ Run.\"}"
+      },
+      {
+        "code": "qpEmptyResult",
+        "valueJson": "{\"zh-CN\":\"查询无返回列\",\"en-US\":\"Query returned no columns\"}"
+      },
+      {
+        "code": "qpExportCsv",
+        "valueJson": "{\"zh-CN\":\"导出 CSV\",\"en-US\":\"Export CSV\"}"
+      },
+      {
+        "code": "qpExportFailed",
+        "valueJson": "{\"zh-CN\":\"导出失败\",\"en-US\":\"Export failed\"}"
+      },
+      {
+        "code": "qpExportXlsx",
+        "valueJson": "{\"zh-CN\":\"导出 XLSX\",\"en-US\":\"Export XLSX\"}"
+      },
+      {
+        "code": "qpFieldHeader",
+        "valueJson": "{\"zh-CN\":\"表头文本\",\"en-US\":\"Header text\"}"
+      },
+      {
+        "code": "qpFieldSource",
+        "valueJson": "{\"zh-CN\":\"字段\",\"en-US\":\"Field\"}"
+      },
+      {
+        "code": "qpFieldWidth",
+        "valueJson": "{\"zh-CN\":\"列宽 (px)\",\"en-US\":\"Width (px)\"}"
+      },
+      {
+        "code": "qpInvalidMenuId",
+        "valueJson": "{\"zh-CN\":\"无效的菜单 ID\",\"en-US\":\"Invalid menu id\"}"
+      },
+      {
+        "code": "qpLoadFailed",
+        "valueJson": "{\"zh-CN\":\"加载页面失败\",\"en-US\":\"Failed to load pages\"}"
+      },
+      {
+        "code": "qpLoading",
+        "valueJson": "{\"zh-CN\":\"加载中…\",\"en-US\":\"Loading…\"}"
+      },
+      {
+        "code": "qpLoadingColumns",
+        "valueJson": "{\"zh-CN\":\"正在加载字段…\",\"en-US\":\"Loading fields…\"}"
+      },
+      {
+        "code": "qpLoadQueriesFailed",
+        "valueJson": "{\"zh-CN\":\"查询列表加载失败\",\"en-US\":\"Failed to load queries\"}"
+      },
+      {
+        "code": "qpMenuIcon",
+        "valueJson": "{\"zh-CN\":\"菜单图标\",\"en-US\":\"Menu icon\"}"
+      },
+      {
+        "code": "qpMenuName",
+        "valueJson": "{\"zh-CN\":\"菜单名称\",\"en-US\":\"Menu name\"}"
+      },
+      {
+        "code": "qpMenuNamePh",
+        "valueJson": "{\"zh-CN\":\"默认使用查询名\",\"en-US\":\"Defaults to query name\"}"
+      },
+      {
+        "code": "qpMenuSort",
+        "valueJson": "{\"zh-CN\":\"菜单顺序\",\"en-US\":\"Menu order\"}"
+      },
+      {
+        "code": "qpMissingRequired",
+        "valueJson": "{\"zh-CN\":\"请填写必填参数\",\"en-US\":\"Required parameters missing\"}"
+      },
+      {
+        "code": "qpMissingRequiredHint",
+        "valueJson": "{\"zh-CN\":\"请先填写必填参数，然后点击运行\",\"en-US\":\"Please fill in the required parameters, then click Run\"}"
+      },
+      {
+        "code": "qpName",
+        "valueJson": "{\"zh-CN\":\"菜单名称\",\"en-US\":\"Menu name\"}"
+      },
+      {
+        "code": "qpNoPages",
+        "valueJson": "{\"zh-CN\":\"尚未发布任何查询页面。点击右上角\\\"一键发布查询\\\"开始。\",\"en-US\":\"No query pages yet. Click \\\"Publish query\\\" to start.\"}"
+      },
+      {
+        "code": "qpNoPerm",
+        "valueJson": "{\"zh-CN\":\"没有发布权限\",\"en-US\":\"No publish permission\"}"
+      },
+      {
+        "code": "qpNoResult",
+        "valueJson": "{\"zh-CN\":\"尚未运行\",\"en-US\":\"Not run yet\"}"
+      },
+      {
+        "code": "qpOpen",
+        "valueJson": "{\"zh-CN\":\"打开\",\"en-US\":\"Open\"}"
+      },
+      {
+        "code": "qpParamLabels",
+        "valueJson": "{\"zh-CN\":\"查询条件字段名\",\"en-US\":\"Parameter labels\"}"
+      },
+      {
+        "code": "qpParams",
+        "valueJson": "{\"zh-CN\":\"参数\",\"en-US\":\"Parameters\"}"
+      },
+      {
+        "code": "qpPath",
+        "valueJson": "{\"zh-CN\":\"路径\",\"en-US\":\"Path\"}"
+      },
+      {
+        "code": "qpPickQuery",
+        "valueJson": "{\"zh-CN\":\"选择查询\",\"en-US\":\"Select query\"}"
+      },
+      {
+        "code": "qpPickQueryPh",
+        "valueJson": "{\"zh-CN\":\"选择要发布的查询\",\"en-US\":\"Pick the query to publish\"}"
+      },
+      {
+        "code": "qpPreviewFailed",
+        "valueJson": "{\"zh-CN\":\"无法获取列信息（必填参数缺失？）\",\"en-US\":\"Cannot fetch columns (missing required parameter?)\"}"
+      },
+      {
+        "code": "qpPublish",
+        "valueJson": "{\"zh-CN\":\"一键发布查询\",\"en-US\":\"Publish query\"}"
+      },
+      {
+        "code": "qpPublishBtn",
+        "valueJson": "{\"zh-CN\":\"发布\",\"en-US\":\"Publish\"}"
+      },
+      {
+        "code": "qpPublished",
+        "valueJson": "{\"zh-CN\":\"已发布\",\"en-US\":\"Published\"}"
+      },
+      {
+        "code": "qpPublishFailed",
+        "valueJson": "{\"zh-CN\":\"发布失败\",\"en-US\":\"Publish failed\"}"
+      },
+      {
+        "code": "qpQueryId",
+        "valueJson": "{\"zh-CN\":\"Query ID\",\"en-US\":\"Query ID\"}"
+      },
+      {
+        "code": "qpRepublish",
+        "valueJson": "{\"zh-CN\":\"重新发布\",\"en-US\":\"Republish\"}"
+      },
+      {
+        "code": "qpRepublished",
+        "valueJson": "{\"zh-CN\":\"已重新发布\",\"en-US\":\"Republished\"}"
+      },
+      {
+        "code": "qpRepublishFailed",
+        "valueJson": "{\"zh-CN\":\"重新发布失败\",\"en-US\":\"Republish failed\"}"
+      },
+      {
+        "code": "qpRows",
+        "valueJson": "{\"zh-CN\":\"行\",\"en-US\":\"rows\"}"
+      },
+      {
+        "code": "qpRun",
+        "valueJson": "{\"zh-CN\":\"运行\",\"en-US\":\"Run\"}"
+      },
+      {
+        "code": "qpRunError",
+        "valueJson": "{\"zh-CN\":\"运行失败\",\"en-US\":\"Run failed\"}"
+      },
+      {
+        "code": "qpRunning",
+        "valueJson": "{\"zh-CN\":\"运行中…\",\"en-US\":\"Running…\"}"
+      },
+      {
+        "code": "qpSaveBtn",
+        "valueJson": "{\"zh-CN\":\"保存\",\"en-US\":\"Save\"}"
+      },
+      {
+        "code": "qpStatusActive",
+        "valueJson": "{\"zh-CN\":\"已发布\",\"en-US\":\"Active\"}"
+      },
+      {
+        "code": "qpStatusInactive",
+        "valueJson": "{\"zh-CN\":\"已取消\",\"en-US\":\"Inactive\"}"
+      },
+      {
+        "code": "qpTitle",
+        "valueJson": "{\"zh-CN\":\"查询页面\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "qpTruncated",
+        "valueJson": "{\"zh-CN\":\"已截断至 {limit}\",\"en-US\":\"truncated to {limit}\"}"
+      },
+      {
+        "code": "qpUnpublish",
+        "valueJson": "{\"zh-CN\":\"取消发布\",\"en-US\":\"Unpublish\"}"
+      },
+      {
+        "code": "qpUnpublished",
+        "valueJson": "{\"zh-CN\":\"已取消发布\",\"en-US\":\"Unpublished\"}"
+      },
+      {
+        "code": "qpUnpublishFailed",
+        "valueJson": "{\"zh-CN\":\"取消发布失败\",\"en-US\":\"Unpublish failed\"}"
+      },
+      {
+        "code": "qpUpdated",
+        "valueJson": "{\"zh-CN\":\"已保存\",\"en-US\":\"Saved\"}"
+      },
+      {
+        "code": "qpUpdateFailed",
+        "valueJson": "{\"zh-CN\":\"保存失败\",\"en-US\":\"Save failed\"}"
+      },
+      {
+        "code": "qyAddParam",
+        "valueJson": "{\"zh-CN\":\"添加参数\",\"en-US\":\"Add param\"}"
+      },
+      {
+        "code": "qyArgsEmpty",
+        "valueJson": "{\"zh-CN\":\"该查询无需参数，直接运行。\",\"en-US\":\"This query takes no parameters. Run it directly.\"}"
+      },
+      {
+        "code": "qyBackToList",
+        "valueJson": "{\"zh-CN\":\"返回列表\",\"en-US\":\"Back to list\"}"
+      },
+      {
+        "code": "qyConfirmDeletePage",
+        "valueJson": "{\"zh-CN\":\"确认永久删除页面 \\\"{name}\\\"？此操作不可撤销。\",\"en-US\":\"Permanently delete page \\\"{name}\\\"? This cannot be undone.\"}"
+      },
+      {
+        "code": "qyConfirmUnpublish",
+        "valueJson": "{\"zh-CN\":\"取消发布 \\\"{name}\\\"？页面将从侧边栏隐藏（可重新发布）。\",\"en-US\":\"Unpublish \\\"{name}\\\"? It will be hidden from the sidebar (can be republished).\"}"
+      },
+      {
+        "code": "qyCreate",
+        "valueJson": "{\"zh-CN\":\"新建查询\",\"en-US\":\"New query\"}"
+      },
+      {
+        "code": "qyDelete",
+        "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
+      },
+      {
+        "code": "qyDeleteConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除查询 \\\"{name}\\\" ？删除后无法恢复。\",\"en-US\":\"Delete query \\\"{name}\\\"? This cannot be undone.\"}"
+      },
+      {
+        "code": "qyDeletePage",
+        "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
+      },
+      {
+        "code": "qyDeletePageBtn",
+        "valueJson": "{\"zh-CN\":\"删除页面\",\"en-US\":\"Delete page\"}"
+      },
+      {
+        "code": "qyDeletePageFailed",
+        "valueJson": "{\"zh-CN\":\"删除失败\",\"en-US\":\"Delete failed\"}"
+      },
+      {
+        "code": "qyDesc",
+        "valueJson": "{\"zh-CN\":\"基于已配置的数据源编写自定义 SQL、绑定参数、运行与导出结果。\",\"en-US\":\"Write custom SQL against configured datasources, bind parameters, run and export results.\"}"
+      },
+      {
+        "code": "qyDetailAddFilter",
+        "valueJson": "{\"zh-CN\":\"添加参数\",\"en-US\":\"Add parameter\"}"
+      },
+      {
+        "code": "qyDetailBack",
+        "valueJson": "{\"zh-CN\":\"返回查询列表\",\"en-US\":\"Back to queries\"}"
+      },
+      {
+        "code": "qyDetailCannotRemoveSqlParam",
+        "valueJson": "{\"zh-CN\":\"请到 SQL 里删除对应的 {'{'}{'{'}name{'}'}{'}'} 占位\",\"en-US\":\"Remove the {'{'}{'{'}name{'}'}{'}'} placeholder from the SQL first\"}"
+      },
+      {
+        "code": "qyDetailCastHint",
+        "valueJson": "{\"zh-CN\":\"SQL 中的 ::type 在后端运行时会被忽略，类型以右侧下拉为准\",\"en-US\":\"The ::type in SQL is ignored at runtime; the type is set by the right-side dropdown\"}"
+      },
+      {
+        "code": "qyDetailDatasource",
+        "valueJson": "{\"zh-CN\":\"数据源\",\"en-US\":\"Datasource\"}"
+      },
+      {
+        "code": "qyDetailDescPh",
+        "valueJson": "{\"zh-CN\":\"添加说明（可选）\",\"en-US\":\"Add a description (optional)\"}"
+      },
+      {
+        "code": "qyDetailDuplicate",
+        "valueJson": "{\"zh-CN\":\"复制\",\"en-US\":\"Duplicate\"}"
+      },
+      {
+        "code": "qyDetailDuplicated",
+        "valueJson": "{\"zh-CN\":\"已复制\",\"en-US\":\"Duplicated\"}"
+      },
+      {
+        "code": "qyDetailInputs",
+        "valueJson": "{\"zh-CN\":\"输入参数\",\"en-US\":\"Parameters\"}"
+      },
+      {
+        "code": "qyDetailManage",
+        "valueJson": "{\"zh-CN\":\"管理数据源\",\"en-US\":\"Manage\"}"
+      },
+      {
+        "code": "qyDetailMetadata",
+        "valueJson": "{\"zh-CN\":\"元数据\",\"en-US\":\"Metadata\"}"
+      },
+      {
+        "code": "qyDetailNamePh",
+        "valueJson": "{\"zh-CN\":\"查询名\",\"en-US\":\"Query name\"}"
+      },
+      {
+        "code": "qyDetailNoMatches",
+        "valueJson": "{\"zh-CN\":\"无匹配\",\"en-US\":\"No matches\"}"
+      },
+      {
+        "code": "qyDetailNoParams",
+        "valueJson": "{\"zh-CN\":\"SQL 里写 {'{'}{'{'}name{'}'}{'}'} 或 {'{'}{'{'}name{'}'}{'}'}::type，参数会自动出现在这里。\",\"en-US\":\"Write {'{'}{'{'}name{'}'}{'}'} or {'{'}{'{'}name{'}'}{'}'}::type in the SQL — parameters will appear here automatically.\"}"
+      },
+      {
+        "code": "qyDetailRemoveConfirm",
+        "valueJson": "{\"zh-CN\":\"将删除参数 {name}{cast}，SQL 里的占位也会一并删除。继续？\",\"en-US\":\"This will delete parameter {name}{cast} and its placeholder in the SQL. Continue?\"}"
+      },
+      {
+        "code": "qyDetailRemoved",
+        "valueJson": "{\"zh-CN\":\"已删除\",\"en-US\":\"Removed\"}"
+      },
+      {
+        "code": "qyDetailRemoveParam",
+        "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
+      },
+      {
+        "code": "qyDetailRemoveTitle",
+        "valueJson": "{\"zh-CN\":\"删除参数\",\"en-US\":\"Remove parameter\"}"
+      },
+      {
+        "code": "qyDetailRun",
+        "valueJson": "{\"zh-CN\":\"运行\",\"en-US\":\"Run\"}"
+      },
+      {
+        "code": "qyDetailRunSuccess",
+        "valueJson": "{\"zh-CN\":\"查询执行成功\",\"en-US\":\"Run succeeded\"}"
+      },
+      {
+        "code": "qyDetailSave",
+        "valueJson": "{\"zh-CN\":\"保存\",\"en-US\":\"Save\"}"
+      },
+      {
+        "code": "qyDetailSearchSchema",
+        "valueJson": "{\"zh-CN\":\"搜索表或列\",\"en-US\":\"Search tables / columns\"}"
+      },
+      {
+        "code": "qyDetailSqlMode",
+        "valueJson": "{\"zh-CN\":\"SQL 模式\",\"en-US\":\"SQL mode\"}"
+      },
+      {
+        "code": "qyDetailUntitled",
+        "valueJson": "{\"zh-CN\":\"未命名\",\"en-US\":\"Untitled\"}"
+      },
+      {
+        "code": "qyDraftSaved",
+        "valueJson": "{\"zh-CN\":\"已保存\",\"en-US\":\"Saved\"}"
+      },
+      {
+        "code": "qyEdit",
+        "valueJson": "{\"zh-CN\":\"编辑查询\",\"en-US\":\"Edit query\"}"
+      },
+      {
+        "code": "qyEditPage",
+        "valueJson": "{\"zh-CN\":\"页面编辑\",\"en-US\":\"Edit page\"}"
+      },
+      {
+        "code": "qyEmptyAction",
+        "valueJson": "{\"zh-CN\":\"新建查询\",\"en-US\":\"New query\"}"
+      },
+      {
+        "code": "qyEmptyDesc",
+        "valueJson": "{\"zh-CN\":\"新建第一个查询以开始。基于已配置的数据源编写自定义 SQL。\",\"en-US\":\"Create your first saved query to start running custom SQL.\"}"
+      },
+      {
+        "code": "qyEmptyParams",
+        "valueJson": "{\"zh-CN\":\"无参数\",\"en-US\":\"No parameters\"}"
+      },
+      {
+        "code": "qyEmptyTitle",
+        "valueJson": "{\"zh-CN\":\"还没有查询\",\"en-US\":\"No queries yet\"}"
+      },
+      {
+        "code": "qyExportCsv",
+        "valueJson": "{\"zh-CN\":\"导出 CSV\",\"en-US\":\"CSV\"}"
+      },
+      {
+        "code": "qyExportJson",
+        "valueJson": "{\"zh-CN\":\"导出 JSON\",\"en-US\":\"JSON\"}"
+      },
+      {
+        "code": "qyExportXlsx",
+        "valueJson": "{\"zh-CN\":\"导出 XLSX\",\"en-US\":\"XLSX\"}"
+      },
+      {
+        "code": "qyFieldDatasource",
+        "valueJson": "{\"zh-CN\":\"数据源\",\"en-US\":\"Datasource\"}"
+      },
+      {
+        "code": "qyFieldDescription",
+        "valueJson": "{\"zh-CN\":\"说明\",\"en-US\":\"Description\"}"
+      },
+      {
+        "code": "qyFieldName",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
+      },
+      {
+        "code": "qyFieldParams",
+        "valueJson": "{\"zh-CN\":\"参数定义\",\"en-US\":\"Parameters\"}"
+      },
+      {
+        "code": "qyFieldSql",
+        "valueJson": "{\"zh-CN\":\"SQL 模板\",\"en-US\":\"SQL template\"}"
+      },
+      {
+        "code": "qyFieldStatus",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
+      },
+      {
+        "code": "qyLastRunFail",
+        "valueJson": "{\"zh-CN\":\"失败\",\"en-US\":\"Failed\"}"
+      },
+      {
+        "code": "qyLastRunOk",
+        "valueJson": "{\"zh-CN\":\"成功\",\"en-US\":\"OK\"}"
+      },
+      {
+        "code": "qyLoadingArgs",
+        "valueJson": "{\"zh-CN\":\"加载中…\",\"en-US\":\"Loading…\"}"
+      },
+      {
+        "code": "qyNeverRun",
+        "valueJson": "{\"zh-CN\":\"未运行\",\"en-US\":\"Never\"}"
+      },
+      {
+        "code": "qyNotPublished",
+        "valueJson": "{\"zh-CN\":\"未发布\",\"en-US\":\"Not published\"}"
+      },
+      {
+        "code": "qyOpenPage",
+        "valueJson": "{\"zh-CN\":\"打开页面\",\"en-US\":\"Open page\"}"
+      },
+      {
+        "code": "qyPage",
+        "valueJson": "{\"zh-CN\":\"页面\",\"en-US\":\"Page\"}"
+      },
+      {
+        "code": "qyPageActions",
+        "valueJson": "{\"zh-CN\":\"页面操作\",\"en-US\":\"Page actions\"}"
+      },
+      {
+        "code": "qyPageDeleted",
+        "valueJson": "{\"zh-CN\":\"已删除页面\",\"en-US\":\"Page deleted\"}"
+      },
+      {
+        "code": "qyPageStatusActive",
+        "valueJson": "{\"zh-CN\":\"已发布\",\"en-US\":\"Active\"}"
+      },
+      {
+        "code": "qyPageStatusInactive",
+        "valueJson": "{\"zh-CN\":\"已取消\",\"en-US\":\"Inactive\"}"
+      },
+      {
+        "code": "qyPageUpdated",
+        "valueJson": "{\"zh-CN\":\"页面已更新\",\"en-US\":\"Page updated\"}"
+      },
+      {
+        "code": "qyPageUpdateFailed",
+        "valueJson": "{\"zh-CN\":\"更新失败\",\"en-US\":\"Update failed\"}"
+      },
+      {
+        "code": "qyParamDefault",
+        "valueJson": "{\"zh-CN\":\"默认值\",\"en-US\":\"Default\"}"
+      },
+      {
+        "code": "qyParamLabel",
+        "valueJson": "{\"zh-CN\":\"显示标签\",\"en-US\":\"Label\"}"
+      },
+      {
+        "code": "qyParamName",
+        "valueJson": "{\"zh-CN\":\"参数名\",\"en-US\":\"Name\"}"
+      },
+      {
+        "code": "qyParamPlaceholder",
+        "valueJson": "{\"zh-CN\":\"占位提示\",\"en-US\":\"Placeholder\"}"
+      },
+      {
+        "code": "qyParamRequired",
+        "valueJson": "{\"zh-CN\":\"必填\",\"en-US\":\"Required\"}"
+      },
+      {
+        "code": "qyParamsHelp",
+        "valueJson": "{\"zh-CN\":\"参数语法：SQL 中以 :name 占位；此处用 JSON 数组描述 UI 输入。\",\"en-US\":\"In SQL, write :name for each parameter. The list below tells the UI how to render an input for it.\"}"
+      },
+      {
+        "code": "qyParamType",
+        "valueJson": "{\"zh-CN\":\"类型\",\"en-US\":\"Type\"}"
+      },
+      {
+        "code": "qyParamValue",
+        "valueJson": "{\"zh-CN\":\"值\",\"en-US\":\"Value\"}"
+      },
+      {
+        "code": "qyPublish",
+        "valueJson": "{\"zh-CN\":\"发布\",\"en-US\":\"Publish\"}"
+      },
+      {
+        "code": "qyPublished",
+        "valueJson": "{\"zh-CN\":\"已发布\",\"en-US\":\"Published\"}"
+      },
+      {
+        "code": "qyPublishFailed",
+        "valueJson": "{\"zh-CN\":\"发布失败\",\"en-US\":\"Publish failed\"}"
+      },
+      {
+        "code": "qyPublishTitle",
+        "valueJson": "{\"zh-CN\":\"发布\",\"en-US\":\"Publish\"}"
+      },
+      {
+        "code": "qyRepublish",
+        "valueJson": "{\"zh-CN\":\"重新发布\",\"en-US\":\"Republish\"}"
+      },
+      {
+        "code": "qyRepublished",
+        "valueJson": "{\"zh-CN\":\"已重新发布\",\"en-US\":\"Republished\"}"
+      },
+      {
+        "code": "qyRepublishFailed",
+        "valueJson": "{\"zh-CN\":\"重新发布失败\",\"en-US\":\"Republish failed\"}"
+      },
+      {
+        "code": "qyResultColumns",
+        "valueJson": "{\"zh-CN\":\"{n} 列\",\"en-US\":\"{n} cols\"}"
+      },
+      {
+        "code": "qyResultDuration",
+        "valueJson": "{\"zh-CN\":\"耗时 {ms} ms\",\"en-US\":\"{ms} ms\"}"
+      },
+      {
+        "code": "qyResultEmpty",
+        "valueJson": "{\"zh-CN\":\"没有数据\",\"en-US\":\"No rows\"}"
+      },
+      {
+        "code": "qyResultExport",
+        "valueJson": "{\"zh-CN\":\"导出\",\"en-US\":\"Export\"}"
+      },
+      {
+        "code": "qyResultPanel",
+        "valueJson": "{\"zh-CN\":\"查询结果\",\"en-US\":\"Results\"}"
+      },
+      {
+        "code": "qyResultRowCount",
+        "valueJson": "{\"zh-CN\":\"{n} 行\",\"en-US\":\"{n} rows\"}"
+      },
+      {
+        "code": "qyResultTruncated",
+        "valueJson": "{\"zh-CN\":\"结果已截断（上限 {limit} 行，可能有遗漏）\",\"en-US\":\"Results truncated (capped at {limit} rows; some may be missing)\"}"
+      },
+      {
+        "code": "qyRunArgs",
+        "valueJson": "{\"zh-CN\":\"运行参数\",\"en-US\":\"Run parameters\"}"
+      },
+      {
+        "code": "qyRunBtn",
+        "valueJson": "{\"zh-CN\":\"运行\",\"en-US\":\"Run\"}"
+      },
+      {
+        "code": "qyRunFailed",
+        "valueJson": "{\"zh-CN\":\"运行失败\",\"en-US\":\"Run failed\"}"
+      },
+      {
+        "code": "qyRunInDrawer",
+        "valueJson": "{\"zh-CN\":\"运行\",\"en-US\":\"Run\"}"
+      },
+      {
+        "code": "qySafetyHint",
+        "valueJson": "{\"zh-CN\":\"SQL 安全：仅允许 SELECT（含 CTE）。禁词：UPDATE / DELETE / INSERT / DROP / ALTER / TRUNCATE / GRANT / REVOKE / MERGE 等。多语句会被拒绝。\",\"en-US\":\"Safety: SELECT only (CTE allowed). Forbidden keywords: UPDATE / DELETE / INSERT / DROP / ALTER / TRUNCATE / GRANT / REVOKE / MERGE. Multi-statement SQL is rejected.\"}"
+      },
+      {
+        "code": "qySqlPlaceholder",
+        "valueJson": "{\"zh-CN\":\"SELECT * FROM your_table WHERE col = :param_name LIMIT 100\",\"en-US\":\"SELECT * FROM your_table WHERE col = :param_name LIMIT 100\"}"
+      },
+      {
+        "code": "qyTitle",
+        "valueJson": "{\"zh-CN\":\"查询库\",\"en-US\":\"Saved queries\"}"
+      },
+      {
+        "code": "qyTypeDate",
+        "valueJson": "{\"zh-CN\":\"日期\",\"en-US\":\"Date\"}"
+      },
+      {
+        "code": "qyTypeDatetime",
+        "valueJson": "{\"zh-CN\":\"日期时间\",\"en-US\":\"Datetime\"}"
+      },
+      {
+        "code": "qyTypeNumber",
+        "valueJson": "{\"zh-CN\":\"数字\",\"en-US\":\"Number\"}"
+      },
+      {
+        "code": "qyTypeString",
+        "valueJson": "{\"zh-CN\":\"字符串\",\"en-US\":\"String\"}"
+      },
+      {
+        "code": "qyTypeText",
+        "valueJson": "{\"zh-CN\":\"长文本\",\"en-US\":\"Text\"}"
+      },
+      {
+        "code": "qyUnpublish",
+        "valueJson": "{\"zh-CN\":\"取消发布\",\"en-US\":\"Unpublish\"}"
+      },
+      {
+        "code": "qyUnpublished",
+        "valueJson": "{\"zh-CN\":\"已取消发布\",\"en-US\":\"Unpublished\"}"
+      },
+      {
+        "code": "qyUnpublishFailed",
+        "valueJson": "{\"zh-CN\":\"取消发布失败\",\"en-US\":\"Unpublish failed\"}"
+      },
+      {
+        "code": "testBtn",
+        "valueJson": "{\"zh-CN\":\"测试连接\",\"en-US\":\"Test connection\"}"
+      },
+      {
+        "code": "testDisabledHint",
+        "valueJson": "{\"zh-CN\":\"请先填写完整连接信息\",\"en-US\":\"Complete the connection fields first\"}"
+      },
+      {
+        "code": "testFail",
+        "valueJson": "{\"zh-CN\":\"连接失败\",\"en-US\":\"Failed\"}"
+      },
+      {
+        "code": "testInProgress",
+        "valueJson": "{\"zh-CN\":\"测试中…\",\"en-US\":\"Testing…\"}"
+      },
+      {
+        "code": "testNeverRun",
+        "valueJson": "{\"zh-CN\":\"尚未测试\",\"en-US\":\"Not tested\"}"
+      },
+      {
+        "code": "testOk",
+        "valueJson": "{\"zh-CN\":\"连接成功\",\"en-US\":\"Connected\"}"
+      },
+      {
+        "code": "title",
+        "valueJson": "{\"zh-CN\":\"数据管理\",\"en-US\":\"Data Management\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "dict",
+    "items": [
       {
         "code": "cacheLoadedAt",
         "valueJson": "{\"zh-CN\":\"缓存时间 {time}\",\"en-US\":\"Cache loaded at {time}\"}"
@@ -195,10 +1024,6 @@
       {
         "code": "colCode",
         "valueJson": "{\"zh-CN\":\"编码\",\"en-US\":\"Code\"}"
-      },
-      {
-        "code": "colItemCount",
-        "valueJson": "{\"zh-CN\":\"条目数\",\"en-US\":\"Items\"}"
       },
       {
         "code": "colLabel",
@@ -453,10 +1278,6 @@
         "valueJson": "{\"zh-CN\":\"将导入 {count} 条记录\",\"en-US\":\"Will import {count} record(s)\"}"
       },
       {
-        "code": "importSelectType",
-        "valueJson": "{\"zh-CN\":\"请先选择左侧字典类型\",\"en-US\":\"Select a dictionary type on the left first\"}"
-      },
-      {
         "code": "importTip",
         "valueJson": "{\"zh-CN\":\"JSON: [{...}] 或 CSV: type_code,type_name,...,item_code,label,...\",\"en-US\":\"JSON: [{...}] or CSV: type_code,type_name,...,item_code,label,...\"}"
       },
@@ -479,10 +1300,6 @@
       {
         "code": "newItem",
         "valueJson": "{\"zh-CN\":\"新建条目\",\"en-US\":\"New item\"}"
-      },
-      {
-        "code": "newType",
-        "valueJson": "{\"zh-CN\":\"新建类型\",\"en-US\":\"New type\"}"
       },
       {
         "code": "refreshCache",
@@ -519,6 +1336,223 @@
       {
         "code": "typeTitle",
         "valueJson": "{\"zh-CN\":\"字典类型\",\"en-US\":\"Types\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "documents",
+    "items": [
+      {
+        "code": "breadcrumbRoot",
+        "valueJson": "{\"zh-CN\":\"根目录\",\"en-US\":\"Root\"}"
+      },
+      {
+        "code": "categoryDesc",
+        "valueJson": "{\"zh-CN\":\"类目用于归类档案。每个类目对应左侧菜单中的一项，所有档案共享同一组件。\",\"en-US\":\"Categories group archives. Each category shows up as a left-nav item, all archives share one component.\"}"
+      },
+      {
+        "code": "categoryEmptyDesc",
+        "valueJson": "{\"zh-CN\":\"创建一个类目开始管理档案，例如「合同档案」「发票影印件」「项目交付物」。\",\"en-US\":\"Create a category to start organizing files — e.g. \\\"Contracts\\\", \\\"Invoice Scans\\\", \\\"Project Deliverables\\\".\"}"
+      },
+      {
+        "code": "categoryEmptyTitle",
+        "valueJson": "{\"zh-CN\":\"还没有类目\",\"en-US\":\"No categories yet\"}"
+      },
+      {
+        "code": "categorySlugHint",
+        "valueJson": "{\"zh-CN\":\"仅小写字母/数字/单连字符（如 contracts-2026）\",\"en-US\":\"lowercase letters/digits separated by single hyphens (e.g. contracts-2026)\"}"
+      },
+      {
+        "code": "categorySlugInvalid",
+        "valueJson": "{\"zh-CN\":\"slug 必须是 kebab-case\",\"en-US\":\"slug must be kebab-case\"}"
+      },
+      {
+        "code": "categoryTitle",
+        "valueJson": "{\"zh-CN\":\"类目设置\",\"en-US\":\"Category Settings\"}"
+      },
+      {
+        "code": "colCategoryCount",
+        "valueJson": "{\"zh-CN\":\"档案数\",\"en-US\":\"Files\"}"
+      },
+      {
+        "code": "colCategoryIcon",
+        "valueJson": "{\"zh-CN\":\"图标\",\"en-US\":\"Icon\"}"
+      },
+      {
+        "code": "colCategoryName",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
+      },
+      {
+        "code": "colCategorySlug",
+        "valueJson": "{\"zh-CN\":\"路径标识\",\"en-US\":\"Slug\"}"
+      },
+      {
+        "code": "colCategorySort",
+        "valueJson": "{\"zh-CN\":\"排序\",\"en-US\":\"Sort\"}"
+      },
+      {
+        "code": "colCategoryStatus",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
+      },
+      {
+        "code": "colName",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
+      },
+      {
+        "code": "colSize",
+        "valueJson": "{\"zh-CN\":\"大小\",\"en-US\":\"Size\"}"
+      },
+      {
+        "code": "colStorageKey",
+        "valueJson": "{\"zh-CN\":\"存储路径\",\"en-US\":\"Storage Key\"}"
+      },
+      {
+        "code": "colType",
+        "valueJson": "{\"zh-CN\":\"类型\",\"en-US\":\"Type\"}"
+      },
+      {
+        "code": "colUploadedAt",
+        "valueJson": "{\"zh-CN\":\"上传时间\",\"en-US\":\"Uploaded At\"}"
+      },
+      {
+        "code": "colUploader",
+        "valueJson": "{\"zh-CN\":\"上传人\",\"en-US\":\"Uploader\"}"
+      },
+      {
+        "code": "createCategory",
+        "valueJson": "{\"zh-CN\":\"新建类目\",\"en-US\":\"New Category\"}"
+      },
+      {
+        "code": "created",
+        "valueJson": "{\"zh-CN\":\"创建成功\",\"en-US\":\"Created\"}"
+      },
+      {
+        "code": "createFolder",
+        "valueJson": "{\"zh-CN\":\"新建文件夹\",\"en-US\":\"New Folder\"}"
+      },
+      {
+        "code": "createFolderTitle",
+        "valueJson": "{\"zh-CN\":\"新建文件夹\",\"en-US\":\"New Folder\"}"
+      },
+      {
+        "code": "delete",
+        "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
+      },
+      {
+        "code": "deleteCategoryConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除类目「{name}」？\",\"en-US\":\"Delete category \\\"{name}\\\"?\"}"
+      },
+      {
+        "code": "deleteCategoryNonEmpty",
+        "valueJson": "{\"zh-CN\":\"类目「{name}」下仍有 {count} 个档案，请先处理后再删除\",\"en-US\":\"Category \\\"{name}\\\" still has {count} file(s). Remove them first.\"}"
+      },
+      {
+        "code": "deleteConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除档案「{name}」？删除后将从存储一并清除，无法恢复。\",\"en-US\":\"Delete file \\\"{name}\\\"? Storage file will be removed too. Cannot be undone.\"}"
+      },
+      {
+        "code": "deleteSuccess",
+        "valueJson": "{\"zh-CN\":\"删除成功\",\"en-US\":\"Deleted\"}"
+      },
+      {
+        "code": "desc",
+        "valueJson": "{\"zh-CN\":\"按类目管理长期保存的文件档案\",\"en-US\":\"Manage long-term file archives by category\"}"
+      },
+      {
+        "code": "download",
+        "valueJson": "{\"zh-CN\":\"下载\",\"en-US\":\"Download\"}"
+      },
+      {
+        "code": "editCategory",
+        "valueJson": "{\"zh-CN\":\"编辑类目\",\"en-US\":\"Edit Category\"}"
+      },
+      {
+        "code": "empty",
+        "valueJson": "{\"zh-CN\":\"该类目下暂无档案，请上传或创建新类目\",\"en-US\":\"No files in this category. Upload one or create a new category.\"}"
+      },
+      {
+        "code": "emptyDesc",
+        "valueJson": "{\"zh-CN\":\"将第一个 PDF/文档/图片上传到此分类。SHA-256 重复的档案将被拒绝。\",\"en-US\":\"Upload your first PDF / document / image. Duplicates (same SHA-256) are rejected.\"}"
+      },
+      {
+        "code": "emptyFolder",
+        "valueJson": "{\"zh-CN\":\"此文件夹为空\",\"en-US\":\"This folder is empty\"}"
+      },
+      {
+        "code": "emptyTitle",
+        "valueJson": "{\"zh-CN\":\"还没有档案\",\"en-US\":\"No files yet\"}"
+      },
+      {
+        "code": "folderCreated",
+        "valueJson": "{\"zh-CN\":\"文件夹已创建：{path}\",\"en-US\":\"Folder created: {path}\"}"
+      },
+      {
+        "code": "folderCreateFail",
+        "valueJson": "{\"zh-CN\":\"创建失败：{msg}\",\"en-US\":\"Create failed: {msg}\"}"
+      },
+      {
+        "code": "folderOpen",
+        "valueJson": "{\"zh-CN\":\"打开文件夹\",\"en-US\":\"Open folder\"}"
+      },
+      {
+        "code": "folderPath",
+        "valueJson": "{\"zh-CN\":\"路径\",\"en-US\":\"Path\"}"
+      },
+      {
+        "code": "folderPathHint",
+        "valueJson": "{\"zh-CN\":\"每段限字母/数字/连字符/下划线/空格（支持中文），可用 / 分隔多级，如 2024-q1/原始扫描件\",\"en-US\":\"Each segment allows letters/digits/hyphens/underscores/spaces (Unicode). Use / for nesting, e.g. 2024-q1/originals\"}"
+      },
+      {
+        "code": "folderPathInvalid",
+        "valueJson": "{\"zh-CN\":\"路径格式不正确（每段限字母/数字/连字符/下划线/空格，多级用 / 分隔）\",\"en-US\":\"Invalid path (each segment: letters/digits/-/_, use / for nesting)\"}"
+      },
+      {
+        "code": "listTitle",
+        "valueJson": "{\"zh-CN\":\"{name} — 档案列表\",\"en-US\":\"{name} — Files\"}"
+      },
+      {
+        "code": "preview",
+        "valueJson": "{\"zh-CN\":\"预览\",\"en-US\":\"Preview\"}"
+      },
+      {
+        "code": "rename",
+        "valueJson": "{\"zh-CN\":\"重命名\",\"en-US\":\"Rename\"}"
+      },
+      {
+        "code": "renamePlaceholder",
+        "valueJson": "{\"zh-CN\":\"请输入新名称\",\"en-US\":\"New name\"}"
+      },
+      {
+        "code": "renameSuccess",
+        "valueJson": "{\"zh-CN\":\"重命名成功\",\"en-US\":\"Renamed\"}"
+      },
+      {
+        "code": "renameTitle",
+        "valueJson": "{\"zh-CN\":\"重命名档案\",\"en-US\":\"Rename File\"}"
+      },
+      {
+        "code": "title",
+        "valueJson": "{\"zh-CN\":\"档案管理\",\"en-US\":\"Documents\"}"
+      },
+      {
+        "code": "updated",
+        "valueJson": "{\"zh-CN\":\"更新成功\",\"en-US\":\"Updated\"}"
+      },
+      {
+        "code": "uploadBtn",
+        "valueJson": "{\"zh-CN\":\"上传档案\",\"en-US\":\"Upload\"}"
+      },
+      {
+        "code": "uploadFail",
+        "valueJson": "{\"zh-CN\":\"上传失败：{msg}\",\"en-US\":\"Upload failed: {msg}\"}"
+      },
+      {
+        "code": "uploadSuccess",
+        "valueJson": "{\"zh-CN\":\"上传成功\",\"en-US\":\"Upload complete\"}"
+      },
+      {
+        "code": "uploadTip",
+        "valueJson": "{\"zh-CN\":\"支持单文件最大 100MB；同 SHA-256 与同类+同目录的档案将被拒绝\",\"en-US\":\"Max 100MB per file; same SHA-256 + same folder is rejected\"}"
       }
     ]
   },
@@ -687,10 +1721,6 @@
         "valueJson": "{\"zh-CN\":\"此发票号共 {n} 条记录，确认全部删除？\",\"en-US\":\"This invoice has {n} record(s). Delete all?\"}"
       },
       {
-        "code": "deleteGroupTitle",
-        "valueJson": "{\"zh-CN\":\"批量删除\",\"en-US\":\"Delete group\"}"
-      },
-      {
         "code": "dropHere",
         "valueJson": "{\"zh-CN\":\"将文件拖到此处，或点击选择文件\",\"en-US\":\"Drop files here, or click to select files\"}"
       },
@@ -759,18 +1789,6 @@
         "valueJson": "{\"zh-CN\":\"导出 Excel\",\"en-US\":\"Export Excel\"}"
       },
       {
-        "code": "formatOfd",
-        "valueJson": "{\"zh-CN\":\"OFD\",\"en-US\":\"OFD\"}"
-      },
-      {
-        "code": "formatPdf",
-        "valueJson": "{\"zh-CN\":\"PDF\",\"en-US\":\"PDF\"}"
-      },
-      {
-        "code": "formatXml",
-        "valueJson": "{\"zh-CN\":\"XML\",\"en-US\":\"XML\"}"
-      },
-      {
         "code": "listTitle",
         "valueJson": "{\"zh-CN\":\"发票列表\",\"en-US\":\"Invoice Records\"}"
       },
@@ -779,16 +1797,28 @@
         "valueJson": "{\"zh-CN\":\"查看已识别的发票，可改字段、重新下载\",\"en-US\":\"View recognized invoices, edit them, or re-download\"}"
       },
       {
-        "code": "msgEmpty",
-        "valueJson": "{\"zh-CN\":\"未识别\",\"en-US\":\"empty\"}"
+        "code": "ocrDecryptionFailedGoto",
+        "valueJson": "{\"zh-CN\":\"前往修复\",\"en-US\":\"Fix it now\"}"
       },
       {
-        "code": "msgProcessing",
-        "valueJson": "{\"zh-CN\":\"处理中\",\"en-US\":\"processing\"}"
+        "code": "ocrDecryptionFailedMsg",
+        "valueJson": "{\"zh-CN\":\"主密钥已轮换，原 API Key 无法解密。请到 发票管理 → 解析设置 重新填写 API Key 后再上传。\",\"en-US\":\"The master key has been rotated, so the stored API key cannot be decrypted. Please re-enter it under Invoices → Parser Settings, then re-upload.\"}"
       },
       {
-        "code": "msgSuccess",
-        "valueJson": "{\"zh-CN\":\"识别成功\",\"en-US\":\"success\"}"
+        "code": "ocrDecryptionFailedTitle",
+        "valueJson": "{\"zh-CN\":\"API Key 已失效\",\"en-US\":\"API key is no longer valid\"}"
+      },
+      {
+        "code": "ocrExtractFailedGoto",
+        "valueJson": "{\"zh-CN\":\"前往检查\",\"en-US\":\"Open settings\"}"
+      },
+      {
+        "code": "ocrExtractFailedMsg",
+        "valueJson": "{\"zh-CN\":\"已发送请求，但解析服务返回错误。请检查 Base URL 与 API Key 是否正确，或确认解析服务在线。\",\"en-US\":\"The request was sent but the parser returned an error. Verify the Base URL and API Key, or that the parser service is online.\"}"
+      },
+      {
+        "code": "ocrExtractFailedTitle",
+        "valueJson": "{\"zh-CN\":\"调用识别 API 失败\",\"en-US\":\"Parser API call failed\"}"
       },
       {
         "code": "ocrNotConfiguredGoto",
@@ -805,14 +1835,6 @@
       {
         "code": "previewFailOfd",
         "valueJson": "{\"zh-CN\":\"OFD 格式浏览器暂不支持预览，将下载文件\",\"en-US\":\"OFD preview not supported by browser. File will be downloaded.\"}"
-      },
-      {
-        "code": "previewFailXml",
-        "valueJson": "{\"zh-CN\":\"XML 格式浏览器暂不支持预览，已在新标签打开\",\"en-US\":\"XML preview not supported by browser. Opened in a new tab.\"}"
-      },
-      {
-        "code": "previewTitle",
-        "valueJson": "{\"zh-CN\":\"文件预览\",\"en-US\":\"File Preview\"}"
       },
       {
         "code": "queryKeywordLabel",
@@ -847,10 +1869,6 @@
         "valueJson": "{\"zh-CN\":\"识别成功\",\"en-US\":\"Recognized\"}"
       },
       {
-        "code": "resultsTitle",
-        "valueJson": "{\"zh-CN\":\"识别结果\",\"en-US\":\"Recognition Results\"}"
-      },
-      {
         "code": "saveBlocked",
         "valueJson": "{\"zh-CN\":\"当前存在阻断项，无法保存到数据库。请按上方红色提示处理。\",\"en-US\":\"Saving is blocked. Please resolve the red alerts above.\"}"
       },
@@ -875,14 +1893,6 @@
         "valueJson": "{\"zh-CN\":\"搜索发票号 / 销售方 / 购买方\",\"en-US\":\"Search invoice / seller / buyer\"}"
       },
       {
-        "code": "statusError",
-        "valueJson": "{\"zh-CN\":\"错误\",\"en-US\":\"Error\"}"
-      },
-      {
-        "code": "statusSuccess",
-        "valueJson": "{\"zh-CN\":\"成功\",\"en-US\":\"Success\"}"
-      },
-      {
         "code": "submit",
         "valueJson": "{\"zh-CN\":\"开始识别 ({count})\",\"en-US\":\"Upload & Recognize ({count})\"}"
       },
@@ -901,10 +1911,6 @@
       {
         "code": "verificationDateLabel",
         "valueJson": "{\"zh-CN\":\"核销日期\",\"en-US\":\"Verification Date\"}"
-      },
-      {
-        "code": "verificationDatePlaceholder",
-        "valueJson": "{\"zh-CN\":\"选择核销日期\",\"en-US\":\"Pick a verification date\"}"
       },
       {
         "code": "verificationDateRangePlaceholder",
@@ -937,15 +1943,11 @@
     "items": [
       {
         "code": "brand",
-        "valueJson": "{\"zh-CN\":\"财会运营中心\",\"en-US\":\"Finance Ops Center\"}"
-      },
-      {
-        "code": "brandShort",
-        "valueJson": "{\"zh-CN\":\"财\",\"en-US\":\"F\"}"
+        "valueJson": "{\"zh-CN\":\"iFinBrain\",\"en-US\":\"iFinBrain\"}"
       },
       {
         "code": "brandSub",
-        "valueJson": "{\"zh-CN\":\"财会 · 运营 · 管理\",\"en-US\":\"Finance · Ops · Mgmt\"}"
+        "valueJson": "{\"zh-CN\":\"iFinBrain · 智能财务\",\"en-US\":\"iFinBrain · Smart Finance\"}"
       },
       {
         "code": "collapsedHint",
@@ -958,28 +1960,12 @@
       {
         "code": "home",
         "valueJson": "{\"zh-CN\":\"首页\",\"en-US\":\"Home\"}"
-      },
-      {
-        "code": "language",
-        "valueJson": "{\"zh-CN\":\"语言\",\"en-US\":\"Language\"}"
-      },
-      {
-        "code": "logoutConfirm",
-        "valueJson": "{\"zh-CN\":\"确定要退出登录吗？\",\"en-US\":\"Are you sure to logout?\"}"
       }
     ]
   },
   {
     "namespace": "login",
     "items": [
-      {
-        "code": "invalidCredentials",
-        "valueJson": "{\"zh-CN\":\"用户名或密码错误\",\"en-US\":\"Invalid username or password\"}"
-      },
-      {
-        "code": "loggedInAs",
-        "valueJson": "{\"zh-CN\":\"当前登录：\",\"en-US\":\"Logged in as:\"}"
-      },
       {
         "code": "password",
         "valueJson": "{\"zh-CN\":\"密码\",\"en-US\":\"Password\"}"
@@ -998,11 +1984,7 @@
       },
       {
         "code": "title",
-        "valueJson": "{\"zh-CN\":\"财会运营中心\",\"en-US\":\"Finance Ops Center\"}"
-      },
-      {
-        "code": "userDisabled",
-        "valueJson": "{\"zh-CN\":\"用户已被禁用\",\"en-US\":\"User is disabled\"}"
+        "valueJson": "{\"zh-CN\":\"iFinBrain\",\"en-US\":\"iFinBrain\"}"
       },
       {
         "code": "username",
@@ -1026,12 +2008,68 @@
         "valueJson": "{\"zh-CN\":\"仪表盘\",\"en-US\":\"Dashboard\"}"
       },
       {
+        "code": "data-mgmt-datasource",
+        "valueJson": "{\"zh-CN\":\"数据源\",\"en-US\":\"Sources\"}"
+      },
+      {
+        "code": "data-mgmt-query",
+        "valueJson": "{\"zh-CN\":\"查询\",\"en-US\":\"Queries\"}"
+      },
+      {
+        "code": "data-mgmt._",
+        "valueJson": "{\"zh-CN\":\"数据管理\",\"en-US\":\"Data Management\"}"
+      },
+      {
+        "code": "data-mgmt.datasource.Index",
+        "valueJson": "{\"zh-CN\":\"数据源\",\"en-US\":\"Data Sources\"}"
+      },
+      {
+        "code": "data-mgmt.query.Index",
+        "valueJson": "{\"zh-CN\":\"查询库\",\"en-US\":\"Saved Queries\"}"
+      },
+      {
+        "code": "dataMgmt._",
+        "valueJson": "{\"zh-CN\":\"数据管理\",\"en-US\":\"Data Management\"}"
+      },
+      {
+        "code": "dataMgmt.datasource.Index",
+        "valueJson": "{\"zh-CN\":\"数据源\",\"en-US\":\"Data Sources\"}"
+      },
+      {
+        "code": "dataMgmt.query.Index",
+        "valueJson": "{\"zh-CN\":\"查询库\",\"en-US\":\"Saved Queries\"}"
+      },
+      {
+        "code": "dataMgmtDatasource",
+        "valueJson": "{\"zh-CN\":\"数据源\",\"en-US\":\"Sources\"}"
+      },
+      {
+        "code": "dataMgmtQuery",
+        "valueJson": "{\"zh-CN\":\"查询\",\"en-US\":\"Queries\"}"
+      },
+      {
+        "code": "documents._",
+        "valueJson": "{\"zh-CN\":\"档案管理\",\"en-US\":\"Documents\"}"
+      },
+      {
+        "code": "documents.category._",
+        "valueJson": "{\"zh-CN\":\"类目设置\",\"en-US\":\"Category Settings\"}"
+      },
+      {
+        "code": "invoice-parser.Index",
+        "valueJson": "{\"zh-CN\":\"解析设置\",\"en-US\":\"Parser Settings\"}"
+      },
+      {
         "code": "invoice._",
         "valueJson": "{\"zh-CN\":\"发票管理\",\"en-US\":\"Invoice\"}"
       },
       {
         "code": "invoice.List",
         "valueJson": "{\"zh-CN\":\"发票列表\",\"en-US\":\"Records\"}"
+      },
+      {
+        "code": "invoice.parser.Index",
+        "valueJson": "{\"zh-CN\":\"解析设置\",\"en-US\":\"Parser Settings\"}"
       },
       {
         "code": "invoice.Upload",
@@ -1058,10 +2096,6 @@
         "valueJson": "{\"zh-CN\":\"菜单管理\",\"en-US\":\"Menus\"}"
       },
       {
-        "code": "system.ocr.Index",
-        "valueJson": "{\"zh-CN\":\"API设置\",\"en-US\":\"OCR API\"}"
-      },
-      {
         "code": "system.role.Index",
         "valueJson": "{\"zh-CN\":\"角色管理\",\"en-US\":\"Roles\"}"
       },
@@ -1072,18 +2106,6 @@
       {
         "code": "system.user.Index",
         "valueJson": "{\"zh-CN\":\"用户管理\",\"en-US\":\"Users\"}"
-      },
-      {
-        "code": "systemMenu",
-        "valueJson": "{\"zh-CN\":\"菜单\",\"en-US\":\"Menus\"}"
-      },
-      {
-        "code": "systemOcr",
-        "valueJson": "{\"zh-CN\":\"API设置\",\"en-US\":\"OCR API\"}"
-      },
-      {
-        "code": "systemRole",
-        "valueJson": "{\"zh-CN\":\"角色\",\"en-US\":\"Roles\"}"
       },
       {
         "code": "systemStorage",
@@ -1098,6 +2120,10 @@
   {
     "namespace": "system",
     "items": [
+      {
+        "code": "colAction",
+        "valueJson": "{\"zh-CN\":\"操作\",\"en-US\":\"Actions\"}"
+      },
       {
         "code": "colCode",
         "valueJson": "{\"zh-CN\":\"角色代码\",\"en-US\":\"Code\"}"
@@ -1131,6 +2157,10 @@
         "valueJson": "{\"zh-CN\":\"最后登录\",\"en-US\":\"Last Login\"}"
       },
       {
+        "code": "colMenuName",
+        "valueJson": "{\"zh-CN\":\"菜单名称\",\"en-US\":\"Menu name\"}"
+      },
+      {
         "code": "colName",
         "valueJson": "{\"zh-CN\":\"角色名\",\"en-US\":\"Name\"}"
       },
@@ -1140,7 +2170,7 @@
       },
       {
         "code": "colPermission",
-        "valueJson": "{\"zh-CN\":\"权限码\",\"en-US\":\"Permission\"}"
+        "valueJson": "{\"zh-CN\":\"权限标识\",\"en-US\":\"Permission\"}"
       },
       {
         "code": "colPermissions",
@@ -1181,10 +2211,6 @@
       {
         "code": "confirmDeleteUser",
         "valueJson": "{\"zh-CN\":\"确定要删除该用户吗？\",\"en-US\":\"Delete this user?\"}"
-      },
-      {
-        "code": "deleteMenuWithChildren",
-        "valueJson": "{\"zh-CN\":\"该菜单包含子项，将一起删除\",\"en-US\":\"This menu has children that will be deleted together\"}"
       },
       {
         "code": "editMenuTitle",
@@ -1235,108 +2261,168 @@
         "valueJson": "{\"zh-CN\":\"新增用户\",\"en-US\":\"New User\"}"
       },
       {
-        "code": "ocrApiKeyChange",
+        "code": "parentRoot",
+        "valueJson": "{\"zh-CN\":\"（顶级）\",\"en-US\":\"(root)\"}"
+      },
+      {
+        "code": "parserAdvanced",
+        "valueJson": "{\"zh-CN\":\"高级设置（端点路径）\",\"en-US\":\"Advanced (Endpoint Paths)\"}"
+      },
+      {
+        "code": "parserApiKeyChange",
         "valueJson": "{\"zh-CN\":\"修改\",\"en-US\":\"Change\"}"
       },
       {
-        "code": "ocrApiKeyConfigured",
+        "code": "parserApiKeyConfigured",
         "valueJson": "{\"zh-CN\":\"已配置\",\"en-US\":\"Configured\"}"
       },
       {
-        "code": "ocrApiKeyHint",
-        "valueJson": "{\"zh-CN\":\"保存后加密落库；返回时仅显示掩码\",\"en-US\":\"Encrypted on save; only masked on read\"}"
+        "code": "parserApiKeyFailed",
+        "valueJson": "{\"zh-CN\":\"密钥失效\",\"en-US\":\"Invalid\"}"
       },
       {
-        "code": "ocrApiKeyKeepPlaceholder",
+        "code": "parserApiKeyFailedHint",
+        "valueJson": "{\"zh-CN\":\"主密钥已轮换，原 API Key 无法解密，请重新填写后保存。\",\"en-US\":\"Master key was rotated; the stored API key cannot be decrypted. Please re-enter and save.\"}"
+      },
+      {
+        "code": "parserApiKeyKeepPlaceholder",
         "valueJson": "{\"zh-CN\":\"留空表示不修改（已配置）\",\"en-US\":\"Leave blank to keep existing key\"}"
       },
       {
-        "code": "ocrApiKeyLabel",
+        "code": "parserApiKeyLabel",
         "valueJson": "{\"zh-CN\":\"API Key\",\"en-US\":\"API Key\"}"
       },
       {
-        "code": "ocrApiKeyPlaceholder",
+        "code": "parserApiKeyPlaceholder",
         "valueJson": "{\"zh-CN\":\"输入新的 API Key\",\"en-US\":\"Enter new API Key\"}"
       },
       {
-        "code": "ocrBannerDesc",
-        "valueJson": "{\"zh-CN\":\"启用并填写 Base URL + API Key 后才能进行发票识别；上传文件时若未配置会提示。\",\"en-US\":\"Enable it and fill in the Base URL + API Key before uploading invoices; otherwise uploads will be blocked with a prompt.\"}"
+        "code": "parserBannerDesc",
+        "valueJson": "{\"zh-CN\":\"启用并填写 Base URL + API Key 后才能进行发票解析；上传文件时若未配置会提示。\",\"en-US\":\"Enable it and fill in the Base URL + API Key before uploading invoices; otherwise uploads will be blocked.\"}"
       },
       {
-        "code": "ocrBannerTitle",
-        "valueJson": "{\"zh-CN\":\"未启用自定义识别 API\",\"en-US\":\"Custom OCR API is disabled\"}"
+        "code": "parserBannerTitle",
+        "valueJson": "{\"zh-CN\":\"未启用自定义解析 API\",\"en-US\":\"Custom Parser API is disabled\"}"
       },
       {
-        "code": "ocrBaseUrlLabel",
+        "code": "parserBaseUrlLabel",
         "valueJson": "{\"zh-CN\":\"Base URL\",\"en-US\":\"Base URL\"}"
       },
       {
-        "code": "ocrEnabledHint",
-        "valueJson": "{\"zh-CN\":\"关闭时使用 application.yml / 环境变量中的默认配置\",\"en-US\":\"When off, application.yml / env defaults are used\"}"
+        "code": "parserBaseUrlPlaceholder",
+        "valueJson": "{\"zh-CN\":\"http://localhost:8091\",\"en-US\":\"http://localhost:8091\"}"
       },
       {
-        "code": "ocrEnabledLabel",
-        "valueJson": "{\"zh-CN\":\"启用自定义识别API\",\"en-US\":\"Use custom OCR API\"}"
+        "code": "parserBatchPathLabel",
+        "valueJson": "{\"zh-CN\":\"批量路径\",\"en-US\":\"Batch path\"}"
       },
       {
-        "code": "ocrEnabledOff",
+        "code": "parserBatchPathPlaceholder",
+        "valueJson": "{\"zh-CN\":\"/extract/batch\",\"en-US\":\"/extract/batch\"}"
+      },
+      {
+        "code": "parserEnabledHint",
+        "valueJson": "{\"zh-CN\":\"关闭时所有发票识别走 fapiao_cn 默认配置\",\"en-US\":\"When off, all invoice parsing uses fapiao_cn defaults\"}"
+      },
+      {
+        "code": "parserEnabledLabel",
+        "valueJson": "{\"zh-CN\":\"票据解析服务API\",\"en-US\":\"Invoice Parser API\"}"
+      },
+      {
+        "code": "parserEnabledOff",
         "valueJson": "{\"zh-CN\":\"关闭\",\"en-US\":\"Off\"}"
       },
       {
-        "code": "ocrEnabledOn",
+        "code": "parserEnabledOn",
         "valueJson": "{\"zh-CN\":\"启用\",\"en-US\":\"On\"}"
       },
       {
-        "code": "ocrEndpointSection",
-        "valueJson": "{\"zh-CN\":\"识别服务\",\"en-US\":\"Recognition Endpoint\"}"
+        "code": "parserExtractPathLabel",
+        "valueJson": "{\"zh-CN\":\"单文件路径\",\"en-US\":\"Single-file path\"}"
       },
       {
-        "code": "ocrSaved",
-        "valueJson": "{\"zh-CN\":\"保存成功，新上传将使用自定义识别服务\",\"en-US\":\"Saved. New uploads will use the custom OCR service\"}"
+        "code": "parserExtractPathPlaceholder",
+        "valueJson": "{\"zh-CN\":\"/extract\",\"en-US\":\"/extract\"}"
       },
       {
-        "code": "ocrStatusOff",
+        "code": "parserHealthPathLabel",
+        "valueJson": "{\"zh-CN\":\"健康检查路径\",\"en-US\":\"Health check path\"}"
+      },
+      {
+        "code": "parserHealthPathPlaceholder",
+        "valueJson": "{\"zh-CN\":\"/health\",\"en-US\":\"/health\"}"
+      },
+      {
+        "code": "parserOcrPlaceholderDesc",
+        "valueJson": "{\"zh-CN\":\"即将推出\",\"en-US\":\"Coming soon\"}"
+      },
+      {
+        "code": "parserOcrPlaceholderStatus",
+        "valueJson": "{\"zh-CN\":\"敬请期待\",\"en-US\":\"Stay tuned\"}"
+      },
+      {
+        "code": "parserOcrPlaceholderTitle",
+        "valueJson": "{\"zh-CN\":\"OCR API\",\"en-US\":\"OCR API\"}"
+      },
+      {
+        "code": "parserPathHint",
+        "valueJson": "{\"zh-CN\":\"对接第三方 OCR / 自定义服务时修改；默认 /extract, /extract/batch, /health\",\"en-US\":\"Edit when integrating 3rd-party OCR / custom services; defaults /extract, /extract/batch, /health\"}"
+      },
+      {
+        "code": "parserReservedDesc",
+        "valueJson": "{\"zh-CN\":\"未来将在此添加更多解析服务（如阿里云 OCR / 腾讯云 OCR），每个服务独立配置。\",\"en-US\":\"Future parser services (e.g. Aliyun OCR, Tencent OCR) will be added here, each independently configurable.\"}"
+      },
+      {
+        "code": "parserReservedTitle",
+        "valueJson": "{\"zh-CN\":\"更多解析服务（预留）\",\"en-US\":\"More parsers (reserved)\"}"
+      },
+      {
+        "code": "parserSaved",
+        "valueJson": "{\"zh-CN\":\"保存成功，新上传将使用自定义解析服务\",\"en-US\":\"Saved. New uploads will use the custom Parser API\"}"
+      },
+      {
+        "code": "parserStatusOff",
         "valueJson": "{\"zh-CN\":\"使用默认配置\",\"en-US\":\"Using defaults\"}"
       },
       {
-        "code": "ocrStatusOffDesc",
-        "valueJson": "{\"zh-CN\":\"由 application.yml / 环境变量决定\",\"en-US\":\"From application.yml / environment\"}"
+        "code": "parserStatusOffDesc",
+        "valueJson": "{\"zh-CN\":\"由 fapiao_cn 默认配置决定\",\"en-US\":\"From fapiao_cn defaults\"}"
       },
       {
-        "code": "ocrStatusOn",
+        "code": "parserStatusOn",
         "valueJson": "{\"zh-CN\":\"已启用自定义\",\"en-US\":\"Custom enabled\"}"
       },
       {
-        "code": "ocrStatusTitle",
+        "code": "parserStatusTitle",
         "valueJson": "{\"zh-CN\":\"当前状态\",\"en-US\":\"Current Status\"}"
       },
       {
-        "code": "ocrTestBtn",
+        "code": "parserTestBtn",
         "valueJson": "{\"zh-CN\":\"测试连通\",\"en-US\":\"Test Connection\"}"
       },
       {
-        "code": "ocrTestFail",
+        "code": "parserTestFail",
         "valueJson": "{\"zh-CN\":\"连通失败，请检查 URL\",\"en-US\":\"Connection failed, check the URL\"}"
       },
       {
-        "code": "ocrTestOk",
+        "code": "parserTestOk",
         "valueJson": "{\"zh-CN\":\"连通正常\",\"en-US\":\"Connection OK\"}"
       },
       {
-        "code": "ocrTimeoutLabel",
+        "code": "parserTimeoutLabel",
         "valueJson": "{\"zh-CN\":\"请求超时\",\"en-US\":\"Timeout\"}"
       },
       {
-        "code": "ocrTitle",
-        "valueJson": "{\"zh-CN\":\"识别API\",\"en-US\":\"OCR API\"}"
+        "code": "parserTimeoutUnit",
+        "valueJson": "{\"zh-CN\":\"秒\",\"en-US\":\"s\"}"
       },
       {
-        "code": "ocrTitleDesc",
-        "valueJson": "{\"zh-CN\":\"自定义识别服务地址与密钥（启用后立即生效，加密存储）\",\"en-US\":\"Customize the recognition endpoint and key (encrypted at rest, hot-reloaded)\"}"
+        "code": "parserTitle",
+        "valueJson": "{\"zh-CN\":\"解析\",\"en-US\":\"Parser\"}"
       },
       {
-        "code": "parentRoot",
-        "valueJson": "{\"zh-CN\":\"（顶级）\",\"en-US\":\"(root)\"}"
+        "code": "parserTitleDesc",
+        "valueJson": "{\"zh-CN\":\"通用解析服务地址与密钥（启用后立即生效，加密存储；支持自定义各端点路径）\",\"en-US\":\"Generic parser endpoint and key (encrypted at rest, hot-reloaded; all endpoint paths are configurable)\"}"
       },
       {
         "code": "passwordHint",
@@ -1345,6 +2431,50 @@
       {
         "code": "passwordLabel",
         "valueJson": "{\"zh-CN\":\"密码\",\"en-US\":\"Password\"}"
+      },
+      {
+        "code": "permDeselectAll",
+        "valueJson": "{\"zh-CN\":\"清空\",\"en-US\":\"Clear\"}"
+      },
+      {
+        "code": "permModule.data",
+        "valueJson": "{\"zh-CN\":\"数据管理\",\"en-US\":\"Data Mgmt\"}"
+      },
+      {
+        "code": "permModule.dict",
+        "valueJson": "{\"zh-CN\":\"字典\",\"en-US\":\"Dictionaries\"}"
+      },
+      {
+        "code": "permModule.file",
+        "valueJson": "{\"zh-CN\":\"文件下载\",\"en-US\":\"File Download\"}"
+      },
+      {
+        "code": "permModule.i18n",
+        "valueJson": "{\"zh-CN\":\"国际化\",\"en-US\":\"I18N\"}"
+      },
+      {
+        "code": "permModule.invoice",
+        "valueJson": "{\"zh-CN\":\"发票\",\"en-US\":\"Invoices\"}"
+      },
+      {
+        "code": "permModule.parser",
+        "valueJson": "{\"zh-CN\":\"解析\",\"en-US\":\"Parser\"}"
+      },
+      {
+        "code": "permModule.setting",
+        "valueJson": "{\"zh-CN\":\"系统设置\",\"en-US\":\"Settings\"}"
+      },
+      {
+        "code": "permModule.system",
+        "valueJson": "{\"zh-CN\":\"系统管理\",\"en-US\":\"System\"}"
+      },
+      {
+        "code": "permSearchPlaceholder",
+        "valueJson": "{\"zh-CN\":\"按权限码或名称搜索…\",\"en-US\":\"Search by code or name…\"}"
+      },
+      {
+        "code": "permSelectAll",
+        "valueJson": "{\"zh-CN\":\"全选\",\"en-US\":\"Select all\"}"
       },
       {
         "code": "roleTitle",
@@ -1389,14 +2519,6 @@
       {
         "code": "saved",
         "valueJson": "{\"zh-CN\":\"保存成功，下次上传将使用 {type}\",\"en-US\":\"Saved. New uploads will use {type}\"}"
-      },
-      {
-        "code": "statusOff",
-        "valueJson": "{\"zh-CN\":\"禁用\",\"en-US\":\"Disabled\"}"
-      },
-      {
-        "code": "statusOn",
-        "valueJson": "{\"zh-CN\":\"启用\",\"en-US\":\"Enabled\"}"
       },
       {
         "code": "storageTitle",

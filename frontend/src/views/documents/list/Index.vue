@@ -1,0 +1,759 @@
+<template>
+  <div class="page-container fade-in-up docs-page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">
+          <el-icon v-if="category" class="title-icon">
+            <component :is="resolveIcon(category.icon)" />
+          </el-icon>
+          {{ category ? t('documents.listTitle', { name: category.name }) : t('documents.title') }}
+        </h1>
+        <p class="page-desc muted">
+          <span v-if="category">/{{ category.slug }}</span>
+          <span v-else>{{ t('documents.desc') }}</span>
+        </p>
+      </div>
+      <div class="header-actions">
+        <el-button
+          v-if="auth.hasPerm('documents:upload') && category"
+          :icon="FolderAdd"
+          @click="openFolderDialog()"
+        >
+          {{ t('documents.createFolder') }}
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 拖拽上传区：内联在表格上方（参考上传识别页样式） -->
+    <div v-if="auth.hasPerm('documents:upload') && category" class="upload-area">
+      <el-upload
+        drag multiple :auto-upload="true"
+        :action="uploadUrl"
+        :headers="uploadHeaders"
+        :before-upload="beforeUpload"
+        :on-success="onUploadSuccess"
+        :on-error="onUploadError"
+        :show-file-list="false"
+      >
+        <el-icon class="upload-icon"><UploadFilled /></el-icon>
+        <div class="upload-title">{{ t('documents.dropHere', { default: '将文件拖到此处，或点击选择' }) }}</div>
+        <div class="upload-hint">{{ t('documents.uploadTip') }}</div>
+      </el-upload>
+    </div>
+
+    <!-- 面包屑：当前路径导航 -->
+    <div v-if="category" class="breadcrumb-bar">
+      <el-icon class="bc-icon"><Folder /></el-icon>
+      <a class="bc-link" @click="openFolder('')">{{ t('documents.breadcrumbRoot') }}</a>
+      <template v-for="(seg, i) in breadcrumbs" :key="seg.path">
+        <span class="bc-sep">/</span>
+        <a class="bc-link" @click="openFolder(seg.path)">{{ seg.name }}</a>
+      </template>
+    </div>
+
+    <!-- 列表区：plain 1px 边框容器，避开 SaaS-card 套娃 -->
+    <div class="docs-table-wrap">
+      <el-table
+        v-if="folders.length > 0 || rows.length > 0"
+        :data="tableData"
+        v-loading="loading"
+        border
+        stripe
+        size="small"
+      >
+        <!-- 名称列：文件夹 / 文件 两种渲染 -->
+        <el-table-column :label="t('documents.colName')" min-width="220">
+          <template #default="{ row }">
+            <template v-if="(row as any).__kind === 'folder'">
+              <div class="name-cell folder-cell" @dblclick="openFolder((row as any).path)">
+                <el-icon class="folder-icon"><FolderOpened /></el-icon>
+                <span class="strong">{{ (row as any).name }}</span>
+              </div>
+            </template>
+            <template v-else>
+              <div class="name-cell file-cell">
+                <el-icon class="file-icon" :class="kind(row as DocumentItem)">
+                  <component :is="iconFor(row as DocumentItem)" />
+                </el-icon>
+                <span class="strong">{{ (row as DocumentItem).name }}</span>
+                <el-tooltip :content="(row as DocumentItem).originalFilename" placement="top" v-if="(row as DocumentItem).originalFilename !== (row as DocumentItem).name">
+                  <el-icon class="alias-hint"><InfoFilled /></el-icon>
+                </el-tooltip>
+              </div>
+            </template>
+          </template>
+        </el-table-column>
+        <!-- 文件夹只有名称列；文件列：类型/大小/上传人/上传时间/存储路径 -->
+        <el-table-column v-if="rows.length > 0" :label="t('documents.colType')" width="80">
+          <template #default="{ row }">
+            <template v-if="(row as any).__kind === 'file'">
+              <code class="mono">{{ extOf(row as DocumentItem) }}</code>
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column v-if="rows.length > 0" :label="t('documents.colSize')" width="100" align="right">
+          <template #default="{ row }">
+            <template v-if="(row as any).__kind === 'file'">
+              <span class="num">{{ formatBytes((row as DocumentItem).sizeBytes) }}</span>
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column v-if="rows.length > 0" :label="t('documents.colUploader')" prop="uploaderName" width="100">
+          <template #default="{ row }">
+            <template v-if="(row as any).__kind === 'file'">
+              <span class="muted">{{ (row as DocumentItem).uploaderName || '—' }}</span>
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column v-if="rows.length > 0" :label="t('documents.colUploadedAt')" width="170">
+          <template #default="{ row }">
+            <template v-if="(row as any).__kind === 'file'">
+              <span class="muted">{{ (row as DocumentItem).createdAt }}</span>
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column v-if="rows.length > 0" :label="t('documents.colStorageKey')" min-width="220">
+          <template #default="{ row }">
+            <template v-if="(row as any).__kind === 'file'">
+              <el-tooltip :content="(row as DocumentItem).storageKey" placement="top">
+                <code class="mono key-cell">{{ (row as DocumentItem).storageKey }}</code>
+              </el-tooltip>
+            </template>
+          </template>
+        </el-table-column>
+        <!-- 操作列：只有文件有；文件夹没操作 -->
+        <el-table-column :label="t('common.actions')" width="64" align="center" fixed="right">
+          <template #default="{ row }">
+            <template v-if="(row as any).__kind === 'file'">
+              <el-dropdown trigger="click" @command="(cmd: string) => onCommand(cmd, row as DocumentItem)">
+                <el-button :icon="MoreFilled" size="small" link />
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="preview">
+                      <el-icon><View /></el-icon>{{ t('documents.preview') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item command="download">
+                      <el-icon><Download /></el-icon>{{ t('documents.download') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item v-if="auth.hasPerm('documents:update')" command="rename">
+                      <el-icon><Edit /></el-icon>{{ t('documents.rename') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item v-if="auth.hasPerm('documents:delete')" command="delete" divided>
+                      <span class="danger-text">
+                        <el-icon><Delete /></el-icon>{{ t('documents.delete') }}
+                      </span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
+            <template v-else>
+              <el-tooltip :content="t('documents.folderOpen')" placement="top">
+                <el-button
+                  size="small" link
+                  :icon="ArrowRight"
+                  @click="openFolder((row as any).path)"
+                />
+              </el-tooltip>
+            </template>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 空状态：当前路径下没有任何文件 / 文件夹 -->
+      <div v-else-if="!loading && category" class="empty-state">
+        <el-icon class="empty-icon"><FolderOpened /></el-icon>
+        <h2 class="empty-title">{{ t('documents.emptyFolder') }}</h2>
+        <p class="empty-desc muted">{{ t('documents.emptyDesc') }}</p>
+      </div>
+    </div>
+
+    <!-- 重命名弹窗 -->
+    <el-dialog v-model="renameVisible" :title="t('documents.renameTitle')" width="480px">
+      <el-form @submit.prevent>
+        <el-form-item :label="t('documents.colName')">
+          <el-input
+            v-model="renameValue"
+            :placeholder="t('documents.renamePlaceholder')"
+            maxlength="255"
+            show-word-limit
+            @keyup.enter="commitRename"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="renameVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="renameSaving" @click="commitRename">
+          {{ t('common.save') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 新建文件夹弹窗 -->
+    <el-dialog v-model="folderVisible" :title="t('documents.createFolderTitle')" width="560px" :close-on-click-modal="false">
+      <el-form ref="folderFormRef" :model="folderForm" :rules="folderRules" @submit.prevent>
+        <el-form-item :label="t('documents.folderPath')" prop="path">
+          <el-input
+            v-model="folderForm.path"
+            :placeholder="t('documents.folderPathHint')"
+            maxlength="255"
+            @keyup.enter="commitCreateFolder"
+          />
+          <div class="folder-hint muted">{{ t('documents.folderPathHint') }}</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="folderVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="folderSaving" @click="commitCreateFolder">
+          {{ t('documents.createFolder') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 预览 drawer（iframe 内嵌 PDF / 图片） -->
+    <el-drawer
+      v-model="previewVisible"
+      :title="previewTitle"
+      size="70%"
+      direction="rtl"
+      :destroy-on-close="true"
+    >
+      <iframe v-if="previewUrl" :src="previewUrl" class="preview-iframe" />
+      <div v-else class="preview-fallback muted">No preview available.</div>
+    </el-drawer>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
+import {
+  ArrowRight, Delete, Download, Edit, Folder, FolderAdd, FolderOpened, InfoFilled, MoreFilled, UploadFilled, View
+} from '@element-plus/icons-vue';
+import * as ElIcons from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+import { useAuthStore } from '@/stores/auth';
+import { categoryApi, documentApi, fileRawUrl, type DocumentCategory, type DocumentItem, type FolderItem, type BrowseResult } from '@/api/document';
+
+const { t } = useI18n();
+const auth = useAuthStore();
+const route = useRoute();
+const router = useRouter();
+
+const loading = ref(false);
+const rows = ref<DocumentItem[]>([]);
+const folders = ref<FolderItem[]>([]);
+const category = ref<DocumentCategory | null>(null);
+const currentPath = ref('');          // 类目内当前路径（空 = 根）
+
+const renameVisible = ref(false);
+const renameValue = ref('');
+const renameTarget = ref<DocumentItem | null>(null);
+const renameSaving = ref(false);
+
+const folderVisible = ref(false);
+const folderForm = reactive<{ path: string }>({ path: '' });
+const folderSaving = ref(false);
+const folderFormRef = ref<FormInstance>();
+// Unicode 友好：字母/数字/连字符/下划线/空格，支持中文；段间用 / 分隔
+const FOLDER_PATH_RE = /^[\p{L}\p{N}\-_\s]+(?:\/[\p{L}\p{N}\-_\s]+)*$/u;
+const folderRules: FormRules = {
+  path: [
+    { required: true, message: t('common.required'), trigger: 'blur' },
+    {
+      validator: (_r, v: string, cb) => {
+        if (!v || !FOLDER_PATH_RE.test(v.trim())) {
+          cb(new Error(t('documents.folderPathInvalid')));
+        } else cb();
+      },
+      trigger: 'blur',
+    },
+  ],
+};
+
+const previewVisible = ref(false);
+const previewUrl = ref('');
+const previewTitle = ref('');
+
+const uploadUrl = computed(() => {
+  const cid = category.value?.id ?? '';
+  const qs = new URLSearchParams({ categoryId: String(cid) });
+  if (currentPath.value) qs.set('path', currentPath.value);
+  return `/api/documents/upload?${qs.toString()}`;
+});
+const uploadHeaders = computed(() => ({
+  Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+}));
+
+/** 面包屑：把 currentPath 拆成段，每段可点击跳转 */
+const breadcrumbs = computed(() => {
+  const segs = currentPath.value.split('/').filter(Boolean);
+  const out: { name: string; path: string }[] = [];
+  let acc = '';
+  for (const s of segs) {
+    acc = acc ? `${acc}/${s}` : s;
+    out.push({ name: s, path: acc });
+  }
+  return out;
+});
+
+/** 表格数据 = 文件夹 + 文件（用 __kind 区分，文件夹排前） */
+const tableData = computed(() => {
+  const folderRows = folders.value.map((f) => ({
+    __kind: 'folder' as const,
+    name: f.name,
+    path: f.path,
+  }));
+  const fileRows = rows.value.map((r) => ({
+    ...r,
+    __kind: 'file' as const,
+  }));
+  return [...folderRows, ...fileRows];
+});
+
+function openFolder(path: string) {
+  router.push({ name: route.name!, params: { slug: route.params.slug }, query: path ? { path } : {} });
+}
+
+function resolveIcon(name?: string) {
+  if (!name) return ElIcons.Folder;
+  return (ElIcons as Record<string, unknown>)[name] || ElIcons.Folder;
+}
+
+function extOf(row: DocumentItem): string {
+  const name = row.originalFilename || row.name || '';
+  const i = name.lastIndexOf('.');
+  return i < 0 ? '—' : name.substring(i + 1).toLowerCase();
+}
+
+function kind(row: DocumentItem): string {
+  const ext = extOf(row);
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) return 'image';
+  if (ext === 'pdf') return 'pdf';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'sheet';
+  if (['doc', 'docx'].includes(ext)) return 'doc';
+  return 'file';
+}
+
+function iconFor(row: DocumentItem) {
+  switch (kind(row)) {
+    case 'image': return ElIcons.Picture;
+    case 'pdf':   return ElIcons.Document;
+    case 'sheet': return ElIcons.Grid;
+    case 'doc':   return ElIcons.EditPen;
+    default:      return ElIcons.Files;
+  }
+}
+
+function formatBytes(n: number): string {
+  if (!n) return '0 B';
+  const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${u[i]}`;
+}
+
+// ---------- load ----------
+async function loadBySlug(slug: string) {
+  if (!slug) return;
+  loading.value = true;
+  try {
+    // 先按 slug 查类目
+    const all = await categoryApi.list();
+    const cat = all.find((c) => c.slug === slug);
+    if (!cat) {
+      category.value = null;
+      rows.value = [];
+      folders.value = [];
+      ElMessage.warning(`Category not found: ${slug}`);
+      return;
+    }
+    category.value = cat;
+    // 读取 URL query 中的 path（每次进入/点击文件夹都重新 load）
+    currentPath.value = ((route.query.path as string) ?? '').trim();
+    await reloadDocs();
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function reloadDocs() {
+  if (!category.value) return;
+  const data: BrowseResult = await documentApi.browse(category.value.id, currentPath.value);
+  folders.value = data.folders;
+  rows.value = data.files;
+}
+
+/** 监听 URL query.path 变化（双击文件夹跳转后） */
+watch(() => route.query.path, (v) => {
+  const next = ((v as string) ?? '').trim();
+  if (next !== currentPath.value) {
+    currentPath.value = next;
+    reloadDocs();
+  }
+});
+
+// ---------- actions ----------
+function openFolderDialog() {
+  if (!category.value) return;
+  folderForm.path = '';
+  folderVisible.value = true;
+  // 下一个 tick 聚焦 input
+  setTimeout(() => folderFormRef.value?.clearValidate(), 0);
+}
+
+async function commitCreateFolder() {
+  if (!category.value || !folderFormRef.value) return;
+  const valid = await folderFormRef.value.validate().catch(() => false);
+  if (!valid) return;
+  folderSaving.value = true;
+  try {
+    const res = await documentApi.createFolder(
+      category.value.id,
+      folderForm.path.trim(),
+      currentPath.value,
+    );
+    ElMessage.success(t('documents.folderCreated', { path: res.path }));
+    folderVisible.value = false;
+    // 刷新当前目录的浏览结果（新文件夹会立刻出现在列表）
+    await reloadDocs();
+  } catch (e: any) {
+    const msg = e?.message || String(e);
+    ElMessage.error(t('documents.folderCreateFail', { msg }));
+  } finally {
+    folderSaving.value = false;
+  }
+}
+
+function beforeUpload(file: File): boolean {
+  if (file.size > 100 * 1024 * 1024) {
+    ElMessage.error(t('documents.uploadFail', { msg: '> 100MB' }));
+    return false;
+  }
+  return true;
+}
+
+function onUploadSuccess(resp: any, file: { name: string }) {
+  // el-upload 的 :on-success 只看 HTTP 2xx；后端 GlobalExceptionHandler 即使出错也返回 200 + {code: 500}，
+  // 必须显式检查 resp.code === 0，否则会"假成功"。
+  if (resp?.code !== 0) {
+    const msg = resp?.message || 'Unknown error';
+    ElMessage.error(t('documents.uploadFail', { msg }));
+    return;
+  }
+  ElMessage.success(`${t('documents.uploadSuccess')} · ${file.name}`);
+  reloadDocs();
+}
+
+function onUploadError(err: any) {
+  // axios-el 上传错误：err.message 通常是后端 message
+  const msg = err?.message || String(err);
+  ElMessage.error(t('documents.uploadFail', { msg }));
+}
+
+async function onCommand(cmd: string, row: DocumentItem) {
+  switch (cmd) {
+    case 'preview':  return preview(row);
+    case 'download': return download(row);
+    case 'rename':   return openRename(row);
+    case 'delete':   return confirmDelete(row);
+  }
+}
+
+function preview(row: DocumentItem) {
+  previewUrl.value = fileRawUrl(row.storageKey, false);
+  previewTitle.value = row.name;
+  previewVisible.value = true;
+}
+
+function download(row: DocumentItem) {
+  // window.open 会带 cookie 受 S3 presigned 限制；用 anchor + download 触发
+  const url = fileRawUrl(row.storageKey, true);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = row.originalFilename || row.name;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function openRename(row: DocumentItem) {
+  renameTarget.value = row;
+  renameValue.value = row.name;
+  renameVisible.value = true;
+}
+
+async function commitRename() {
+  if (!renameTarget.value) return;
+  const v = renameValue.value.trim();
+  if (!v) return;
+  renameSaving.value = true;
+  try {
+    await documentApi.rename(renameTarget.value.id, v);
+    ElMessage.success(t('documents.renameSuccess'));
+    renameVisible.value = false;
+    await reloadDocs();
+  } catch {
+    /* interceptor toasted */
+  } finally {
+    renameSaving.value = false;
+  }
+}
+
+async function confirmDelete(row: DocumentItem) {
+  try {
+    await ElMessageBox.confirm(
+      t('documents.deleteConfirm', { name: row.name }),
+      t('documents.delete'),
+      {
+        type: 'warning',
+        confirmButtonText: t('common.delete'),
+        cancelButtonText: t('common.cancel'),
+        confirmButtonClass: 'el-button--danger',
+        customClass: 'doc-delete-confirm',
+      },
+    );
+  } catch {
+    return;
+  }
+  try {
+    await documentApi.remove(row.id);
+    ElMessage.success(t('documents.deleteSuccess'));
+    await reloadDocs();
+    // 顺便刷新类目 fileCount
+    if (category.value) {
+      const all = await categoryApi.list();
+      const fresh = all.find((c) => c.id === category.value!.id);
+      if (fresh) category.value = fresh;
+    }
+  } catch {
+    /* interceptor toasted */
+  }
+}
+
+// ---------- lifecycle ----------
+const slug = computed(() => route.params.slug as string);
+watch(slug, (v) => loadBySlug(v), { immediate: false });
+onMounted(() => loadBySlug(slug.value));
+</script>
+
+<style scoped>
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+.title-icon {
+  margin-right: 6px;
+  color: var(--color-primary);
+  vertical-align: -2px;
+}
+.name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.file-icon {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+}
+.file-icon.image { color: #67c23a; }
+.file-icon.pdf   { color: #f56c6c; }
+.file-icon.sheet { color: #409eff; }
+.file-icon.doc   { color: #e6a23c; }
+.alias-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.strong {
+  font-weight: 500;
+  color: var(--color-text);
+}
+.mono {
+  font-family: 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.muted {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.key-cell {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.danger-text {
+  color: var(--color-danger);
+}
+.preview-iframe {
+  width: 100%;
+  height: calc(100vh - 120px);
+  border: 0;
+  background: var(--color-bg-soft);
+}
+.preview-fallback {
+  padding: 48px;
+  text-align: center;
+}
+:deep(.doc-delete-confirm .el-message-box__btns .el-button--danger) {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* ===== 页面布局（参照数据源/类目设置页，§7.2） ===== */
+.docs-page {
+  /* 页面至少填满 el-main（视口 - 64px 顶栏）：
+   * - 表格只有 2 行时，不会留下大片空白在页面底部
+   * - 弹窗居中时落在实际页面内容上，不会"飘"在视口空白处 */
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+}
+.docs-page .page-header {
+  display: flex; justify-content: space-between; align-items: center;
+  /* 吸顶：标题 + 操作按钮始终可见 */
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--color-bg);
+  /* 紧凑 padding：让页头总高度 = 标题高度 + 小呼吸 */
+  padding: 8px 0;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+.docs-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+.docs-page .page-desc  { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
+.docs-table-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elev);
+  /* overflow: visible 让 th sticky 透到外层页面滚动容器 */
+  overflow: visible;
+  /* 与吸顶页头之间不留多余间距（紧贴） */
+  margin-top: 0;
+  /* 让表格 wrap 也参与 flex 分配（剩余空间吃掉） */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.docs-table-wrap > .el-table,
+.docs-table-wrap > .el-table > .el-table__inner-wrapper,
+.docs-table-wrap > .el-table > .el-table__inner-wrapper > .el-table__body-wrapper {
+  flex: 1;
+}
+
+/* 表头不吸顶 —— <el-table> 的内部布局对 position:sticky 极敏感，
+ * 把 header-wrapper 设 sticky 会让 tbody 跑到表头上方（实测 bug）。
+ * 退而求其次：只让页头吸顶；表头随页面滚动自然消失/出现。 */
+:deep(.docs-table-wrap .el-table__header-wrapper) {
+  background: var(--color-bg);
+}
+:deep(.docs-table-wrap .el-table__header-wrapper table) {
+  background: var(--color-bg);
+}
+
+/* ===== 拖拽上传区（参考上传识别页 invoice/Upload.vue） ===== */
+.upload-area {
+  margin-bottom: 8px;
+}
+:deep(.upload-area .el-upload) { width: 100%; display: block; }
+:deep(.upload-area .el-upload-dragger) {
+  background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 100%);
+  border: 2px dashed #c7d2fe;
+  border-radius: 14px;
+  padding: 16px 24px;
+  transition: all 0.2s ease;
+}
+:deep(.upload-area .el-upload-dragger:hover) {
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%);
+}
+.upload-icon { font-size: 32px; color: var(--color-primary); margin-bottom: 4px; }
+.upload-title { font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 2px; }
+.upload-hint { font-size: 12px; color: var(--color-text-secondary); }
+
+/* 新建文件夹表单提示 */
+.folder-hint {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+/* ===== 面包屑 ===== */
+.breadcrumb-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.bc-icon { color: var(--color-primary); font-size: 16px; }
+.bc-link {
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background 0.12s, color 0.12s;
+}
+.bc-link:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.bc-sep { color: var(--color-text-muted); user-select: none; }
+
+/* ===== 文件夹行 ===== */
+.folder-cell { cursor: pointer; user-select: none; }
+.folder-cell:hover .folder-icon { color: var(--color-primary); }
+.folder-icon {
+  font-size: 16px;
+  color: #e6a23c; /* Element 警示色，比蓝色更适合"文件夹"语义 */
+}
+
+/* 空状态：表格容器随行数自动调节（不强制 min-height）。
+ * 空状态卡片本身给一个小最小高度（视觉舒展），但不让容器永远占满视口。 */
+.docs-table-wrap .empty-state {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 24px;
+  gap: 12px;
+}
+.empty-state .empty-icon {
+  font-size: 56px;
+  color: var(--color-primary-soft);
+  background: var(--color-bg-elev);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 50%;
+  width: 96px;
+  height: 96px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.empty-state .empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+.empty-state .empty-desc {
+  font-size: 13px;
+  max-width: 460px;
+  margin: 0 0 12px;
+  line-height: 1.55;
+}
+</style>

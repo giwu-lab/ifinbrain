@@ -7,7 +7,7 @@ COPY src src
 # Download deps in a separate layer for caching
 RUN --mount=type=cache,target=/root/.m2 \
     sh -c 'if [ -x ./mvnw ]; then ./mvnw -B -q -DskipTests package; else mvn -B -q -DskipTests package; fi'
-RUN cp target/fapiao-web.jar /build/app.jar
+RUN cp target/ifinbrain-web.jar /build/app.jar
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app

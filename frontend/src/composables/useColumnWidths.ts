@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue';
 
-const STORAGE_KEY = 'fapiao_web.column-widths.v1';
+const STORAGE_KEY = 'ifinbrain.column-widths.v1';
 
 type TableWidths = Record<string, Record<string, number>>;
 

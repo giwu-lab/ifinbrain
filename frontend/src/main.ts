@@ -93,7 +93,11 @@ import { useI18nStore } from './stores/i18n';
 const dictStore = useDictStore();
 const i18nStore = useI18nStore();
 const token = localStorage.getItem('accessToken');
-if (token) {
+const refresh = localStorage.getItem('refreshToken');
+if (token && refresh) {
+  // 仅在 refreshToken 也在时才预加载字典/i18n 缓存：
+  // accessToken 过期 + 没 refreshToken 时，调用会 401 且救不回来，反而报 console error
+  // （http.ts 自动 refresh+retry 的路径只走 axios，本预加载只走一次）
   dictStore.load().catch(() => { /* 静默失败，组件首次访问时再重试 */ });
   i18nStore.load().catch(() => { /* 静默失败，保留 ts 文件作 fallback */ });
 }

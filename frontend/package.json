@@ -1,5 +1,5 @@
 {
-  "name": "caiouca-finance-ops-frontend",
+  "name": "ifinbrain-frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,11 +14,13 @@
     "axios": "^1.7.9",
     "dayjs": "^1.11.13",
     "element-plus": "^2.9.1",
+    "monaco-editor": "^0.56.0",
     "nprogress": "^0.2.0",
     "pinia": "^2.3.0",
     "vue": "^3.5.13",
     "vue-i18n": "^11.4.12",
-    "vue-router": "^4.5.0"
+    "vue-router": "^4.5.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

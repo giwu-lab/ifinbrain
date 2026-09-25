@@ -2,7 +2,7 @@
 <configuration>
 
     <property name="LOG_PATH" value="${LOG_PATH:-../logs}"/>
-    <property name="LOG_FILE" value="${LOG_FILE:-fapiao-web}"/>
+    <property name="LOG_FILE" value="${LOG_FILE:-ifinbrain}"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -30,7 +30,7 @@
         <appender-ref ref="FILE"/>
     </appender>
 
-    <logger name="com.anomalyco.fapiao" level="DEBUG"/>
+    <logger name="com.anomalyco.ifinbrain" level="DEBUG"/>
     <logger name="org.springframework.security" level="INFO"/>
     <logger name="org.flywaydb" level="INFO"/>
     <logger name="org.hibernate" level="WARN"/>

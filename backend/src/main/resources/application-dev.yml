@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:sqlite:${SQLITE_PATH:./data/fapiao-web.db}
+    url: jdbc:sqlite:${SQLITE_PATH:./data/ifinbrain.db}
     driver-class-name: org.sqlite.JDBC
     hikari:
       maximum-pool-size: 1

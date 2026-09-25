@@ -3,7 +3,7 @@
 # Caller does not block — process is fully detached via nohup.
 set -a
 # 用 process substitution 让 grep 输出真正作为赋值被执行；之前用 '> /dev/null'
-# 把 pipeline 输出丢掉， set -a 不会触发，导致 FAPIAO_WEB_MASTER_KEY 等 env 没注入。
+# 把 pipeline 输出丢掉， set -a 不会触发，导致 IFINBRAIN_MASTER_KEY 等 env 没注入。
 source <(grep -E '^[A-Z][A-Z0-9_]*=' "$(dirname "$0")/../.env" 2>/dev/null \
     | sed 's/#.*$//' \
     | grep -v '^#')

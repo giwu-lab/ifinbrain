@@ -110,12 +110,12 @@ stop_pid() {
 
 stop_backend() {
   stop_pid "$BE_PID_FILE" "backend" \
-    "FapiaoWebApplication" "spring-boot:run" "fapiao-web"
+    "iFinBrainApplication" "spring-boot:run" "ifinbrain-web"
 }
 
 stop_frontend() {
   stop_pid "$FE_PID_FILE" "frontend" \
-    "vite$" "node.*vite" "fapiao-web-frontend"
+    "vite$" "node.*vite" "ifinbrain-frontend"
 }
 
 wait_health() {

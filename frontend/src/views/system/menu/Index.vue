@@ -17,17 +17,31 @@
 
     <el-card class="card-table" shadow="never">
       <el-table
+        ref="tableRef"
         :data="tree"
         v-loading="loading"
         row-key="id"
         :tree-props="{ children: 'children' }"
+        :default-expand-all="false"
         border
-        default-expand-all
         row-class-name="menu-row"
+        @expand-change="handleExpand"
       >
-        <el-table-column :label="t('system.colUsername').replace('名','称')" prop="name" min-width="180">
+        <el-table-column :label="t('system.colMenuName')" prop="name" min-width="180">
           <template #default="{ row }">
             <div class="name-cell">
+              <!-- 自定义展开按钮（替代 EP 默认左侧的 indent + 箭头，省一列） -->
+              <button
+                v-if="(row as MenuItem).children?.length"
+                class="tree-toggle"
+                type="button"
+                :aria-label="expandedIds.has(row.id) ? 'Collapse' : 'Expand'"
+                @click.stop="toggleRow(row as MenuItem)"
+              >
+                <ArrowRight v-if="!expandedIds.has(row.id)" :size="14" class="tree-arrow" />
+                <ArrowDown v-else :size="14" class="tree-arrow down" />
+              </button>
+              <span v-else class="tree-spacer" />
               <el-icon v-if="(row as MenuItem).icon" class="name-icon">
                 <component :is="iconOf((row as MenuItem).icon)" />
               </el-icon>
@@ -56,9 +70,14 @@
           </template>
         </el-table-column>
         <el-table-column :label="t('system.colSort')" prop="sort" width="80" />
-        <el-table-column :label="t('system.colPermission')" prop="permission" width="180">
+        <el-table-column :label="t('system.colPermission')" prop="permission" min-width="200">
           <template #default="{ row }">
-            <el-tag v-if="row.permission" type="success" size="small" effect="plain" round>{{ row.permission }}</el-tag>
+            <template v-if="row.permission">
+              <el-tag type="success" size="small" effect="plain" round>
+                {{ permName(row.permission) || row.permission }}
+              </el-tag>
+              <code v-if="permName(row.permission)" class="perm-code muted">{{ row.permission }}</code>
+            </template>
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
@@ -124,14 +143,14 @@
             style="width: 100%;"
           />
         </el-form-item>
-        <el-form-item :label="t('system.colUsername').replace('名','称')">
+        <el-form-item :label="t('system.colMenuName')">
           <el-input v-model="form.name" />
         </el-form-item>
         <el-form-item :label="t('system.colType')">
           <el-radio-group v-model="form.type">
-            <el-radio-button label="DIR" />
-            <el-radio-button label="MENU" />
-            <el-radio-button label="BUTTON" />
+            <el-radio-button label="DIR">{{ t('system.typeDir') }}</el-radio-button>
+            <el-radio-button label="MENU">{{ t('system.typeMenu') }}</el-radio-button>
+            <el-radio-button label="BUTTON">{{ t('system.typeButton') }}</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <el-form-item :label="t('common.path')">
@@ -178,17 +197,20 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, type FormInstance } from 'element-plus';
-import { Plus } from '@element-plus/icons-vue';
+import { Plus, ArrowDown, ArrowRight } from '@element-plus/icons-vue';
 import * as ElIcons from '@element-plus/icons-vue';
 import IconPicker from '@/components/IconPicker.vue';
 import PermissionSelect from '@/components/PermissionSelect.vue';
 import { useAuthStore } from '@/stores/auth';
-import { menuApi, type MenuItem } from '@/api/system';
+import { menuApi, permissionApi, type MenuItem, type PermissionItem } from '@/api/system';
 
 const { t } = useI18n();
 const auth = useAuthStore();
 const tree = ref<MenuItem[]>([]);
 const loading = ref(false);
+const tableRef = ref<any>(null);
+/** 跟踪展开的 row id（EP 内部维护展开状态但不回写到 row 对象，需要前端记） */
+const expandedIds = ref<Set<number>>(new Set());
 const knownComponents = [
   'dashboard/Index','invoice/Upload','invoice/List',
   'system/user/Index','system/role/Index','system/menu/Index','system/storage/Index'
@@ -206,10 +228,41 @@ function iconOf(name?: string) {
   return (ElIcons as Record<string, unknown>)[name] as any || ElIcons.Document;
 }
 
+/** 权限码 → 中文名映射（用于列表展示 code 旁的中文说明） */
+const permByCode = ref<Map<string, string>>(new Map());
+function permName(code: string): string {
+  return permByCode.value.get(code) || '';
+}
+
 async function reload() {
   loading.value = true;
-  try { tree.value = await menuApi.tree(); }
-  finally { loading.value = false; }
+  try {
+    const [t] = await Promise.all([
+      menuApi.tree(),
+      permissionApi.list().then(list => {
+        const m = new Map<string, string>();
+        for (const p of list as PermissionItem[]) m.set(p.code, p.name);
+        permByCode.value = m;
+      }).catch(() => { /* ignore — 列表展示降级 */ }),
+    ]);
+    tree.value = t;
+  } finally { loading.value = false; }
+}
+
+/** 自定义展开按钮：直接同步更新 expandedIds + 调 EP toggle API 触发实际展开 */
+function toggleRow(row: MenuItem) {
+  const next = new Set(expandedIds.value);
+  if (next.has(row.id)) next.delete(row.id);
+  else next.add(row.id);
+  expandedIds.value = next;
+  tableRef.value?.toggleRowExpansion(row, undefined);
+}
+
+/** EP @expand-change 事件兜底（@row-click 等其他途径触发展开时同步状态） */
+function handleExpand(...args: any[]) {
+  const expandedRows = args[1] as Array<{ id: number }> | undefined;
+  if (!Array.isArray(expandedRows)) return;
+  expandedIds.value = new Set(expandedRows.map(r => r.id));
 }
 
 function openCreate(parentId = 0) {
@@ -264,17 +317,47 @@ onMounted(reload);
   color: var(--color-text-secondary);
 }
 
-/* 缩进：Element Plus 内部生成的 <span class="el-table__indent"> 在 row 第一个 cell 内。
- * 直接用 EP 自身生成的 row class 'el-table__row--level-{N}' 控制第一列的 padding-left，
- * 不依赖 :indent prop，更稳。默认缩进 16px，每级加 28px。*/
-:deep(tr.el-table__row--level-1 > td:first-child) {
-  padding-left: 44px !important;
+/* EP 树形表格默认行为：
+ *   - 每个子行第一个 cell 内嵌 N 个 <span class="el-table__indent"> 占位（用于深度缩进）
+ *   - 父行第一个 cell 留空给 .el-table__expand-icon 箭头
+ * 我们用自定义 .tree-toggle 替代箭头，用 padding-left 替代 indent span，所以全部隐藏。 */
+:deep(tr.el-table__row .el-table__placeholder),
+:deep(tr.el-table__row .el-table__indent) { display: none; }
+:deep(tr.el-table__row .el-table__expand-icon) { display: none; }
+
+/* 缩进：用 row 级别 class 直接控制 cell padding-left，
+ * 替代被隐藏的 indent span 的视觉位移。每级 +28px，根行 12px。*/
+:deep(tr.el-table__row > td:first-child) { padding-left: 12px !important; }
+:deep(tr.el-table__row--level-1 > td:first-child) { padding-left: 40px !important; }
+:deep(tr.el-table__row--level-2 > td:first-child) { padding-left: 68px !important; }
+:deep(tr.el-table__row--level-3 > td:first-child) { padding-left: 96px !important; }
+
+/* 自定义展开按钮（贴 name cell 左边） */
+.tree-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: 4px;
+  margin-right: 6px;
+  color: var(--color-text-secondary, #6b6b65);
+  transition: background-color .15s ease;
+  padding: 0;
 }
-:deep(tr.el-table__row--level-2 > td:first-child) {
-  padding-left: 72px !important;
+.tree-toggle:hover {
+  background: var(--color-bg, #fafaf7);
+  color: var(--color-primary, #2d5bff);
 }
-:deep(tr.el-table__row--level-3 > td:first-child) {
-  padding-left: 100px !important;
+.tree-arrow {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.tree-spacer { display: inline-block; width: 20px; margin-right: 6px; }
+.name-cell { display: inline-flex; align-items: center; gap: 4px; }
+.name-icon {
+  color: var(--color-primary, #2d5bff);
+  font-size: 18px;
+  margin-right: 4px;
 }
 /* EP 默认会把 indent span 隐藏（level 0 时），所以根行自然靠左。 */
 
@@ -288,4 +371,18 @@ onMounted(reload);
 :deep(tr.el-table__row--level-3 > td:first-child) {
   border-left: 2px solid var(--color-primary);
 }
+.perm-code {
+  font-family: 'SF Mono', Menlo, ui-monospace, monospace;
+  font-size: 11px;
+  margin-left: 8px;
+  padding: 1px 6px;
+  background: var(--color-bg, #fafaf7);
+  border: 1px solid var(--line-soft, #ebeef5);
+  border-radius: 3px;
+}
+
+/* 紧凑表格：缩窄行高 / cell padding */
+:deep(.menu-row.el-table__row td) { padding: 6px 0 !important; }
+:deep(.menu-row.el-table__row .cell) { padding: 0 12px !important; }
+:deep(.el-table.menu-row th.el-table__cell) { padding: 8px 0 !important; }
 </style>

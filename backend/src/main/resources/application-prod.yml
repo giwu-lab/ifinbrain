@@ -1,8 +1,8 @@
 spring:
   application:
-    name: fapiao-web
+    name: ifinbrain
   datasource:
-    url: jdbc:postgresql://${PG_HOST:}:${PG_PORT:5432}/${PG_DB:fapiao_web}${PG_QUERY_STRING:}
+    url: jdbc:postgresql://${PG_HOST:}:${PG_PORT:5432}/${PG_DB:ifinbrain}${PG_QUERY_STRING:}
     username: ${PG_USER:}
     password: ${PG_PASSWORD:}
     driver-class-name: org.postgresql.Driver
@@ -12,7 +12,7 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-      pool-name: fapiao-pool
+      pool-name: ifinbrain-pool
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:

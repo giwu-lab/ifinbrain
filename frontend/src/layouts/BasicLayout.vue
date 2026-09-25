@@ -36,7 +36,7 @@
             <template #title>
               <span
                 class="dir-title"
-                :class="{ clickable: !!dirFirstPath(m) }"
+                :class="{ clickable: !!dirClickPath(m) }"
                 @click.stop="onDirTitleClick(m, $event)"
               >
                 <el-icon v-if="m.icon"><component :is="iconOf(m.icon)!" /></el-icon>
@@ -111,7 +111,7 @@
       <el-main class="main">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
-            <component :is="Component" />
+            <component :is="Component" :key="$route.fullPath" />
           </transition>
         </router-view>
       </el-main>
@@ -192,11 +192,25 @@ function dirFirstPath(m: { children?: { path?: string | null }[] }): string | un
 }
 
 /**
- * 点击顶级目录的标题：跳转到第一个有效子菜单。
+ * DIR 标题点击的导航目标：优先第一个子菜单；特殊 DIR（目前只有 Documents）有兜底路径。
+ * 无子菜单又无兜底 → 不可点击（el-sub-menu 退化为纯展开/收起）。
+ */
+function dirClickPath(m: { path?: string; children?: { path?: string | null }[] }): string | undefined {
+  return dirFirstPath(m) || dirFallback(m);
+}
+
+/** 空 DIR 时的兜底目标。仅 Documents DIR 需要（指向类目管理页）。 */
+function dirFallback(m: { path?: string }): string | undefined {
+  if (m.path === '/documents') return '/documents/category';
+  return undefined;
+}
+
+/**
+ * 点击顶级目录的标题：跳转到第一个有效子菜单（或兜底路径）。
  * @click.stop 阻止触发 el-sub-menu 自身的展开/收起。
  */
-function onDirTitleClick(m: { children?: { path?: string | null }[] }, e: MouseEvent) {
-  const target = dirFirstPath(m);
+function onDirTitleClick(m: { path?: string; children?: { path?: string | null }[] }, e: MouseEvent) {
+  const target = dirClickPath(m);
   if (target) {
     e.preventDefault();
     e.stopPropagation();

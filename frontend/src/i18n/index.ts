@@ -4,7 +4,7 @@ import enUS from './locales/en-US';
 import zhCnEl from 'element-plus/es/locale/lang/zh-cn';
 import enEl from 'element-plus/es/locale/lang/en';
 
-const STORAGE_KEY = 'fapiao-web.lang';
+const STORAGE_KEY = 'ifinbrain.lang';
 
 export type Locale = 'zh-CN' | 'en-US';
 export const SUPPORTED_LOCALES: Locale[] = ['zh-CN', 'en-US'];

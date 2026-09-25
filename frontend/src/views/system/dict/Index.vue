@@ -5,28 +5,15 @@
         <h1 class="page-title">{{ t('dict.title') }}</h1>
         <p class="page-desc muted">{{ t('dict.desc') }}</p>
       </div>
-      <div class="header-right">
-        <el-button :icon="Refresh" :loading="store.loading" @click="onRefreshCache">
-          {{ t('dict.refreshCache') }}
-        </el-button>
-        <el-button :icon="Download" @click="onExport" :loading="exporting">
-          {{ t('dict.exportBtn') }}
-        </el-button>
-        <el-button type="primary" :icon="UploadFilled" @click="importDialog = true">
-          {{ t('dict.importBtn') }}
-        </el-button>
-        <span class="cache-hint muted" v-if="store.loadedAt">
-          {{ t('dict.cacheLoadedAt', { time: formatTime(store.loadedAt) }) }}
-        </span>
-      </div>
+      <!-- page-header 只保留标题；字典 / 国际化 tab 各自在 pane 内部署操作按钮 -->
     </div>
 
     <el-tabs v-model="activeTab" class="dict-tabs">
       <el-tab-pane :label="t('dict.tabDicts')" name="dict">
-    <el-card class="card-table dict-card" shadow="never">
-      <div class="dict-pane">
-        <!-- 左侧：字典类型树形 -->
-        <div class="dict-types">
+        <div class="dict-panel">
+          <div class="dict-pane">
+            <!-- 左侧：字典类型树形 -->
+            <div class="dict-types">
           <div class="pane-header">
             <span class="pane-title">{{ t('dict.typeTitle') }}</span>
             <div class="pane-tools">
@@ -91,18 +78,31 @@
 
         <!-- 右侧：字典条目 -->
         <div class="dict-items">
-          <div class="pane-header">
+          <div class="pane-header items-header">
             <span class="pane-title">
               {{ t('dict.itemTitle') }}
               <span class="muted" v-if="selectedType">— {{ selectedType.name }}</span>
             </span>
-            <el-button
-              v-if="auth.hasPerm('dict:update') && selectedType"
-              type="primary"
-              :icon="Plus"
-              size="small"
-              @click="onCreateItem"
-            >{{ t('dict.newItem') }}</el-button>
+            <div class="pane-tools">
+              <el-button :icon="Refresh" size="small" :loading="store.loading" @click="onRefreshCache">
+                {{ t('dict.refreshCache') }}
+              </el-button>
+              <span class="cache-hint muted" v-if="store.loadedAt">
+                {{ t('dict.cacheLoadedAt', { time: formatTime(store.loadedAt) }) }}
+              </span>
+              <el-button :icon="Download" size="small" @click="onExport" :loading="exporting">
+                {{ t('dict.exportBtn') }}
+              </el-button>
+              <el-button type="primary" :icon="UploadFilled" size="small" @click="importDialog = true">
+                {{ t('dict.importBtn') }}
+              </el-button>
+              <el-button
+                v-if="auth.hasPerm('dict:update') && selectedType"
+                :icon="Plus"
+                size="small"
+                @click="onCreateItem"
+              >{{ t('dict.newItem') }}</el-button>
+            </div>
           </div>
           <el-table
             v-if="selectedType"
@@ -112,8 +112,7 @@
             stripe
             size="small"
             max-height="640"
-            :header-cell-style="{background:'var(--color-bg)', color:'var(--color-text)', fontWeight:600, fontSize:'13px'}"
-          >
+            >
             <el-table-column :label="t('dict.colCode')" prop="code" min-width="120">
               <template #default="{ row }">
                 <el-tag size="small" effect="plain">{{ row.code }}</el-tag>
@@ -156,8 +155,8 @@
           </el-table>
           <el-empty v-else :description="t('dict.selectTypeFirst')" />
         </div>
-      </div>
-    </el-card>
+          </div>
+        </div>
       </el-tab-pane>
 
       <el-tab-pane :label="t('dict.tabI18n')" name="i18n">
@@ -275,7 +274,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Plus, Refresh, Search, Folder, Document,
   ArrowDown, ArrowUp, UploadFilled, Download,
-  type UploadFile, type UploadRawFile, type UploadInstance,
+  type UploadFile, type UploadInstance,
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { dictApi, type DictItem, type DictType } from '@/api/dict';
@@ -626,32 +625,41 @@ watch(() => types.value.length, (n) => {
 <style scoped>
 .page-header {
   margin-bottom: 20px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
 }
 .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .page-desc { margin: 4px 0 0; font-size: 13px; }
-.header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.cache-hint { font-size: 12px; }
+.cache-hint { font-size: 12px; align-self: center; }
 
-.dict-card { padding: 0; }
-.dict-pane { display: grid; grid-template-columns: 420px 1fr; gap: 0; min-height: 560px; }
-.dict-types { border-right: 1px solid var(--color-border-soft, #e5e7eb); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.dict-items { padding: 16px; min-width: 0; }
+.dict-panel {
+  height: calc(100vh - 220px);
+  min-height: 540px;
+}
+.dict-pane {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 12px;
+  height: 100%;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.dict-types { border-right: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; background: #fff; }
+.dict-items { padding: 16px; min-width: 0; background: #fff; }
 
-.pane-header { display: flex; align-items: center; justify-content: space-between; }
+.pane-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; }
 .pane-title { font-weight: 600; font-size: 14px; color: var(--color-text); }
 .pane-title .muted { font-weight: 400; margin-left: 8px; }
-.pane-tools { display: inline-flex; gap: 4px; }
+.pane-tools { display: inline-flex; gap: 6px; align-items: center; }
+.pane-tools :deep(.el-button) { margin-left: 0; }
+.items-header { border-bottom: 1px solid var(--line); margin-bottom: 0; padding-bottom: 10px; }
 
 .type-filter { width: 100%; }
 
 .type-tree {
   flex: 1;
   overflow-y: auto;
-  border: 1px solid var(--color-border-soft, #e5e7eb);
+  border: 1px solid var(--line);
   border-radius: 6px;
   padding: 6px 0;
 }
@@ -677,7 +685,8 @@ watch(() => types.value.length, (n) => {
 .upload-icon { font-size: 36px; color: var(--color-primary); }
 
 @media (max-width: 1100px) {
-  .dict-pane { grid-template-columns: 1fr; }
-  .dict-types { border-right: none; border-bottom: 1px solid var(--color-border-soft, #e5e7eb); }
+  .dict-panel { height: auto; }
+  .dict-pane { grid-template-columns: 1fr; height: auto; }
+  .dict-types { border-right: none; border-bottom: 1px solid var(--line); }
 }
 </style>
