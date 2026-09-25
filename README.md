@@ -1,4 +1,4 @@
-# fapiao_web
+# iFinBrain
 
 发票批量识别与管理系统。基于 **Spring Boot 4.1 + Vue 3**，调用 [`fapiao_cn`](../fapiao_cn) 服务做 OCR 识别，文件存储可热切换「本地磁盘 / S3 兼容存储」。
 
@@ -13,7 +13,7 @@
 ## 目录结构
 
 ```
-fapiao_web/
+ifinbrain/
 ├── backend/           # Spring Boot 4.1.1 + JDK 21
 ├── frontend/          # Vue 3 + Vite + Element Plus
 ├── .env.example
@@ -57,13 +57,13 @@ cd /home/coder/workspace/fapiao_cn
 ### 2. 启动后端（终端 A）
 
 ```bash
-cd /home/coder/workspace/fapiao_web/backend
+cd /home/coder/workspace/ifinbrain/backend
 mvn -DskipTests spring-boot:run
 ```
 
-默认 profile = `dev`，SQLite 文件落在 `./data/fapiao-web.db`，本地存储落在 `./data/storage/`。
+默认 profile = `dev`，SQLite 文件落在 `./data/ifinbrain.db`，本地存储落在 `./data/storage/`。
 
-> 必填的环境变量：`JWT_ACCESS_SECRET`（≥32 字节）、`FAPIAO_WEB_MASTER_KEY`（≥32 字节）。
+> 必填的环境变量：`JWT_ACCESS_SECRET`（≥32 字节）、`IFINBRAIN_MASTER_KEY`（≥32 字节）。
 > 识别 API（fapiao_cn 的 base-url / api-key）**不在 .env 中配置**，请在「系统 → API 设置」页面填写。
 
 后端起来：`curl http://localhost:8080/actuator/health` → `{"status":"UP"}`
@@ -71,7 +71,7 @@ mvn -DskipTests spring-boot:run
 ### 3. 启动前端（终端 B）
 
 ```bash
-cd /home/coder/workspace/fapiao_web/frontend
+cd /home/coder/workspace/ifinbrain/frontend
 npm install   # 第一次
 npm run dev
 ```
@@ -88,7 +88,7 @@ Vite dev server 监听 `http://localhost:5173`，自动把 `/api/*` 反代到 `h
 
 ## 部署（docker-compose）
 
-`fapiao_web` 是**纯独立**项目：所有依赖（数据库、OCR 服务）都视为外部服务通过环境变量注入，不假设任何 docker 网络共享。
+`ifinbrain` 是**纯独立**项目：所有依赖（数据库、OCR 服务）都视为外部服务通过环境变量注入，不假设任何 docker 网络共享。
 
 ### 默认模式：SQLite + 本地磁盘存储
 
@@ -100,18 +100,18 @@ Vite dev server 监听 `http://localhost:5173`，自动把 `/api/*` 反代到 `h
 cp .env.example .env
 # 编辑 .env，填入：
 #   JWT_ACCESS_SECRET=<≥32 字节随机串>            # openssl rand -base64 32
-#   FAPIAO_WEB_MASTER_KEY=<≥32 字节随机串>        # openssl rand -base64 48
+#   IFINBRAIN_MASTER_KEY=<≥32 字节随机串>        # openssl rand -base64 48
 docker compose up -d
 ```
 
 > ⚠️ **2026-09-22 安全轮换**：历史 `.env` 曾误提交真实密钥到工作目录（且日志 `backend/logs/console.log` 前 3 行曾包含明文 `FC_API_KEY`)。已作如下处理：
-> - `.env` 中的 `JWT_ACCESS_SECRET` / `FAPIAO_WEB_MASTER_KEY` 已轮换为新随机值（旧值作废，请同步更新所有部署环境）
+> - `.env` 中的 `JWT_ACCESS_SECRET` / `IFINBRAIN_MASTER_KEY` 已轮换为新随机值（旧值作废，请同步更新所有部署环境）
 > - 新增 `.gitignore`，把 `.env` / `logs/` / `*.log` 等敏感路径排除
 > - **fapiao_cn 侧的 API Key 需要用户自行轮换**（因为它在 fapiao_cn 项目内，不在本仓库）
 > - 由于 master key 轮换，**旧的 sys_setting 加密字段将无法解密**——首次启动后到「系统 → API 设置 / 存储设置」重新填一次密钥即可
 
 默认 profile = `dev`，后端容器内：
-- 数据库：`/app/data/fapiao-web.db`（由 named volume `backend_data` 持久化）
+- 数据库：`/app/data/ifinbrain.db`（由 named volume `backend_data` 持久化）
 - 存储：`/app/data/storage`（同一 volume 内子目录）
 
 访问：
@@ -128,7 +128,7 @@ docker compose up -d
 SPRING_PROFILES_ACTIVE=prod
 PG_HOST=10.0.0.5            # 远程 PG 地址
 PG_PORT=5432
-PG_DB=fapiao_web
+PG_DB=ifinbrain
 PG_USER=fapiao
 PG_PASSWORD=your-secret
 # PG_QUERY_STRING=?sslmode=require   # 可选
@@ -138,10 +138,10 @@ PG_PASSWORD=your-secret
 
 > 远程 PG 需先手工建库建用户（Flyway 只管表结构，不管库/角色）：
 > ```sql
-> CREATE DATABASE fapiao_web;
+> CREATE DATABASE ifinbrain;
 > CREATE USER fapiao WITH PASSWORD 'your-secret';
-> GRANT ALL PRIVILEGES ON DATABASE fapiao_web TO fapiao;
-> \c fapiao_web
+> GRANT ALL PRIVILEGES ON DATABASE ifinbrain TO fapiao;
+> \c ifinbrain
 > GRANT ALL ON SCHEMA public TO fapiao;
 > ```
 >
@@ -151,7 +151,7 @@ PG_PASSWORD=your-secret
 
 | Profile | Driver | 默认行为 | Migration 目录 |
 |---|---|---|---|
-| dev | SQLite 3.46 | **默认**：`./data/fapiao-web.db` | `db/migration-dev/V1__init.sql` + `db/migration/V2__seed.sql` |
+| dev | SQLite 3.46 | **默认**：`./data/ifinbrain.db` | `db/migration-dev/V1__init.sql` + `db/migration/V2__seed.sql` |
 | prod | PostgreSQL 16 | **可选**：外部 PG via `PG_*` env | `db/migration-prod/V1__init.sql` + `db/migration/V2__seed.sql` |
 
 Flyway 由 `FlywayConfig` 按 `spring.profiles.active` 自动挑选迁移目录。
@@ -189,13 +189,13 @@ Flyway 由 `FlywayConfig` 按 `spring.profiles.active` 自动挑选迁移目录�
 
 | Key | 含义 |
 |---|---|
-| `fapiao-web.jwt.access-secret` | JWT 签名密钥（≥ 32 字节） |
-| `fapiao-web.jwt.access-ttl-minutes` | Access token 有效期 |
-| `fapiao-web.jwt.refresh-ttl-days` | Refresh token 有效期 |
-| `fapiao-web.cors.allowed-origins` | 允许跨域的前端地址 |
-| `fapiao-web.storage.type` | `local` / `s3` |
-| `fapiao-web.storage.local.root` | 本地存储根目录 |
-| `fapiao-web.storage.s3.*` | S3 兼容存储配置（运行时可通过「存储设置」覆盖） |
+| `ifinbrain.jwt.access-secret` | JWT 签名密钥（≥ 32 字节） |
+| `ifinbrain.jwt.access-ttl-minutes` | Access token 有效期 |
+| `ifinbrain.jwt.refresh-ttl-days` | Refresh token 有效期 |
+| `ifinbrain.cors.allowed-origins` | 允许跨域的前端地址 |
+| `ifinbrain.storage.type` | `local` / `s3` |
+| `ifinbrain.storage.local.root` | 本地存储根目录 |
+| `ifinbrain.storage.s3.*` | S3 兼容存储配置（运行时可通过「存储设置」覆盖） |
 
 > **fapiao_cn（识别服务）的 base-url / api-key / timeout 不在 `application.yml` 中**，而是通过「系统 → API 设置」页面写入 `sys_setting` 表的 `ocr.*` key，由 `FapiaoCnClient` 直接读取。
 
