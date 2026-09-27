@@ -231,7 +231,7 @@ async function onCmd(cmd: string, row: T) {
 | 页面 | 操作 | 宽度 |
 |---|---|---|
 | `documents/list/Index.vue` | 预览/下载/重命名/删除 | 160 |
-| `documents/category/Index.vue` | 编辑/授权/删除 | 160 |
+| `documents/archive/Index.vue` | 编辑/授权/删除 | 160 |
 | `system/user/Index.vue` | 编辑/删除 | 120 |
 | `system/role/Index.vue` | 编辑/删除 | 120 |
 | `system/menu/Index.vue` | 新增子/编辑/删除 | 160 |
@@ -264,13 +264,12 @@ cd backend && mvn -q process-resources
 
 ## 10. 特殊坑（dev 模式）
 
-### 10.1 Vite 6 + Worker（Monaco / PDF.js）
+### 10.1 Vite 6 + Worker（Monaco）
 
 Vite 6.4.x 无法解析 `import 'xxx/worker?worker'`（bare-specifier）。`vite-plugin-monaco-editor` 走 CDN 路线，不适合本地部署。
 
-**统一解决**：worker 文件经 Vite dev server 的 `/@fs/<绝对路径>` filesystem 路由加载。worker 文件**不能**放 `public/`（其内部相对导入路径会断）。
+**统一解决**：Monaco 的 5 个 worker（editor / json / css / html / ts）经 Vite dev server 的 `/@fs/<绝对路径>` filesystem 路由加载。配置集中见 `frontend/src/utils/workers.ts`，可用 `VITE_PROJECT_ROOT` / `VITE_MONACO_*_WORKER_URL` 环境变量覆盖。
 
-**Monaco 示例**（`data-mgmt/query/Detail.vue:228-234`）：
 ```ts
 self.MonacoEnvironment = {
   getWorker: () => new Worker(
@@ -280,21 +279,41 @@ self.MonacoEnvironment = {
 };
 ```
 
-**PDF.js 示例**（`components/PdfViewer.vue` + `utils/pdfWorker.ts`）：**用 `fetch` 拿到 worker 文本后，先 `replace()` 剥掉 Vite 在首行注入的 `import { injectQuery as __vite__injectQuery } from "/@vite/client";`，再用 `URL.createObjectURL(new Blob([cleanSource]))` 喂给 Worker**。**不要用 `workerSrc` URL 字符串**——`/@fs/...` 响应里始终带这个首行注入，worker 用 `type:'module'` 加载时会尝试 import `/@vite/client` 失败 → Worker 启动失败 → `getDocument().promise` 永远 hang → canvas 空白。
-
-**关键陷阱**：直接 `fetch('/@fs/.../pdf.worker.min.mjs')` 拿到的字节**也是被注入后的内容**（注入发生在 HTTP 响应阶段，不是 URL 阶段）。所以光 `fetch + blob` 不够，**必须**剥首行：
-
-```ts
-const VITE_INJECT_PREFIX =
-  /^\s*import\s*\{\s*injectQuery\s+as\s+__vite__injectQuery\s*\}\s*from\s*["']\/@vite\/client["']\s*;?/;
-source = source.replace(VITE_INJECT_PREFIX, '');
-```
-
-实现见 `frontend/src/utils/pdfWorker.ts`（模块级单例 Promise，`load()` 入口 `await ensurePdfWorkerReady()`，避免 race condition）。
-
 **限制**：当前项目 dev-only（无 prod build 配置）。
 
-### 10.2 其他
+### 10.2 档案库预览架构（@file-viewer）
+
+v1.4.x 起档案库预览从「if-else 分发（FilePreviewer / PdfViewer / mammoth / SheetJS / 自研 pdfWorker）」迁移到 **`@file-viewer/preset-office`**。
+
+**链路**：
+
+```
+documents/list/Index.vue
+   └─ <el-drawer 80%>
+       └─ <ProjectFileViewer :storageKey :filename>
+           ├─ fetch /api/files/raw?key=...&inline=true (Bearer JWT)
+           │   → FileController.raw() (per-archive view perm 校验)
+           ├─ ArrayBuffer → viewer.load({ file, name })
+           └─ @file-viewer/core + officeRenderers
+                 ├─ renderer-pdf          (PDF.js 5.4.624)
+                 ├─ renderer-word         (docx / doc / rtf / odt / odp)
+                 ├─ renderer-spreadsheet  (xlsx / csv / ods / ...)
+                 ├─ renderer-presentation (pptx / ppt)
+                 ├─ renderer-ofd          (ofd via jszip)
+                 └─ renderer-iwork / wordperfect / hangul (Apple / WPD / HWP)
+```
+
+**关键设计**：
+
+- **对外契约保留**：`ProjectFileViewer` props (`storageKey` + `filename`) + emit (`download`) 与旧 `FilePreviewer` 完全一致；父组件切换 0 业务代码改动。
+- **Worker / WASM 静态路径**：vite plugin 的 `copyAssets:true` 把 PDF.js worker / DOCX worker / XLSX worker / WASM / cmap / fonts 落到 `frontend/public/vendor/`，**不走 `/@fs/` 路由**，彻底无 Vite `/@vite/client` 注入问题（之前 `pdfWorker.ts` 的 hack 已删除）。
+- **dompurify 由 file-viewer core 内置**；本仓保留 `dompurify` 仅给设计器 portal 共享使用。
+- **`xlsx` 保留**：`data-mgmt/query/Detail.vue:760` SQL 结果导出仍需 `XLSX.writeFile`。不要看到老代码以为是预览链路就卸。
+- **退役文件**：`FilePreviewer.vue` / `PdfViewer.vue` / `pdfWorker.ts` / `fileType.ts` 全部删除；`workers.ts` 不再导出 `PDFJS_WORKER_URL`。
+
+**License attribution**：见 `frontend/LICENSE-NOTICE` + `frontend/LICENSE-APACHE-2.0`（Apache-2.0 §4d 要求保留 NOTICE 与 license 文本）。
+
+### 10.3 其他
 
 - 时区：JVM 默认 `Asia/Shanghai`（`iFinBrainApplication.main` 强制设置），不依赖宿主机
 - vue-i18n v11 用 `.` 作路径分隔符
