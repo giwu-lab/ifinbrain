@@ -217,7 +217,7 @@
       </template>
     </el-dialog>
 
-    <!-- 预览 drawer（多格式预览由 FilePreviewer 组件分发） -->
+    <!-- 预览 drawer（多格式预览由 ProjectFileViewer 走 @file-viewer/preset-office） -->
     <el-drawer
       v-model="previewVisible"
       :title="previewTitle"
@@ -225,7 +225,7 @@
       direction="rtl"
       :destroy-on-close="true"
     >
-      <FilePreviewer
+      <ProjectFileViewer
         v-if="previewKey"
         :storage-key="previewKey"
         :filename="previewTitle"
@@ -246,7 +246,7 @@ import * as ElIcons from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { archiveApi, documentApi, fileRawUrl, type ArchiveLibrary, type DocumentItem, type FolderItem, type BrowseResult } from '@/api/document';
-import FilePreviewer from '@/components/FilePreviewer.vue';
+import ProjectFileViewer from '@/components/ProjectFileViewer.vue';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -494,7 +494,7 @@ function preview(row: DocumentItem) {
   previewVisible.value = true;
 }
 
-/** FilePreviewer 内"下载原文件"按钮：复用同一 download() 逻辑 */
+/** ProjectFileViewer 内"下载原文件"按钮：复用同一 download() 逻辑 */
 function onPreviewDownload(row: { storageKey: string; name: string }) {
   download({ storageKey: row.storageKey, originalFilename: row.name, name: row.name } as DocumentItem);
 }

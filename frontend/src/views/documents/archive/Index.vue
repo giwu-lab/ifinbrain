@@ -227,7 +227,7 @@ import IconPicker from '@/components/IconPicker.vue';
 import {
   archiveApi,
   type ArchiveLibrary,
-  type CategoryPermGrants,
+  type ArchivePermGrants,
 } from '@/api/document';
 import { roleApi, type RoleItem } from '@/api/system';
 
@@ -492,8 +492,8 @@ async function openPerms(row: ArchiveLibrary) {
 }
 
 /** 拍扁 grants 回后端期望的 {view: [roleIds], upload: [...], ...} */
-function flattenGrants(): CategoryPermGrants {
-  const out: CategoryPermGrants = { view: [], upload: [], update: [], delete: [] };
+function flattenGrants(): ArchivePermGrants {
+  const out: ArchivePermGrants = { view: [], upload: [], update: [], delete: [] };
   for (const [roleId, verbs] of grants.value.entries()) {
     for (const v of PERM_VERBS) {
       if (verbs.has(v)) out[v].push(roleId);
