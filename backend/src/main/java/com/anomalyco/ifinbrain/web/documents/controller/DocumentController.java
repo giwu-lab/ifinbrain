@@ -39,7 +39,7 @@ public class DocumentController {
         return Result.ok(service.upload(categoryId, file, path));
     }
 
-    /** 在类目下创建子文件夹路径（kebab-case 单段或多段，用 / 分隔）。path 为父目录（空 = 类目根）。 */
+    /** 在档案库下创建子文件夹路径（kebab-case 单段或多段，用 / 分隔）。path 为父目录（空 = 档案库根）。 */
     @PostMapping("/folders")
     public Result<Map<String, String>> createFolder(@Valid @RequestBody CreateFolderReq req) {
         String path = service.createFolder(req.getCategoryId(), req.getPath());

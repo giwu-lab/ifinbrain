@@ -35,7 +35,7 @@
             <div class="perm-cluster">
               <div v-for="mod in groupedRolePerms(row as RoleItem)" :key="mod.name" class="perm-cluster-row">
                 <span class="mod-label">{{ t(`system.permModule.${mod.name}`, mod.name) }}</span>
-                <!-- 类目模块特殊处理：按类目细分组（财务部 / 销售部 ...），全局权限单独一行 -->
+                <!-- 档案库模块特殊处理：按档案库细分组（财务部 / 销售部 ...），全局权限单独一行 -->
                 <template v-if="mod.name === 'documents'">
                   <div v-if="globalDocsPerms(mod.perms).length" class="perm-cluster-sub">
                     <el-tag
@@ -51,11 +51,11 @@
                     </el-tag>
                   </div>
                   <div
-                    v-for="cat in categoryPermGroups(mod.perms)"
+                    v-for="cat in archivePermGroups(mod.perms)"
                     :key="cat.slug"
                     class="perm-cluster-sub"
                   >
-                    <span class="cat-label">{{ cat.categoryName }}</span>
+                    <span class="archive-label">{{ cat.archiveName }}</span>
                     <el-tag
                       v-for="p in cat.perms"
                       :key="p.code"
@@ -254,26 +254,26 @@ function groupedRolePerms(row: RoleItem): { name: string; perms: PermissionItem[
 }
 
 /**
- * 类目模块的全局权限（如 documents:view / documents:upload）—— 这些是 2 段式 code。
- * 由 DocumentCategoryService 创建的 4 个类目专属权限都是 3 段式 documents:{slug}:{verb}，归类目分组。
+ * 档案库模块的全局权限（如 documents:view / documents:upload）—— 这些是 2 段式 code。
+ * 由 ArchiveLibraryService 创建的 4 个档案库专属权限都是 3 段式 documents:{slug}:{verb}，归档案库分组。
  */
 function globalDocsPerms(perms: PermissionItem[]): PermissionItem[] {
   return perms.filter(p => p.code.split(':').length === 2);
 }
 
 /**
- * 类目权限分组：每个类目一行，展示该角色在该类目下的 4 个 verb。
- * 类目显示名从 perm.name 字段提取（"财务部 类目查看" → "财务部"）；fallback 到 slug。
+ * 档案库权限分组：每个档案库一行，展示该角色在该档案库下的 4 个 verb。
+ * 档案库显示名从 perm.name 字段提取（"财务部 档案库查看" → "财务部"）；fallback 到 slug。
  */
-function categoryPermGroups(perms: PermissionItem[]): { slug: string; categoryName: string; perms: PermissionItem[] }[] {
-  const cats = new Map<string, { slug: string; categoryName: string; perms: PermissionItem[] }>();
+function archivePermGroups(perms: PermissionItem[]): { slug: string; archiveName: string; perms: PermissionItem[] }[] {
+  const cats = new Map<string, { slug: string; archiveName: string; perms: PermissionItem[] }>();
   for (const p of perms) {
     const parts = p.code.split(':');
     if (parts.length !== 3 || parts[0] !== 'documents') continue;
     const slug = parts[1];
     if (!cats.has(slug)) {
-      const name = (p.name || '').replace(/类目(查看|上传|修改|删除)\s*$/, '').trim();
-      cats.set(slug, { slug, categoryName: name || slug, perms: [] });
+      const name = (p.name || '').replace(/档案库(查看|上传|修改|删除)\s*$/, '').trim();
+      cats.set(slug, { slug, archiveName: name || slug, perms: [] });
     }
     cats.get(slug)!.perms.push(p);
   }
@@ -384,7 +384,7 @@ onMounted(async () => { await loadPerms(); await reload(); });
   display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
   margin-left: 4px;
 }
-.cat-label {
+.archive-label {
   font-size: 11px; color: var(--color-text, #1a1a1a);
   background: var(--color-primary-soft, #e8edff);
   padding: 1px 6px;

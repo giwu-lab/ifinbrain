@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 浏览类目当前路径下的内容（子文件夹 + 文件）。
+ * 浏览档案库当前路径下的内容（子文件夹 + 文件）。
  * 路径独立成 controller 避免与 /api/documents/{id} 路由冲突。
  */
 @RestController
@@ -20,7 +20,7 @@ public class DocumentBrowseController {
 
     private final DocumentService service;
 
-    /** path 为空表示类目根；多级如 "demo/sub1"。 */
+    /** path 为空表示档案库根；多级如 "demo/sub1"。 */
     @GetMapping
     public Result<DocumentBrowseDto> browse(@RequestParam Long categoryId,
                                             @RequestParam(required = false, defaultValue = "") String path) {

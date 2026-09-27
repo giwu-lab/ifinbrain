@@ -9,9 +9,9 @@ import java.util.List;
 
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class DocumentBrowseDto {
-    /** 当前所在路径（类目内的相对路径，空 = 类目根） */
+    /** 当前所在路径（档案库内的相对路径，空 = 档案库根） */
     private String currentPath;
-    /** 类目 slug（前端面包屑可用） */
+    /** 档案库 slug（前端面包屑可用） */
     private String categorySlug;
     /** immediate 子目录（按字母排序） */
     private List<FolderDto> folders;

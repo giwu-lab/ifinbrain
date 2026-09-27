@@ -4,9 +4,9 @@ import com.anomalyco.ifinbrain.web.common.BizException;
 import com.anomalyco.ifinbrain.web.documents.dto.DocumentDto;
 import com.anomalyco.ifinbrain.web.documents.dto.DocumentBrowseDto;
 import com.anomalyco.ifinbrain.web.documents.dto.FolderDto;
-import com.anomalyco.ifinbrain.web.documents.entity.DocumentCategory;
+import com.anomalyco.ifinbrain.web.documents.entity.ArchiveLibrary;
 import com.anomalyco.ifinbrain.web.documents.entity.DocumentRecord;
-import com.anomalyco.ifinbrain.web.documents.repository.DocumentCategoryRepository;
+import com.anomalyco.ifinbrain.web.documents.repository.ArchiveLibraryRepository;
 import com.anomalyco.ifinbrain.web.documents.repository.DocumentRecordRepository;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import com.anomalyco.ifinbrain.web.storage.StorageSelector;
@@ -44,7 +44,7 @@ public class DocumentService {
     private static final long MAX_UPLOAD_BYTES = 100L * 1024 * 1024;
 
     private final DocumentRecordRepository documentRepo;
-    private final DocumentCategoryRepository categoryRepo;
+    private final ArchiveLibraryRepository libraryRepo;
     private final StorageSelector storage;
     private final PermissionChecker perm;
 
@@ -52,8 +52,8 @@ public class DocumentService {
 
     @Transactional(readOnly = true)
     public Page<DocumentDto> list(Long categoryId, int page, int size) {
-        // 类目级 view —— 防止直接 URL 访问泄漏
-        requireCategoryPerm(categoryId, "view");
+        // 档案库级 view —— 防止直接 URL 访问泄漏
+        requireLibraryPerm(categoryId, "view");
         if (page < 0) page = 0;
         if (size <= 0 || size > 200) size = 20;
         Pageable p = PageRequest.of(page, size);
@@ -65,8 +65,8 @@ public class DocumentService {
     public DocumentDto detail(Long id) {
         DocumentRecord rec = documentRepo.findById(id)
                 .orElseThrow(() -> new BizException(404, "档案不存在"));
-        // 用档案所属类目校验
-        requireCategoryPerm(rec.getCategoryId(), "view");
+        // 用档案所属档案库校验
+        requireLibraryPerm(rec.getCategoryId(), "view");
         return DocumentDto.fromEntity(rec);
     }
 
@@ -91,13 +91,13 @@ public class DocumentService {
             throw new BizException(413, "文件超过大小限制");
         }
 
-        DocumentCategory cat = categoryRepo.findById(categoryId)
-                .orElseThrow(() -> new BizException(404, "类目不存在"));
-        if (cat.getStatus() == null || cat.getStatus() != 1) {
-            throw new BizException(400, "类目已禁用");
+        ArchiveLibrary lib = libraryRepo.findById(categoryId)
+                .orElseThrow(() -> new BizException(404, "档案库不存在"));
+        if (lib.getStatus() == null || lib.getStatus() != 1) {
+            throw new BizException(400, "档案库已禁用");
         }
-        // 类目级 upload 权限
-        requireCategoryPerm(categoryId, "upload");
+        // 档案库级 upload 权限
+        requireLibraryPerm(categoryId, "upload");
 
         String normalizedFolder = normalizeFolderPath(folderPath);
 
@@ -127,7 +127,7 @@ public class DocumentService {
         }
 
         // 同 sha + 同目录 → 视为重复（同一文件可以放在不同目录）
-        String prefix = buildPrefix(cat.getSlug(), normalizedFolder);
+        String prefix = buildPrefix(lib.getSlug(), normalizedFolder);
         Optional<DocumentRecord> dup = documentRepo
                 .findFirstBySha256AndStorageKeyStartingWith(sha, prefix);
         if (dup.isPresent()) {
@@ -195,18 +195,18 @@ public class DocumentService {
     // ===================== 浏览（文件夹 + 文件） =====================
 
     /**
-     * 浏览类目某路径下的内容：返回 immediate 子文件夹 + immediate 文件。
+     * 浏览档案库某路径下的内容：返回 immediate 子文件夹 + immediate 文件。
      * - 子文件夹从 storage.listFolders(prefix) 来（真目录）
      * - 文件从 sys_document 查（storage_key 深度匹配 prefix 深度 + 1）
      */
     @Transactional(readOnly = true)
     public DocumentBrowseDto browse(Long categoryId, String folderPath) {
-        // 类目级 view —— 防止直接 URL 访问泄漏
-        requireCategoryPerm(categoryId, "view");
-        DocumentCategory cat = categoryRepo.findById(categoryId)
-                .orElseThrow(() -> new BizException(404, "类目不存在"));
+        // 档案库级 view —— 防止直接 URL 访问泄漏
+        requireLibraryPerm(categoryId, "view");
+        ArchiveLibrary lib = libraryRepo.findById(categoryId)
+                .orElseThrow(() -> new BizException(404, "档案库不存在"));
         String normalizedFolder = normalizeFolderPath(folderPath);
-        String prefix = buildPrefix(cat.getSlug(), normalizedFolder);
+        String prefix = buildPrefix(lib.getSlug(), normalizedFolder);
 
         // 子文件夹
         List<String> folderNames = storage.current().listFolders(prefix);
@@ -233,7 +233,7 @@ public class DocumentService {
                 .folders(folders)
                 .files(files)
                 .currentPath(normalizedFolder)
-                .categorySlug(cat.getSlug())
+                .categorySlug(lib.getSlug())
                 .build();
     }
 
@@ -245,7 +245,7 @@ public class DocumentService {
     public DocumentDto rename(Long id, String newName) {
         DocumentRecord rec = documentRepo.findById(id)
                 .orElseThrow(() -> new BizException(404, "档案不存在"));
-        requireCategoryPerm(rec.getCategoryId(), "update");
+        requireLibraryPerm(rec.getCategoryId(), "update");
         String trimmed = newName.trim();
         if (trimmed.isEmpty()) {
             throw new BizException(400, "name 不能为空");
@@ -261,7 +261,7 @@ public class DocumentService {
     public void delete(Long id) {
         DocumentRecord rec = documentRepo.findById(id)
                 .orElseThrow(() -> new BizException(404, "档案不存在"));
-        requireCategoryPerm(rec.getCategoryId(), "delete");
+        requireLibraryPerm(rec.getCategoryId(), "delete");
 
         // 先删 storage（失败不回滚 DB；记 warn 让用户感知）
         try {
@@ -276,7 +276,7 @@ public class DocumentService {
     // ===================== 文件夹 =====================
 
     /**
-     * 在类目下创建子文件夹路径。空目录也算合法（即使类目下 0 个文件，目录结构也会存在）。
+     * 在档案库下创建子文件夹路径。空目录也算合法（即使档案库下 0 个文件，目录结构也会存在）。
      *
      * - local：mkdir -p documents/{slug}/{path}/ （含中间路径）
      * - s3   ：no-op（path 在首次 put 时隐式创建）
@@ -286,12 +286,12 @@ public class DocumentService {
      */
     @Transactional
     public String createFolder(Long categoryId, String folderPath) {
-        DocumentCategory cat = categoryRepo.findById(categoryId)
-                .orElseThrow(() -> new BizException(404, "类目不存在"));
-        if (cat.getStatus() == null || cat.getStatus() != 1) {
-            throw new BizException(400, "类目已禁用");
+        ArchiveLibrary lib = libraryRepo.findById(categoryId)
+                .orElseThrow(() -> new BizException(404, "档案库不存在"));
+        if (lib.getStatus() == null || lib.getStatus() != 1) {
+            throw new BizException(400, "档案库已禁用");
         }
-        requireCategoryPerm(categoryId, "upload");
+        requireLibraryPerm(categoryId, "upload");
 
         // 清理：去掉首尾 / 与多余空白
         String cleanPath = folderPath == null ? "" : folderPath.trim().replaceAll("^/+|/+$", "");
@@ -313,29 +313,29 @@ public class DocumentService {
             }
         }
 
-        String fullPath = "documents/" + cat.getSlug() + "/" + cleanPath + "/";
+        String fullPath = "documents/" + lib.getSlug() + "/" + cleanPath + "/";
         storage.current().ensurePrefix(fullPath);
-        log.info("[documents] created folder category={} slug={} path={}", cat.getId(), cat.getSlug(), fullPath);
+        log.info("[documents] created folder category={} slug={} path={}", lib.getId(), lib.getSlug(), fullPath);
         return fullPath;
     }
 
     /**
-     * 类目级权限校验：按 categoryId 查 slug，再用 documents:{slug}:{verb} 校验。
-     * 必须先传 global perm（document:view 等）兜底，然后调这个查类目级 —— 否则用户连 Documents DIR 都看不到。
-     * 实际：本方法内已隐含对 documents:view 全局的"类目可见"判定（任何类目操作都得能 view 该类目）。
+     * 档案库级权限校验：按 categoryId 查 slug，再用 documents:{slug}:{verb} 校验。
+     * 必须先传 global perm（document:view 等）兜底，然后调这个查档案库级 —— 否则用户连 Documents DIR 都看不到。
+     * 实际：本方法内已隐含对 documents:view 全局的"档案库可见"判定（任何档案库操作都得能 view 该档案库）。
      */
-    private void requireCategoryPerm(Long categoryId, String verb) {
+    private void requireLibraryPerm(Long categoryId, String verb) {
         if (categoryId == null) throw new BizException(400, "categoryId 不能为空");
-        // 先确认类目存在（status 由 DocumentCategoryService.delete 时的 unbindAndDeleteCategoryPerms 保证 perm 与 category 同步；
-        // 但下面仍判一次 status=1，给「类目禁用」更清晰的提示）
-        DocumentCategory cat = categoryRepo.findById(categoryId)
-                .orElseThrow(() -> new BizException(404, "类目不存在"));
-        if (cat.getStatus() == null || cat.getStatus() != 1) {
-            throw new BizException(400, "类目已禁用");
+        // 先确认档案库存在（status 由 ArchiveLibraryService.delete 时的 unbindAndDeleteLibraryPerms 保证 perm 与 library 同步；
+        // 但下面仍判一次 status=1，给「档案库禁用」更清晰的提示）
+        ArchiveLibrary lib = libraryRepo.findById(categoryId)
+                .orElseThrow(() -> new BizException(404, "档案库不存在"));
+        if (lib.getStatus() == null || lib.getStatus() != 1) {
+            throw new BizException(400, "档案库已禁用");
         }
-        String permCode = "documents:" + cat.getSlug() + ":" + verb;
+        String permCode = "documents:" + lib.getSlug() + ":" + verb;
         if (!perm.has(permCode)) {
-            throw new BizException(403, "无权访问该类目（" + permCode + "）");
+            throw new BizException(403, "无权访问该档案库（" + permCode + "）");
         }
     }
 

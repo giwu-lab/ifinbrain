@@ -152,7 +152,7 @@ public class AuthService {
             nodeMap.put(m.getId(), node);
         }
         // build tree —— 孤儿菜单（父 DIR 被 SQL 过滤掉）直接丢弃，不提升为顶级
-        // 例：demo 没有类目级 view 时 Documents DIR 被隐藏，其子菜单 Category Settings 也不应单独浮出顶级
+        // 例：demo 没有档案库级 view 时 Documents DIR 被隐藏，其子菜单 Archive Library 也不应单独浮出顶级
         List<MenuNode> roots = new ArrayList<>();
         for (MenuNode n : nodeMap.values()) {
             if (n.getParentId() == null || n.getParentId() == 0L) {

@@ -1059,6 +1059,227 @@
     ]
   },
   {
+    "namespace": "design",
+    "items": [
+      {
+        "code": "back",
+        "valueJson": "{\"zh-CN\":\"返回\",\"en-US\":\"Back\"}"
+      },
+      {
+        "code": "backToEdit",
+        "valueJson": "{\"zh-CN\":\"返回编辑\",\"en-US\":\"Back to Edit\"}"
+      },
+      {
+        "code": "backToList",
+        "valueJson": "{\"zh-CN\":\"返回列表\",\"en-US\":\"Back to List\"}"
+      },
+      {
+        "code": "canvasEmpty",
+        "valueJson": "{\"zh-CN\":\"画布为空，点击左侧组件添加到画布\",\"en-US\":\"Canvas is empty. Click a component on the left to add it.\"}"
+      },
+      {
+        "code": "cat.chart",
+        "valueJson": "{\"zh-CN\":\"图表\",\"en-US\":\"Chart\"}"
+      },
+      {
+        "code": "cat.layout",
+        "valueJson": "{\"zh-CN\":\"布局\",\"en-US\":\"Layout\"}"
+      },
+      {
+        "code": "cat.media",
+        "valueJson": "{\"zh-CN\":\"媒体\",\"en-US\":\"Media\"}"
+      },
+      {
+        "code": "cat.stat",
+        "valueJson": "{\"zh-CN\":\"数字\",\"en-US\":\"Stat\"}"
+      },
+      {
+        "code": "cat.table",
+        "valueJson": "{\"zh-CN\":\"表格\",\"en-US\":\"Table\"}"
+      },
+      {
+        "code": "chartNoData",
+        "valueJson": "{\"zh-CN\":\"暂无数据，请在属性面板填入 data\",\"en-US\":\"No data — fill in \\\"data\\\" in the property panel\"}"
+      },
+      {
+        "code": "colCode",
+        "valueJson": "{\"zh-CN\":\"代码\",\"en-US\":\"Code\"}"
+      },
+      {
+        "code": "colDescription",
+        "valueJson": "{\"zh-CN\":\"说明\",\"en-US\":\"Description\"}"
+      },
+      {
+        "code": "colRoles",
+        "valueJson": "{\"zh-CN\":\"绑定角色\",\"en-US\":\"Bound Roles\"}"
+      },
+      {
+        "code": "colUpdatedAt",
+        "valueJson": "{\"zh-CN\":\"更新时间\",\"en-US\":\"Updated\"}"
+      },
+      {
+        "code": "copied",
+        "valueJson": "{\"zh-CN\":\"已复制到剪贴板\",\"en-US\":\"Copied to clipboard\"}"
+      },
+      {
+        "code": "copyJson",
+        "valueJson": "{\"zh-CN\":\"复制 JSON\",\"en-US\":\"Copy JSON\"}"
+      },
+      {
+        "code": "createPage",
+        "valueJson": "{\"zh-CN\":\"新建门户页\",\"en-US\":\"New Portal Page\"}"
+      },
+      {
+        "code": "dataTableHint",
+        "valueJson": "{\"zh-CN\":\"数据表占位（queryId={id}）\",\"en-US\":\"Data table placeholder (queryId={id})\"}"
+      },
+      {
+        "code": "deleteConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除门户页「{name}」？\",\"en-US\":\"Delete portal page \\\"{name}\\\"?\"}"
+      },
+      {
+        "code": "duplicate",
+        "valueJson": "{\"zh-CN\":\"复制\",\"en-US\":\"Duplicate\"}"
+      },
+      {
+        "code": "editDesign",
+        "valueJson": "{\"zh-CN\":\"编辑设计\",\"en-US\":\"Edit Design\"}"
+      },
+      {
+        "code": "emptyAction",
+        "valueJson": "{\"zh-CN\":\"新建门户页\",\"en-US\":\"New Portal Page\"}"
+      },
+      {
+        "code": "emptyDesc",
+        "valueJson": "{\"zh-CN\":\"创建一个门户页开始设计你的首页 / 角色门户。\",\"en-US\":\"Create a portal page to design your home / role-based landing page.\"}"
+      },
+      {
+        "code": "emptyTitle",
+        "valueJson": "{\"zh-CN\":\"还没有门户页\",\"en-US\":\"No portal pages yet\"}"
+      },
+      {
+        "code": "flowDesc",
+        "valueJson": "{\"zh-CN\":\"用户 / 菜单 / 角色 CRUD 操作的审批流程设计器\",\"en-US\":\"Approval workflow designer for user / menu / role CRUD operations\"}"
+      },
+      {
+        "code": "flowPlaceholderDesc",
+        "valueJson": "{\"zh-CN\":\"审批节点、迁移条件、审批人 / 角色、与现有 user / menu / menu 写操作联动 —— 将在后续版本引入。本期仅保留菜单与权限位。\",\"en-US\":\"Approval nodes, transition conditions, assignees / roles, and integration with existing user / menu / role write services — to be introduced in a later release. This Phase A only reserves the menu slot and permissions.\"}"
+      },
+      {
+        "code": "flowPlaceholderTitle",
+        "valueJson": "{\"zh-CN\":\"后期计划\",\"en-US\":\"Planned for Later\"}"
+      },
+      {
+        "code": "flowPlannedLater",
+        "valueJson": "{\"zh-CN\":\"计划在后续迭代上线\",\"en-US\":\"Scheduled for a later iteration\"}"
+      },
+      {
+        "code": "flowTitle",
+        "valueJson": "{\"zh-CN\":\"流程设计\",\"en-US\":\"Flow Designer\"}"
+      },
+      {
+        "code": "iframeEmpty",
+        "valueJson": "{\"zh-CN\":\"未设置 src\",\"en-US\":\"No src set\"}"
+      },
+      {
+        "code": "linksEmpty",
+        "valueJson": "{\"zh-CN\":\"未配置链接\",\"en-US\":\"No links configured\"}"
+      },
+      {
+        "code": "noBinding",
+        "valueJson": "{\"zh-CN\":\"未绑定任何角色\",\"en-US\":\"No roles bound\"}"
+      },
+      {
+        "code": "pageDesc",
+        "valueJson": "{\"zh-CN\":\"可视化拖拽门户首页：组件库 + 画布 + 属性面板 + 角色绑定\",\"en-US\":\"Visual drag-and-drop portal page builder: component palette + canvas + property panel + role binding\"}"
+      },
+      {
+        "code": "pageFeat1",
+        "valueJson": "{\"zh-CN\":\"从组件库拖入卡片到画布，自由网格 + 可调大小\",\"en-US\":\"Drag blocks from the palette onto a free-grid canvas with resize support\"}"
+      },
+      {
+        "code": "pageFeat2",
+        "valueJson": "{\"zh-CN\":\"属性面板由组件 config_schema 自动生成\",\"en-US\":\"Property panel auto-generated from each block config_schema\"}"
+      },
+      {
+        "code": "pageFeat3",
+        "valueJson": "{\"zh-CN\":\"layout_schema JSON 落库，运行时按 JSON 动态渲染\",\"en-US\":\"layout_schema JSON persisted; runtime renders dynamically from JSON\"}"
+      },
+      {
+        "code": "pageFeat4",
+        "valueJson": "{\"zh-CN\":\"按角色绑定：不同登录身份看到不同的门户首页\",\"en-US\":\"Per-role binding: each login identity sees their own portal page\"}"
+      },
+      {
+        "code": "pagePlaceholderDesc",
+        "valueJson": "{\"zh-CN\":\"页面设计器将于下个阶段上线，包含以下能力：\",\"en-US\":\"The page designer will ship in the next phase, with the following capabilities:\"}"
+      },
+      {
+        "code": "pagePlaceholderTitle",
+        "valueJson": "{\"zh-CN\":\"建设中\",\"en-US\":\"Under Construction\"}"
+      },
+      {
+        "code": "pageTitle",
+        "valueJson": "{\"zh-CN\":\"页面设计\",\"en-US\":\"Page Designer\"}"
+      },
+      {
+        "code": "palette",
+        "valueJson": "{\"zh-CN\":\"组件库\",\"en-US\":\"Palette\"}"
+      },
+      {
+        "code": "phCode",
+        "valueJson": "{\"zh-CN\":\"kebab-case 标识（如 home-default）\",\"en-US\":\"kebab-case identifier (e.g. home-default)\"}"
+      },
+      {
+        "code": "portalNoBinding",
+        "valueJson": "{\"zh-CN\":\"未命中门户页\",\"en-US\":\"No Portal Page\"}"
+      },
+      {
+        "code": "portalNoBindingDesc",
+        "valueJson": "{\"zh-CN\":\"当前账号未绑定任何已发布的门户页。\",\"en-US\":\"Your account is not bound to any published portal page.\"}"
+      },
+      {
+        "code": "preview",
+        "valueJson": "{\"zh-CN\":\"预览\",\"en-US\":\"Preview\"}"
+      },
+      {
+        "code": "previewDesc",
+        "valueJson": "{\"zh-CN\":\"只读预览 —— 实际门户运行时按角色绑定命中。\",\"en-US\":\"Read-only preview. Actual portal page is resolved by role binding at runtime.\"}"
+      },
+      {
+        "code": "propPanelEmpty",
+        "valueJson": "{\"zh-CN\":\"选中画布上的组件以编辑属性\",\"en-US\":\"Select a block on the canvas to edit its properties.\"}"
+      },
+      {
+        "code": "propPanelTitle",
+        "valueJson": "{\"zh-CN\":\"属性\",\"en-US\":\"Properties\"}"
+      },
+      {
+        "code": "publish",
+        "valueJson": "{\"zh-CN\":\"发布\",\"en-US\":\"Publish\"}"
+      },
+      {
+        "code": "published",
+        "valueJson": "{\"zh-CN\":\"已发布\",\"en-US\":\"Published\"}"
+      },
+      {
+        "code": "removeBlock",
+        "valueJson": "{\"zh-CN\":\"移除此块\",\"en-US\":\"Remove this block\"}"
+      },
+      {
+        "code": "unpublish",
+        "valueJson": "{\"zh-CN\":\"取消发布\",\"en-US\":\"Unpublish\"}"
+      },
+      {
+        "code": "unpublished",
+        "valueJson": "{\"zh-CN\":\"已取消发布\",\"en-US\":\"Unpublished\"}"
+      },
+      {
+        "code": "unsavedHint",
+        "valueJson": "{\"zh-CN\":\"有未保存的修改，确定离开？\",\"en-US\":\"You have unsaved changes. Leave anyway?\"}"
+      }
+    ]
+  },
+  {
     "namespace": "dict",
     "items": [
       {
@@ -1403,12 +1624,36 @@
     "namespace": "documents",
     "items": [
       {
+        "code": "archiveDesc",
+        "valueJson": "{\"zh-CN\":\"档案库用于归类档案。每个档案库对应左侧菜单中的一项，所有档案共享同一组件。\",\"en-US\":\"Archive libraries group archives. Each library shows up as a left-nav item, all archives share one component.\"}"
+      },
+      {
+        "code": "archiveEmptyDesc",
+        "valueJson": "{\"zh-CN\":\"创建一个档案库开始管理档案，例如「合同档案」「发票影印件」「项目交付物」。\",\"en-US\":\"Create an archive library to start organizing files — e.g. \\\"Contracts\\\", \\\"Invoice Scans\\\", \\\"Project Deliverables\\\".\"}"
+      },
+      {
+        "code": "archiveEmptyTitle",
+        "valueJson": "{\"zh-CN\":\"还没有档案库\",\"en-US\":\"No archive libraries yet\"}"
+      },
+      {
+        "code": "archiveSlugHint",
+        "valueJson": "{\"zh-CN\":\"仅小写字母/数字/单连字符（如 contracts-2026）\",\"en-US\":\"lowercase letters/digits separated by single hyphens (e.g. contracts-2026)\"}"
+      },
+      {
+        "code": "archiveSlugInvalid",
+        "valueJson": "{\"zh-CN\":\"slug 必须是 kebab-case\",\"en-US\":\"slug must be kebab-case\"}"
+      },
+      {
+        "code": "archiveTitle",
+        "valueJson": "{\"zh-CN\":\"档案库\",\"en-US\":\"Archive Library\"}"
+      },
+      {
         "code": "authCodeLabel",
         "valueJson": "{\"zh-CN\":\"权限码前缀\",\"en-US\":\"Permission Code Prefix\"}"
       },
       {
         "code": "authDialogTitle",
-        "valueJson": "{\"zh-CN\":\"类目授权：{name}\",\"en-US\":\"Category Authorization: {name}\"}"
+        "valueJson": "{\"zh-CN\":\"档案库授权：{name}\",\"en-US\":\"Category Authorization: {name}\"}"
       },
       {
         "code": "authLoadFailed",
@@ -1431,56 +1676,32 @@
         "valueJson": "{\"zh-CN\":\"根目录\",\"en-US\":\"Root\"}"
       },
       {
-        "code": "categoryDesc",
-        "valueJson": "{\"zh-CN\":\"类目用于归类档案。每个类目对应左侧菜单中的一项，所有档案共享同一组件。\",\"en-US\":\"Categories group archives. Each category shows up as a left-nav item, all archives share one component.\"}"
+        "code": "colArchiveCount",
+        "valueJson": "{\"zh-CN\":\"档案数\",\"en-US\":\"Files\"}"
       },
       {
-        "code": "categoryEmptyDesc",
-        "valueJson": "{\"zh-CN\":\"创建一个类目开始管理档案，例如「合同档案」「发票影印件」「项目交付物」。\",\"en-US\":\"Create a category to start organizing files — e.g. \\\"Contracts\\\", \\\"Invoice Scans\\\", \\\"Project Deliverables\\\".\"}"
+        "code": "colArchiveIcon",
+        "valueJson": "{\"zh-CN\":\"图标\",\"en-US\":\"Icon\"}"
       },
       {
-        "code": "categoryEmptyTitle",
-        "valueJson": "{\"zh-CN\":\"还没有类目\",\"en-US\":\"No categories yet\"}"
+        "code": "colArchiveName",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
       },
       {
-        "code": "categorySlugHint",
-        "valueJson": "{\"zh-CN\":\"仅小写字母/数字/单连字符（如 contracts-2026）\",\"en-US\":\"lowercase letters/digits separated by single hyphens (e.g. contracts-2026)\"}"
+        "code": "colArchiveSlug",
+        "valueJson": "{\"zh-CN\":\"路径标识\",\"en-US\":\"Slug\"}"
       },
       {
-        "code": "categorySlugInvalid",
-        "valueJson": "{\"zh-CN\":\"slug 必须是 kebab-case\",\"en-US\":\"slug must be kebab-case\"}"
+        "code": "colArchiveSort",
+        "valueJson": "{\"zh-CN\":\"排序\",\"en-US\":\"Sort\"}"
       },
       {
-        "code": "categoryTitle",
-        "valueJson": "{\"zh-CN\":\"类目设置\",\"en-US\":\"Category Settings\"}"
+        "code": "colArchiveStatus",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
       },
       {
         "code": "colAuth",
         "valueJson": "{\"zh-CN\":\"权限\",\"en-US\":\"Permission\"}"
-      },
-      {
-        "code": "colCategoryCount",
-        "valueJson": "{\"zh-CN\":\"档案数\",\"en-US\":\"Files\"}"
-      },
-      {
-        "code": "colCategoryIcon",
-        "valueJson": "{\"zh-CN\":\"图标\",\"en-US\":\"Icon\"}"
-      },
-      {
-        "code": "colCategoryName",
-        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
-      },
-      {
-        "code": "colCategorySlug",
-        "valueJson": "{\"zh-CN\":\"路径标识\",\"en-US\":\"Slug\"}"
-      },
-      {
-        "code": "colCategorySort",
-        "valueJson": "{\"zh-CN\":\"排序\",\"en-US\":\"Sort\"}"
-      },
-      {
-        "code": "colCategoryStatus",
-        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
       },
       {
         "code": "colName",
@@ -1507,8 +1728,8 @@
         "valueJson": "{\"zh-CN\":\"上传人\",\"en-US\":\"Uploader\"}"
       },
       {
-        "code": "createCategory",
-        "valueJson": "{\"zh-CN\":\"新建类目\",\"en-US\":\"New Category\"}"
+        "code": "createArchive",
+        "valueJson": "{\"zh-CN\":\"新建档案库\",\"en-US\":\"New Archive\"}"
       },
       {
         "code": "created",
@@ -1527,12 +1748,12 @@
         "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
       },
       {
-        "code": "deleteCategoryConfirm",
-        "valueJson": "{\"zh-CN\":\"确认删除类目「{name}」？\",\"en-US\":\"Delete category \\\"{name}\\\"?\"}"
+        "code": "deleteArchiveConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除档案库「{name}」？\",\"en-US\":\"Delete archive library \\\"{name}\\\"?\"}"
       },
       {
-        "code": "deleteCategoryNonEmpty",
-        "valueJson": "{\"zh-CN\":\"类目「{name}」下仍有 {count} 个档案，请先处理后再删除\",\"en-US\":\"Category \\\"{name}\\\" still has {count} file(s). Remove them first.\"}"
+        "code": "deleteArchiveNonEmpty",
+        "valueJson": "{\"zh-CN\":\"档案库「{name}」下仍有 {count} 个档案，请先处理后再删除\",\"en-US\":\"Archive library \\\"{name}\\\" still has {count} file(s). Remove them first.\"}"
       },
       {
         "code": "deleteConfirm",
@@ -1544,19 +1765,19 @@
       },
       {
         "code": "desc",
-        "valueJson": "{\"zh-CN\":\"按类目管理长期保存的文件档案\",\"en-US\":\"Manage long-term file archives by category\"}"
+        "valueJson": "{\"zh-CN\":\"按档案库管理长期保存的文件档案\",\"en-US\":\"Manage long-term file archives by archive library\"}"
       },
       {
         "code": "download",
         "valueJson": "{\"zh-CN\":\"下载\",\"en-US\":\"Download\"}"
       },
       {
-        "code": "editCategory",
-        "valueJson": "{\"zh-CN\":\"编辑类目\",\"en-US\":\"Edit Category\"}"
+        "code": "editArchive",
+        "valueJson": "{\"zh-CN\":\"编辑档案库\",\"en-US\":\"Edit Archive\"}"
       },
       {
         "code": "empty",
-        "valueJson": "{\"zh-CN\":\"该类目下暂无档案，请上传或创建新类目\",\"en-US\":\"No files in this category. Upload one or create a new category.\"}"
+        "valueJson": "{\"zh-CN\":\"该档案库下暂无档案，请上传或创建新档案库\",\"en-US\":\"No files in this archive library. Upload one or create a new archive library.\"}"
       },
       {
         "code": "emptyDesc",
@@ -1600,7 +1821,7 @@
       },
       {
         "code": "noPermDesc",
-        "valueJson": "{\"zh-CN\":\"当前角色没有此类的查看权限，请联系管理员授予「{perm}」后重试\",\"en-US\":\"Your role lacks the \\\"{perm}\\\" permission for this category. Contact your administrator.\"}"
+        "valueJson": "{\"zh-CN\":\"当前角色没有此类的查看权限，请联系管理员授予「{perm}」后重试\",\"en-US\":\"Your role lacks the \\\"{perm}\\\" permission for this archive library. Contact your administrator.\"}"
       },
       {
         "code": "noPermTitle",
@@ -2265,12 +2486,24 @@
         "valueJson": "{\"zh-CN\":\"查询\",\"en-US\":\"Queries\"}"
       },
       {
+        "code": "design._",
+        "valueJson": "{\"zh-CN\":\"设计开发\",\"en-US\":\"Design Development\"}"
+      },
+      {
+        "code": "design.flow.Index",
+        "valueJson": "{\"zh-CN\":\"流程设计\",\"en-US\":\"Flow Designer\"}"
+      },
+      {
+        "code": "design.page.Index",
+        "valueJson": "{\"zh-CN\":\"页面设计\",\"en-US\":\"Page Designer\"}"
+      },
+      {
         "code": "documents._",
         "valueJson": "{\"zh-CN\":\"档案管理\",\"en-US\":\"Documents\"}"
       },
       {
-        "code": "documents.category._",
-        "valueJson": "{\"zh-CN\":\"类目设置\",\"en-US\":\"Category Settings\"}"
+        "code": "documents.archive._",
+        "valueJson": "{\"zh-CN\":\"档案库\",\"en-US\":\"Archive Library\"}"
       },
       {
         "code": "invoice-parser.Index",

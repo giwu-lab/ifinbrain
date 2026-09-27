@@ -22,7 +22,7 @@ public interface StorageService {
      * - local：mkdir -p（中间目录不存在则一并创建）
      * - S3：no-op（key prefix 在首次 put 时隐式创建；0-byte 占位文件没必要）
      *
-     * 给档案管理的类目用：在创建类目时调用，slug 即成为 storage 上的目录名。
+     * 给档案管理的档案库用：在创建档案库时调用，slug 即成为 storage 上的目录名。
      */
     default void ensurePrefix(String prefix) {
         // 默认 no-op；local 实现覆写

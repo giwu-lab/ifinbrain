@@ -245,7 +245,7 @@ import {
 import * as ElIcons from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
-import { categoryApi, documentApi, fileRawUrl, type DocumentCategory, type DocumentItem, type FolderItem, type BrowseResult } from '@/api/document';
+import { archiveApi, documentApi, fileRawUrl, type ArchiveLibrary, type DocumentItem, type FolderItem, type BrowseResult } from '@/api/document';
 import FilePreviewer from '@/components/FilePreviewer.vue';
 
 const { t } = useI18n();
@@ -256,11 +256,11 @@ const router = useRouter();
 const loading = ref(false);
 const rows = ref<DocumentItem[]>([]);
 const folders = ref<FolderItem[]>([]);
-const category = ref<DocumentCategory | null>(null);
-const noPerm = ref(false);            // 当前 slug 类目存在但用户无 view perm
-const currentPath = ref('');          // 类目内当前路径（空 = 根）
+const category = ref<ArchiveLibrary | null>(null);
+ const noPerm = ref(false);            // 当前 slug 档案库存在但用户无 view perm
+ const currentPath = ref('');          // 档案库内当前路径（空 = 根）
 
-/** 类目级 4 权限 —— 由后端 FileController 同步校验（per-category view 是 preview/download 的硬要求） */
+ /** 档案库级 4 权限 —— 由后端 FileController 同步校验（per-archive view 是 preview/download 的硬要求） */
 const canView   = computed(() => !!category.value && auth.hasPerm(`documents:${category.value.slug}:view`));
 const canUpload = computed(() => !!category.value && auth.hasPerm(`documents:${category.value.slug}:upload`));
 const canUpdate = computed(() => !!category.value && auth.hasPerm(`documents:${category.value.slug}:update`));
@@ -379,8 +379,8 @@ async function loadBySlug(slug: string) {
   if (!slug) return;
   loading.value = true;
   try {
-    // categoryApi.list() 已被后端按 documents:{slug}:view 过滤 —— 不在列表里 = 无 view perm 或不存在
-    const all = await categoryApi.list();
+    // archiveApi.list() 已被后端按 documents:{slug}:view 过滤 —— 不在列表里 = 无 view perm 或不存在
+    const all = await archiveApi.list();
     const cat = all.find((c) => c.slug === slug);
     if (!cat) {
       category.value = null;
@@ -584,9 +584,9 @@ async function confirmDelete(row: DocumentItem) {
     await documentApi.remove(row.id);
     ElMessage.success(t('documents.deleteSuccess'));
     await reloadDocs();
-    // 顺便刷新类目 fileCount
+    // 顺便刷新档案库 fileCount
     if (category.value) {
-      const all = await categoryApi.list();
+      const all = await archiveApi.list();
       const fresh = all.find((c) => c.id === category.value!.id);
       if (fresh) category.value = fresh;
     }
@@ -660,7 +660,7 @@ onMounted(() => loadBySlug(slug.value));
   border-color: var(--color-danger);
 }
 
-/* ===== 页面布局（参照数据源/类目设置页，§7.2） ===== */
+/* ===== 页面布局（参照数据源/档案库页，§7.2） ===== */
 .docs-page {
   /* 页面至少填满 el-main（视口 - 64px 顶栏）：
    * - 表格只有 2 行时，不会留下大片空白在页面底部

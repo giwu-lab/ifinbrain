@@ -20,7 +20,7 @@ public interface DocumentRecordRepository extends JpaRepository<DocumentRecord, 
      *  prefix 例 "documents/cw/demo/" —— 命中即同目录内已有同名同内容档案。 */
     Optional<DocumentRecord> findFirstBySha256AndStorageKeyStartingWith(String sha256, String storageKeyPrefix);
 
-    /** 列某类目下 storage_key 以 prefix 开头的所有档案（用于按目录过滤）。
+    /** 列某档案库下 storage_key 以 prefix 开头的所有档案（用于按目录过滤）。
      *  深度筛选由 service 层用 slashCount 处理（避免把子目录里的也带出来）。 */
     List<DocumentRecord> findByCategoryIdAndStorageKeyStartingWith(Long categoryId, String prefix);
 }

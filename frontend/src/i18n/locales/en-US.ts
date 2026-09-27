@@ -91,11 +91,18 @@ export default {
     'data-mgmt-datasource': 'Sources',
     'data-mgmt-query':      'Queries',
 
-    // Document Management (P5/P6 add category / list subkeys)
+    // Document Management (P5/P6 add archive / list subkeys)
     documents: {
       _: 'Documents',
-      category: { _: 'Category Settings' },
+      archive: { _: 'Archive Library' },
     },
+
+    // Design Development (introduced in P9)
+    design: {
+      _: 'Design Development',
+      page: { Index: 'Page Designer' },
+      flow: { Index: 'Flow Designer' }
+    }
   },
 
   dashboard: {
@@ -697,29 +704,29 @@ export default {
   // ---- Document Management (P4-P6) ----
   documents: {
     title: 'Documents',
-    desc: 'Manage long-term file archives by category',
+    desc: 'Manage long-term file archives by archive library',
 
-    /* Category management page */
-    categoryTitle: 'Category Settings',
-    categoryDesc: 'Categories group archives. Each category shows up as a left-nav item, all archives share one component.',
-    createCategory: 'New Category',
-    editCategory: 'Edit Category',
-    colCategoryName: 'Name',
-    colCategorySlug: 'Slug',
-    colCategoryIcon: 'Icon',
-    colCategorySort: 'Sort',
-    colCategoryStatus: 'Status',
-    colCategoryCount: 'Files',
-    deleteCategoryConfirm: 'Delete category "{name}"?',
-    deleteCategoryNonEmpty: 'Category "{name}" still has {count} file(s). Remove them first.',
-    categorySlugHint: 'lowercase letters/digits separated by single hyphens (e.g. contracts-2026)',
-    categorySlugInvalid: 'slug must be kebab-case',
-    categoryEmptyTitle: 'No categories yet',
-    categoryEmptyDesc: 'Create a category to start organizing files — e.g. "Contracts", "Invoice Scans", "Project Deliverables".',
+    /* Archive library management page */
+    archiveTitle: 'Archive Library',
+    archiveDesc: 'Archive libraries group archives. Each library shows up as a left-nav item, all archives share one component.',
+    createArchive: 'New Archive',
+    editArchive: 'Edit Archive',
+    colArchiveName: 'Name',
+    colArchiveSlug: 'Slug',
+    colArchiveIcon: 'Icon',
+    colArchiveSort: 'Sort',
+    colArchiveStatus: 'Status',
+    colArchiveCount: 'Files',
+    deleteArchiveConfirm: 'Delete archive library "{name}"?',
+    deleteArchiveNonEmpty: 'Archive library "{name}" still has {count} file(s). Remove them first.',
+    archiveSlugHint: 'lowercase letters/digits separated by single hyphens (e.g. contracts-2026)',
+    archiveSlugInvalid: 'slug must be kebab-case',
+    archiveEmptyTitle: 'No archive libraries yet',
+    archiveEmptyDesc: 'Create an archive library to start organizing files — e.g. "Contracts", "Invoice Scans", "Project Deliverables".',
 
     /* List page */
     listTitle: '{name} — Files',
-    empty: 'No files in this category. Upload one or create a new category.',
+    empty: 'No files in this archive library. Upload one or create a new archive library.',
     emptyTitle: 'No files yet',
     emptyDesc: 'Upload your first PDF / document / image. Duplicates (same SHA-256) are rejected.',
     uploadBtn: 'Upload',
@@ -760,7 +767,7 @@ export default {
     folderOpen: 'Open folder',
     emptyFolder: 'This folder is empty',
     noPermTitle: 'No Permission',
-    noPermDesc: 'Your role lacks the "{perm}" permission for this category. Contact your administrator.',
+    noPermDesc: 'Your role lacks the "{perm}" permission for this archive library. Contact your administrator.',
 
     /* Category authorization */
     colAuth: 'Permission',
@@ -812,5 +819,76 @@ export default {
     placeholder: 'Select permission (custom code allowed)',
     typeMenu: 'Menu',
     typeButton: 'Button',
+  },
+
+  // Design Development (Phase A placeholder)
+  design: {
+    pageTitle: 'Page Designer',
+    pageDesc: 'Visual drag-and-drop portal page builder: component palette + canvas + property panel + role binding',
+    pagePlaceholderTitle: 'Under Construction',
+    pagePlaceholderDesc: 'The page designer will ship in the next phase, with the following capabilities:',
+    pageFeat1: 'Drag blocks from the palette onto a free-grid canvas with resize support',
+    pageFeat2: 'Property panel auto-generated from each block config_schema',
+    pageFeat3: 'layout_schema JSON persisted; runtime renders dynamically from JSON',
+    pageFeat4: 'Per-role binding: each login identity sees their own portal page',
+
+    flowTitle: 'Flow Designer',
+    flowDesc: 'Approval workflow designer for user / menu / role CRUD operations',
+    flowPlaceholderTitle: 'Planned for Later',
+    flowPlaceholderDesc: 'Approval nodes, transition conditions, assignees / roles, and integration with existing user / menu / role write services — to be introduced in a later release. This Phase A only reserves the menu slot and permissions.',
+    flowPlannedLater: 'Scheduled for a later iteration',
+
+    /* List page */
+    createPage: 'New Portal Page',
+    editDesign: 'Edit Design',
+    preview: 'Preview',
+    publish: 'Publish',
+    unpublish: 'Unpublish',
+    published: 'Published',
+    unpublished: 'Unpublished',
+    duplicate: 'Duplicate',
+    copyJson: 'Copy JSON',
+    copied: 'Copied to clipboard',
+    colCode: 'Code',
+    colDescription: 'Description',
+    colRoles: 'Bound Roles',
+    colUpdatedAt: 'Updated',
+    noBinding: 'No roles bound',
+    phCode: 'kebab-case identifier (e.g. home-default)',
+    deleteConfirm: 'Delete portal page "{name}"?',
+    emptyTitle: 'No portal pages yet',
+    emptyDesc: 'Create a portal page to design your home / role-based landing page.',
+    emptyAction: 'New Portal Page',
+
+    /* Editor */
+    back: 'Back',
+    backToEdit: 'Back to Edit',
+    backToList: 'Back to List',
+    palette: 'Palette',
+    canvasEmpty: 'Canvas is empty. Click a component on the left to add it.',
+    unsavedHint: 'You have unsaved changes. Leave anyway?',
+    propPanelTitle: 'Properties',
+    propPanelEmpty: 'Select a block on the canvas to edit its properties.',
+    removeBlock: 'Remove this block',
+
+    /* Preview / runtime */
+    previewDesc: 'Read-only preview. Actual portal page is resolved by role binding at runtime.',
+    portalNoBinding: 'No Portal Page',
+    portalNoBindingDesc: 'Your account is not bound to any published portal page.',
+
+    /* Chart / table placeholders */
+    chartNoData: 'No data — fill in "data" in the property panel',
+    dataTableHint: 'Data table placeholder (queryId={id})',
+    linksEmpty: 'No links configured',
+    iframeEmpty: 'No src set',
+
+    /* Block category labels */
+    cat: {
+      stat:   'Stat',
+      chart:  'Chart',
+      table:  'Table',
+      media:  'Media',
+      layout: 'Layout',
+    },
   },
 };

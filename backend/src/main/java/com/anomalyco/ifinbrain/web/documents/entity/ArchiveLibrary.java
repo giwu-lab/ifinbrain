@@ -5,6 +5,11 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * 档案库（原「类目」）。
+ * 一个档案库 = 一个左侧菜单项 + 一个 storage 前缀（documents/{slug}/） + 4 个专属 perm code。
+ * 表名保留 sys_document_category 以兼容现有数据；类名 ArchiveLibrary 用于业务表达。
+ */
 @Entity
 @Table(name = "sys_document_category")
 @Getter
@@ -12,7 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DocumentCategory {
+public class ArchiveLibrary {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

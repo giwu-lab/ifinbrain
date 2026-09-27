@@ -28,9 +28,9 @@ public class FileController {
     private final StorageSelector storage;
     private final PermissionChecker perm;
 
-    /** 文档类目 storage key 格式：documents/{slug}/{rest}。
-     *  拿到 slug 才能校验 per-category view 权限。
-     *  非文档类目文件（如 invoice 的 OFD/PDF）key 不匹配，返回 null，由调用方按需 bypass。 */
+    /** 档案库 storage key 格式：documents/{slug}/{rest}。
+     *  拿到 slug 才能校验 per-archive view 权限。
+     *  非档案库文件（如 invoice 的 OFD/PDF）key 不匹配，返回 null，由调用方按需 bypass。 */
     private static final Pattern DOC_KEY = Pattern.compile("^documents/([^/]+)(?:/.*)?$");
 
     /** 按文件后缀返回正确的 Content-Type，保证浏览器能内嵌预览 / 下载保留扩展名 */
@@ -88,17 +88,17 @@ public class FileController {
             }
         }
 
-        // 文档类目文件 → 校验 per-category view 权限（无需全局 file:download —— 类目 view 已是充分条件）
+        // 档案库文件 → 校验 per-archive view 权限（无需全局 file:download —— 档案库 view 已是充分条件）
         Matcher m = DOC_KEY.matcher(key);
         if (m.matches()) {
             String slug = m.group(1);
-            String categoryPerm = "documents:" + slug + ":view";
-            // 类目 view 权限 = 能看类目内文件列表；preview / download 顺理成章应受同一权限保护
-            if (!perm.has(categoryPerm)) {
-                throw new BizException(403, "无法下载 - 该类目未授权「查看」权限");
+            String archivePerm = "documents:" + slug + ":view";
+            // 档案库 view 权限 = 能看档案库内文件列表；preview / download 顺理成章应受同一权限保护
+            if (!perm.has(archivePerm)) {
+                throw new BizException(403, "无法下载 - 该档案库未授权「查看」权限");
             }
         } else {
-            // 非文档类目文件（如 invoice 的 OFD/PDF）→ 需要全局 file:download 权限
+            // 非档案库文件（如 invoice 的 OFD/PDF）→ 需要全局 file:download 权限
             perm.require("file:download");
         }
 

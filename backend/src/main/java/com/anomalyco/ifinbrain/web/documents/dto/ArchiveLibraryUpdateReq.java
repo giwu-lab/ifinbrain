@@ -5,11 +5,11 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 更新类目。null = 保留原值（PATCH 语义）。
+ * 更新档案库。null = 保留原值（PATCH 语义）。
  * 注意：slug 改名会同步修改 sys_menu.path，但不影响 sys_document.category_id 引用。
  */
 @Data
-public class DocumentCategoryUpdateReq {
+public class ArchiveLibraryUpdateReq {
 
     @Size(max = 64)
     private String name;

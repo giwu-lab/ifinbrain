@@ -52,4 +52,14 @@ public class PermissionChecker {
         if (auth.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails ud) return ud.getUsername();
         return null;
     }
+
+    /** 当前用户角色 codes，逗号分隔（用于门户页 resolve 按角色匹配）。未登录返回 null。 */
+    public String currentRoleCodes() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return null;
+        if (auth.getPrincipal() instanceof AuthPrincipal ap) {
+            return ap.getRoles() == null ? null : String.join(",", ap.getRoles());
+        }
+        return null;
+    }
 }

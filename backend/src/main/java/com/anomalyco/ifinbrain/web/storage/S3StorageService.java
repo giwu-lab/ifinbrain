@@ -184,7 +184,7 @@ public class S3StorageService implements StorageService {
     }
 
     /**
-     * S3 端清理：删除空目录占位对象。如果类目下还有文件（业务校验已拦截），不会误删。
+     * S3 端清理：删除空目录占位对象。如果档案库下还有文件（业务校验已拦截），不会误删。
      * 不做"递归删除整个 prefix"——避免误删。
      */
     @Override

@@ -11,7 +11,7 @@ public class CreateFolderReq {
     private Long categoryId;
 
     /**
-     * 类目下的子路径（kebab-case 单段或多段，用 / 分隔）。
+     * 档案库下的子路径（kebab-case 单段或多段，用 / 分隔）。
      * 校验在 service 层做（每段匹配 ^[a-z0-9]+(-[a-z0-9]+)*$）。
      */
     @NotBlank

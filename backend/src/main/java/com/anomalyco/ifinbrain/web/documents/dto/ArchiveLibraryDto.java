@@ -1,6 +1,6 @@
 package com.anomalyco.ifinbrain.web.documents.dto;
 
-import com.anomalyco.ifinbrain.web.documents.entity.DocumentCategory;
+import com.anomalyco.ifinbrain.web.documents.entity.ArchiveLibrary;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
-public class DocumentCategoryDto {
+public class ArchiveLibraryDto {
 
     private Long id;
     private String name;
@@ -21,15 +21,15 @@ public class DocumentCategoryDto {
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    /** 该类目下档案数（status=1），由 service 层填充。0 表示无档案。 */
+    /** 该档案库下档案数（status=1），由 service 层填充。0 表示无档案。 */
     private Long fileCount;
 
-    /** 类目权限码前缀，如 documents:cw —— 4 个 verb 由 service 自动补全。
+    /** 档案库权限码前缀，如 documents:cw —— 4 个 verb 由 service 自动补全。
      *  用于前端授权对话框副标题展示。 */
     private String permissionCode;
 
-    public static DocumentCategoryDto fromEntity(DocumentCategory e) {
-        return DocumentCategoryDto.builder()
+    public static ArchiveLibraryDto fromEntity(ArchiveLibrary e) {
+        return ArchiveLibraryDto.builder()
                 .id(e.getId())
                 .name(e.getName())
                 .slug(e.getSlug())
@@ -44,8 +44,8 @@ public class DocumentCategoryDto {
                 .build();
     }
 
-    public static DocumentCategoryDto fromEntity(DocumentCategory e, long fileCount) {
-        DocumentCategoryDto dto = fromEntity(e);
+    public static ArchiveLibraryDto fromEntity(ArchiveLibrary e, long fileCount) {
+        ArchiveLibraryDto dto = fromEntity(e);
         dto.setFileCount(fileCount);
         return dto;
     }

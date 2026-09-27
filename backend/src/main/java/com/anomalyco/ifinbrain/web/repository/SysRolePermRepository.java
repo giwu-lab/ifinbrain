@@ -21,7 +21,7 @@ public interface SysRolePermRepository extends JpaRepository<SysRolePerm, SysRol
     @Query("DELETE FROM SysRolePerm rp WHERE rp.roleId = :roleId AND rp.permId = :permId")
     void deleteByRoleIdAndPermId(Long roleId, Long permId);
 
-    /** 类目权限批量解绑：删该 permId 在所有 sys_role_perm 里的行。
+    /** 档案库权限批量解绑：删该 permId 在所有 sys_role_perm 里的行。
      *  （不要用 findByPermId + deleteAll —— permId 删自己很常见） */
     @Modifying
     @Query("DELETE FROM SysRolePerm rp WHERE rp.permId = :permId")

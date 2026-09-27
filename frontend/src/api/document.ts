@@ -12,7 +12,7 @@ export interface Page<T> {
   empty: boolean;
 }
 
-export interface DocumentCategory {
+export interface ArchiveLibrary {
   id: number;
   name: string;
   slug: string;
@@ -24,12 +24,12 @@ export interface DocumentCategory {
   createdAt?: string;
   updatedAt?: string;
   fileCount?: number;
-  /** 类目权限码前缀，如 documents:cw —— 4 个 verb 由后端自动补全 */
+  /** 档案库权限码前缀，如 documents:cw —— 4 个 verb 由后端自动补全 */
   permissionCode?: string;
 }
 
-/** 类目授权：4 个权限 verb 各绑定到哪些角色 id */
-export interface CategoryPermGrants {
+/** 档案库授权：4 个权限 verb 各绑定到哪些角色 id */
+export interface ArchivePermGrants {
   view: number[];
   upload: number[];
   update: number[];
@@ -56,7 +56,7 @@ export interface DocumentItem {
 
 export interface FolderItem {
   name: string;
-  /** 类目内相对路径（含子目录），如 "demo/sub1" */
+  /** 档案库内相对路径（含子目录），如 "demo/sub1" */
   path: string;
 }
 
@@ -67,20 +67,21 @@ export interface BrowseResult {
   files: DocumentItem[];
 }
 
-export const categoryApi = {
-  list:   () => http.get<unknown, DocumentCategory[]>('/document-categories'),
-  detail: (id: number) => http.get<unknown, DocumentCategory>(`/document-categories/${id}`),
-  create: (body: Partial<DocumentCategory>) =>
-    http.post<unknown, DocumentCategory>('/document-categories', body),
-  update: (id: number, body: Partial<DocumentCategory>) =>
-    http.put<unknown, DocumentCategory>(`/document-categories/${id}`, body),
-  remove: (id: number) => http.delete(`/document-categories/${id}`),
-  /** 拉取该类目 4 个权限码当前绑定的角色 id（供授权对话框预填） */
+/** 档案库（原「类目」）CRUD + 授权。端点：/api/archives */
+export const archiveApi = {
+  list:   () => http.get<unknown, ArchiveLibrary[]>('/archives'),
+  detail: (id: number) => http.get<unknown, ArchiveLibrary>(`/archives/${id}`),
+  create: (body: Partial<ArchiveLibrary>) =>
+    http.post<unknown, ArchiveLibrary>('/archives', body),
+  update: (id: number, body: Partial<ArchiveLibrary>) =>
+    http.put<unknown, ArchiveLibrary>(`/archives/${id}`, body),
+  remove: (id: number) => http.delete(`/archives/${id}`),
+  /** 拉取该档案库 4 个权限码当前绑定的角色 id（供授权对话框预填） */
   permissions: (id: number) =>
-    http.get<unknown, CategoryPermGrants>(`/document-categories/${id}/permissions`),
+    http.get<unknown, ArchivePermGrants>(`/archives/${id}/permissions`),
   /** 全量替换授权：admin 强制保留，后端负责 */
-  updatePerms: (id: number, grants: CategoryPermGrants) =>
-    http.put(`/document-categories/${id}/permissions`, grants),
+  updatePerms: (id: number, grants: ArchivePermGrants) =>
+    http.put(`/archives/${id}/permissions`, grants),
 };
 
 export const documentApi = {
@@ -88,7 +89,7 @@ export const documentApi = {
     http.get<unknown, Page<DocumentItem>>(
       `/documents?categoryId=${categoryId}&page=${page}&size=${size}`,
     ),
-  /** 浏览某类目某路径：返回 immediate 子文件夹 + 文件 */
+  /** 浏览某档案库某路径：返回 immediate 子文件夹 + 文件 */
   browse: (categoryId: number, path = '') =>
     http.get<unknown, BrowseResult>(`/document-browse?categoryId=${categoryId}&path=${encodeURIComponent(path)}`),
   detail: (id: number) =>
@@ -110,7 +111,7 @@ export const documentApi = {
       return body.data as DocumentItem;
     });
   },
-  /** 在类目某目录下创建子文件夹路径（kebab-case 单段或多段，用 / 分隔） */
+  /** 在档案库某目录下创建子文件夹路径（kebab-case 单段或多段，用 / 分隔） */
   createFolder: (categoryId: number, path: string, parentPath = '') =>
     http.post<unknown, { path: string }>('/documents/folders', {
       categoryId, path: parentPath ? `${parentPath}/${path}` : path,

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class DocumentCategoryCreateReq {
+public class ArchiveLibraryCreateReq {
 
     @NotBlank
     @Size(max = 64)

@@ -47,8 +47,8 @@
 **权限码格式**：`<module>:<resource>:<verb>`，如 `data:datasource:update`。
 
 **角色权限自动 seed**：
-- `seedAdminAccess()`：新建/重命名类目时 admin 自动获得 4 个类目 perm（JWT 通过 `auth.refreshTokens()` 重发）
-- V23 迁移：现存类目 + 仅 admin seed 类目级 perm
+- `seedAdminAccess()`：新建/重命名档案库时 admin 自动获得 4 个档案库 perm（JWT 通过 `auth.refreshTokens()` 重发）
+- V23 迁移：现存档案库 + 仅 admin seed 档案库级 perm
 - V17 绑定：全局 `documents:view/upload/update/delete` 给 admin/operator/viewer
 
 ---
@@ -315,5 +315,5 @@ source = source.replace(VITE_INJECT_PREFIX, '');
 - 不要在 `<el-table>` 操作列里用文字按钮（必须图标 + ···）
 - 不要用 `<el-popconfirm>` 做删除确认（统一 `ElMessageBox.confirm`）
 - 不要用 axios 接收 blob 响应（已知 bug，会损坏文件）—— 用原生 `fetch().blob()` 或 `arrayBuffer()`
-- 不要给所有用户都 broadcast 同一份菜单（每个用户按 perm 过滤；admin 应能看到 Documents DIR 即使没类目）
+- 不要给所有用户都 broadcast 同一份菜单（每个用户按 perm 过滤；admin 应能看到 Documents DIR 即使没档案库）
 - **不要在测试结束后把 `storage.type` 切回 `local` 或用 fake AK/SK 覆盖用户密文**——用户的 S3 配置（内网 MinIO 192.168.3.160:9000 / bucket=ifinbrain）是真实测试环境。验证存储相关修复时：用临时 prefix（如 `bucket=ifinbrain-test`）、隔离 AK/SK、或只测 GET/probe 不写回 sys_setting；**除非用户明确要求重置，否则保留当前 storage 配置不动**。

@@ -19,13 +19,13 @@ public interface SysMenuRepository extends JpaRepository<SysMenu, Long> {
     // DIR 可见性判定逻辑：
     //   所有 DIR 满足以下任一即显示：
     //     (a) 自身 perm 可访问（permissive fallback —— admin/operator/viewer 有全局 documents:view，
-    //         即使没有任何类目，也应能看到 Documents DIR 进去「类目设置」新建第一个类目）
+    //         即使没有任何档案库，也应能看到 Documents DIR 进去「档案库」新建第一个档案库）
     //     (b) 有至少一个可访问子菜单
     //
     //   Documents DIR (id=50) 子菜单可见性特殊：
-    //     - 只认 component='documents/list/Index'（用户类目），不认 Category Settings 系统页。
-    //     - 这样用户即使有 documents:view 全局但没有任何类目授权，DIR 也只显示 Category Settings
-    //       而不显示不存在的"幽灵"类目。
+    //     - 只认 component='documents/list/Index'（用户档案库），不认 Archive Library 系统页。
+    //     - 这样用户即使有 documents:view 全局但没有任何档案库授权，DIR 也只显示 Archive Library
+    //       而不显示不存在的"幽灵"档案库。
     @Query(value = """
         SELECT DISTINCT m.* FROM sys_menu m
         WHERE m.status = 1
@@ -44,7 +44,7 @@ public interface SysMenuRepository extends JpaRepository<SysMenu, Long> {
             OR (
               m.type = 'DIR'
               AND (
-                -- Documents DIR 特殊：依靠自身 perm (documents:view) 或可访问类目子菜单
+                -- Documents DIR 特殊：依靠自身 perm (documents:view) 或可访问档案库子菜单
                 (
                   m.id = 50
                   AND (

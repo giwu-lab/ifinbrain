@@ -35,7 +35,7 @@ export const useAuthStore = defineStore('auth', {
       return info;
     },
     /** 用 refreshToken 换一对新 access/refresh —— 用于「服务端权限变更后」让浏览器侧 JWT 也立刻带新 perm。
-     *  例如 admin 在类目设置新建了类目 / 改了授权 → seedAdminAccess 给了 admin 新 perm，
+     *  例如 admin 在档案库新建了档案库 / 改了授权 → seedAdminAccess 给了 admin 新 perm，
      *  但当前 localStorage.accessToken 里没有 → 下次调 API 会 403。 */
     async refreshTokens() {
       if (!this.refreshToken) return null;

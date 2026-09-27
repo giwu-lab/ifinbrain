@@ -2,8 +2,8 @@
   <div class="page-container fade-in-up cat-page">
     <div class="page-header">
       <div>
-        <h1 class="page-title">{{ t('documents.categoryTitle') }}</h1>
-        <p class="page-desc muted">{{ t('documents.categoryDesc') }}</p>
+        <h1 class="page-title">{{ t('documents.archiveTitle') }}</h1>
+        <p class="page-desc muted">{{ t('documents.archiveDesc') }}</p>
       </div>
       <el-button
         v-if="auth.hasPerm('documents:upload')"
@@ -11,7 +11,7 @@
         :icon="Plus"
         @click="openCreate()"
       >
-        {{ t('documents.createCategory') }}
+        {{ t('documents.createArchive') }}
       </el-button>
     </div>
 
@@ -26,51 +26,51 @@
         size="small"
         row-key="id"
       >
-        <el-table-column :label="t('documents.colCategoryName')" min-width="180">
+        <el-table-column :label="t('documents.colArchiveName')" min-width="180">
           <template #default="{ row }">
             <div class="name-cell">
-              <el-icon class="name-icon" v-if="(row as DocumentCategory).icon">
-                <component :is="resolveIcon((row as DocumentCategory).icon)" />
+              <el-icon class="name-icon" v-if="(row as ArchiveLibrary).icon">
+                <component :is="resolveIcon((row as ArchiveLibrary).icon)" />
               </el-icon>
-              <span class="strong">{{ (row as DocumentCategory).name }}</span>
+              <span class="strong">{{ (row as ArchiveLibrary).name }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="t('documents.colCategorySlug')" prop="slug" width="200">
+        <el-table-column :label="t('documents.colArchiveSlug')" prop="slug" width="200">
           <template #default="{ row }">
-            <code class="mono">{{ (row as DocumentCategory).slug }}</code>
+            <code class="mono">{{ (row as ArchiveLibrary).slug }}</code>
           </template>
         </el-table-column>
-        <el-table-column :label="t('documents.colCategoryIcon')" prop="icon" width="100">
+        <el-table-column :label="t('documents.colArchiveIcon')" prop="icon" width="100">
           <template #default="{ row }">
-            <span class="muted">{{ (row as DocumentCategory).icon || 'Folder' }}</span>
+            <span class="muted">{{ (row as ArchiveLibrary).icon || 'Folder' }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('documents.colCategorySort')" prop="sort" width="80" align="right" />
-        <el-table-column :label="t('documents.colCategoryStatus')" width="90" align="center">
+        <el-table-column :label="t('documents.colArchiveSort')" prop="sort" width="80" align="right" />
+        <el-table-column :label="t('documents.colArchiveStatus')" width="90" align="center">
           <template #default="{ row }">
-            <span class="status-pill" :class="(row as DocumentCategory).status === 1 ? 'on' : 'off'">
-              {{ (row as DocumentCategory).status === 1 ? t('common.enabled') : t('common.disabled') }}
+            <span class="status-pill" :class="(row as ArchiveLibrary).status === 1 ? 'on' : 'off'">
+              {{ (row as ArchiveLibrary).status === 1 ? t('common.enabled') : t('common.disabled') }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('documents.colCategoryCount')" width="100" align="right">
+        <el-table-column :label="t('documents.colArchiveCount')" width="100" align="right">
           <template #default="{ row }">
-            <span class="count-cell">{{ ((row as DocumentCategory).fileCount ?? 0) }}</span>
+            <span class="count-cell">{{ ((row as ArchiveLibrary).fileCount ?? 0) }}</span>
           </template>
         </el-table-column>
         <el-table-column :label="t('common.actions')" width="160" align="center" fixed="right">
           <template #default="{ row }">
             <!-- 编辑：图标直显 -->
             <el-tooltip v-if="auth.hasPerm('documents:update')" :content="t('common.edit')" placement="top">
-              <el-button size="small" link :icon="Edit" @click="openEdit(row as DocumentCategory)" />
+              <el-button size="small" link :icon="Edit" @click="openEdit(row as ArchiveLibrary)" />
             </el-tooltip>
             <!-- 授权：图标直显 -->
             <el-tooltip v-if="auth.hasPerm('documents:upload')" :content="t('documents.colAuth')" placement="top">
-              <el-button size="small" link :icon="Key" @click="openPerms(row as DocumentCategory)" />
+              <el-button size="small" link :icon="Key" @click="openPerms(row as ArchiveLibrary)" />
             </el-tooltip>
             <!-- 删除：保留在 ··· 下拉 -->
-            <el-dropdown v-if="auth.hasPerm('documents:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row as DocumentCategory)">
+            <el-dropdown v-if="auth.hasPerm('documents:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row as ArchiveLibrary)">
               <el-button :icon="MoreFilled" size="small" link />
               <template #dropdown>
                 <el-dropdown-menu>
@@ -86,18 +86,18 @@
         </el-table-column>
       </el-table>
 
-      <!-- 空状态：无类目时居中展示，引导用户创建第一个 -->
+      <!-- 空状态：无档案库时居中展示，引导用户创建第一个 -->
       <div v-else-if="!loading" class="empty-state">
         <el-icon class="empty-icon"><Folder /></el-icon>
-        <h2 class="empty-title">{{ t('documents.categoryEmptyTitle') }}</h2>
-        <p class="empty-desc muted">{{ t('documents.categoryEmptyDesc') }}</p>
+        <h2 class="empty-title">{{ t('documents.archiveEmptyTitle') }}</h2>
+        <p class="empty-desc muted">{{ t('documents.archiveEmptyDesc') }}</p>
         <el-button
           v-if="auth.hasPerm('documents:upload')"
           type="primary"
           :icon="Plus"
           @click="openCreate()"
         >
-          {{ t('documents.createCategory') }}
+          {{ t('documents.createArchive') }}
         </el-button>
       </div>
     </div>
@@ -105,26 +105,26 @@
     <!-- 新建 / 编辑 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="editing ? t('documents.editCategory') : t('documents.createCategory')"
+      :title="editing ? t('documents.editArchive') : t('documents.createArchive')"
       width="560px"
       :close-on-click-modal="false"
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" @submit.prevent>
-        <el-form-item :label="t('documents.colCategoryName')" prop="name">
+        <el-form-item :label="t('documents.colArchiveName')" prop="name">
           <el-input v-model="form.name" maxlength="64" show-word-limit />
         </el-form-item>
-        <el-form-item :label="t('documents.colCategorySlug')" prop="slug">
+        <el-form-item :label="t('documents.colArchiveSlug')" prop="slug">
           <el-input
             v-model="form.slug"
-            :placeholder="t('documents.categorySlugHint')"
+            :placeholder="t('documents.archiveSlugHint')"
             maxlength="64"
           />
-          <div class="form-hint muted">{{ t('documents.categorySlugHint') }}</div>
+          <div class="form-hint muted">{{ t('documents.archiveSlugHint') }}</div>
         </el-form-item>
-        <el-form-item :label="t('documents.colCategoryIcon')">
+        <el-form-item :label="t('documents.colArchiveIcon')">
           <IconPicker v-model="form.icon" />
         </el-form-item>
-        <el-form-item :label="t('documents.colCategorySort')">
+        <el-form-item :label="t('documents.colArchiveSort')">
           <el-input-number v-model="form.sort" :min="0" :max="9999" controls-position="right" />
         </el-form-item>
         <el-form-item :label="t('common.status')">
@@ -146,7 +146,7 @@
       </template>
     </el-dialog>
 
-    <!-- 类目授权：行=角色，列=4 个 verb（view/upload/update/delete） -->
+    <!-- 档案库授权：行=角色，列=4 个 verb（view/upload/update/delete） -->
     <el-dialog
       v-model="permsDialog.visible"
       :title="permsDialog.title"
@@ -225,8 +225,8 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import IconPicker from '@/components/IconPicker.vue';
 import {
-  categoryApi,
-  type DocumentCategory,
+  archiveApi,
+  type ArchiveLibrary,
   type CategoryPermGrants,
 } from '@/api/document';
 import { roleApi, type RoleItem } from '@/api/system';
@@ -234,15 +234,15 @@ import { roleApi, type RoleItem } from '@/api/system';
 const { t } = useI18n();
 const auth = useAuthStore();
 
-/** 类目 4 个权限 verb —— 与后端 DocumentCategoryService.CAT_PERMS 对齐 */
+/** 档案库 4 个权限 verb —— 与后端 ArchiveLibraryService.CAT_PERMS 对齐 */
 const PERM_VERBS = ['view', 'upload', 'update', 'delete'] as const;
 type PermVerb = typeof PERM_VERBS[number];
 
 const loading = ref(false);
-const rows = ref<DocumentCategory[]>([]);
+const rows = ref<ArchiveLibrary[]>([]);
 const dialogVisible = ref(false);
 const saving = ref(false);
-const editing = ref<DocumentCategory | null>(null);
+const editing = ref<ArchiveLibrary | null>(null);
 const formRef = ref<FormInstance>();
 
 const form = reactive<{
@@ -264,13 +264,13 @@ const form = reactive<{
 // ===================== 授权对话框 =====================
 
 const allRoles = ref<RoleItem[]>([]);
-/** 当前授权对话框正在编辑的类目 */
+/** 当前授权对话框正在编辑的档案库 */
 const permsDialog = reactive<{
   visible: boolean;
   loading: boolean;
   saving: boolean;
   title: string;
-  category: DocumentCategory | null;
+  category: ArchiveLibrary | null;
 }>({
   visible: false,
   loading: false,
@@ -278,7 +278,7 @@ const permsDialog = reactive<{
   title: '',
   category: null,
 });
-/** 当前类目的 4 个 verb 授权状态：Map<roleId, Set<verb>> —— 勾选/取消都改这里 */
+/** 当前档案库的 4 个 verb 授权状态：Map<roleId, Set<verb>> —— 勾选/取消都改这里 */
 const grants = ref<Map<number, Set<PermVerb>>>(new Map());
 /** 初始 grants 的快照（用于检测是否有改动） */
 const initialGrants = ref<Map<number, Set<PermVerb>>>(new Map());
@@ -295,7 +295,7 @@ const rules: FormRules = {
     {
       validator: (_r, v: string, cb) => {
         if (!v || !SLUG_RE.test(v.trim().toLowerCase())) {
-          cb(new Error(t('documents.categorySlugInvalid')));
+          cb(new Error(t('documents.archiveSlugInvalid')));
         } else cb();
       },
       trigger: 'blur',
@@ -311,7 +311,7 @@ function resolveIcon(name?: string) {
 async function reload() {
   loading.value = true;
   try {
-    rows.value = await categoryApi.list();
+    rows.value = await archiveApi.list();
   } catch {
     /* http interceptor already toasted */
   } finally {
@@ -332,7 +332,7 @@ function openCreate() {
   dialogVisible.value = true;
 }
 
-function openEdit(row: DocumentCategory) {
+function openEdit(row: ArchiveLibrary) {
   editing.value = row;
   Object.assign(form, {
     name: row.name,
@@ -366,17 +366,17 @@ async function onSubmit() {
       remark: form.remark,
     };
     if (editing.value) {
-      await categoryApi.update(editing.value.id, body);
+      await archiveApi.update(editing.value.id, body);
       ElMessage.success(t('documents.updated'));
     } else {
-      await categoryApi.create(body);
+      await archiveApi.create(body);
       ElMessage.success(t('documents.created'));
     }
     dialogVisible.value = false;
     await reload();
     // 同步刷新左侧目录树（sys_menu 也改了 / 增了 / 删了；auth.menus 重新拉一次）
     await auth.fetchMe();
-    // 关键：admin 的 4 个类目权限是新建/改名类目时自动 seed 的；
+    // 关键：admin 的 4 个档案库权限是新建/改名档案库时自动 seed 的；
     // 旧 JWT 不带这些 perm → 立刻 refresh 一对，让浏览器侧 token 也带新 perm
     await auth.refreshTokens();
   } catch {
@@ -386,22 +386,22 @@ async function onSubmit() {
   }
 }
 
-async function onDelete(row: DocumentCategory) {
+async function onDelete(row: ArchiveLibrary) {
   try {
-    await categoryApi.remove(row.id);
+    await archiveApi.remove(row.id);
     ElMessage.success(t('documents.deleteSuccess'));
     await reload();
     await auth.fetchMe();
     await auth.refreshTokens();
   } catch (e: any) {
-    // 服务端已传 400 + 业务消息（"类目下仍有 N 个档案"），interceptor 已 toast
+    // 服务端已传 400 + 业务消息（"档案库下仍有 N 个档案"），interceptor 已 toast
     // 但 BizException 400 仍会走到这里；前端无需再弹
     void e;
   }
 }
 
 /** ··· 下拉菜单统一入口 */
-async function onCmd(cmd: string, row: DocumentCategory) {
+async function onCmd(cmd: string, row: ArchiveLibrary) {
   if (cmd === 'delete') {
     try {
       await ElMessageBox.confirm(
@@ -452,7 +452,7 @@ function toggleColumn(verb: PermVerb, on: boolean) {
   }
 }
 
-async function openPerms(row: DocumentCategory) {
+async function openPerms(row: ArchiveLibrary) {
   permsDialog.category = row;
   permsDialog.title = t('documents.authDialogTitle', { name: row.name });
   permsDialog.visible = true;
@@ -464,7 +464,7 @@ async function openPerms(row: DocumentCategory) {
       allRoles.value.length
         ? Promise.resolve(allRoles.value)
         : roleApi.list().then(rs => (allRoles.value = rs)),
-      categoryApi.permissions(row.id),
+      archiveApi.permissions(row.id),
     ]);
     // 把 {view,upload,update,delete} 拍扁成 Map<roleId, Set<verb>>
     const next = new Map<number, Set<PermVerb>>();
@@ -506,7 +506,7 @@ async function savePerms() {
   if (!permsDialog.category) return;
   permsDialog.saving = true;
   try {
-    await categoryApi.updatePerms(permsDialog.category.id, flattenGrants());
+    await archiveApi.updatePerms(permsDialog.category.id, flattenGrants());
     ElMessage.success(t('documents.authSaved'));
     permsDialog.visible = false;
     // 授权变更会影响 sidebar 显示 —— 立即刷新当前用户的菜单

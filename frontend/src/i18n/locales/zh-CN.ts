@@ -93,11 +93,18 @@ export default {
     'data-mgmt-datasource': '数据源',
     'data-mgmt-query':      '查询',
 
-    // 档案管理（P5/P6 会在此增加 category / list 子键）
+    // 档案管理（P5/P6 会在此增加 archive / list 子键）
     documents: {
       _: '档案管理',
-      category: { _: '类目设置' },
+      archive: { _: '档案库' },
     },
+
+    // 设计开发（P9 阶段引入）
+    design: {
+      _: '设计开发',
+      page: { Index: '页面设计' },
+      flow: { Index: '流程设计' }
+    }
   },
 
   dashboard: {
@@ -713,29 +720,29 @@ export default {
   // ---- 档案管理 (P4-P6 持续补充) ----
   documents: {
     title: '档案管理',
-    desc: '按类目管理长期保存的文件档案',
+    desc: '按档案库管理长期保存的文件档案',
 
-    /* 类目管理页 */
-    categoryTitle: '类目设置',
-    categoryDesc: '类目用于归类档案。每个类目对应左侧菜单中的一项，所有档案共享同一组件。',
-    createCategory: '新建类目',
-    editCategory: '编辑类目',
-    colCategoryName: '名称',
-    colCategorySlug: '路径标识',
-    colCategoryIcon: '图标',
-    colCategorySort: '排序',
-    colCategoryStatus: '状态',
-    colCategoryCount: '档案数',
-    deleteCategoryConfirm: '确认删除类目「{name}」？',
-    deleteCategoryNonEmpty: '类目「{name}」下仍有 {count} 个档案，请先处理后再删除',
-    categorySlugHint: '仅小写字母/数字/单连字符（如 contracts-2026）',
-    categorySlugInvalid: 'slug 必须是 kebab-case',
-    categoryEmptyTitle: '还没有类目',
-    categoryEmptyDesc: '创建一个类目开始管理档案，例如「合同档案」「发票影印件」「项目交付物」。',
+    /* 档案库管理页 */
+    archiveTitle: '档案库',
+    archiveDesc: '档案库用于归类档案。每个档案库对应左侧菜单中的一项，所有档案共享同一组件。',
+    createArchive: '新建档案库',
+    editArchive: '编辑档案库',
+    colArchiveName: '名称',
+    colArchiveSlug: '路径标识',
+    colArchiveIcon: '图标',
+    colArchiveSort: '排序',
+    colArchiveStatus: '状态',
+    colArchiveCount: '档案数',
+    deleteArchiveConfirm: '确认删除档案库「{name}」？',
+    deleteArchiveNonEmpty: '档案库「{name}」下仍有 {count} 个档案，请先处理后再删除',
+    archiveSlugHint: '仅小写字母/数字/单连字符（如 contracts-2026）',
+    archiveSlugInvalid: 'slug 必须是 kebab-case',
+    archiveEmptyTitle: '还没有档案库',
+    archiveEmptyDesc: '创建一个档案库开始管理档案，例如「合同档案」「发票影印件」「项目交付物」。',
 
     /* 列表页 */
     listTitle: '{name} — 档案列表',
-    empty: '该类目下暂无档案，请上传或创建新类目',
+    empty: '该档案库下暂无档案，请上传或创建新档案库',
     emptyTitle: '还没有档案',
     emptyDesc: '将第一个 PDF/文档/图片上传到此分类。SHA-256 重复的档案将被拒绝。',
     uploadBtn: '上传档案',
@@ -778,9 +785,9 @@ export default {
     noPermTitle: '权限不足',
     noPermDesc: '当前角色没有此类的查看权限，请联系管理员授予「{perm}」后重试',
 
-    /* 类目授权 */
+    /* 档案库授权 */
     colAuth: '权限',
-    authDialogTitle: '类目授权：{name}',
+    authDialogTitle: '档案库授权：{name}',
     authCodeLabel: '权限码前缀',
     authRoleHint: '勾选即授予对应权限（admin 角色 4 项权限始终保留，不可取消）',
     authSelectAll: '全选',
@@ -808,7 +815,7 @@ export default {
     previewSearchNoMatch: '未找到匹配',
     previewXlsxEmpty: '该 sheet 无数据',
 
-    /* 类目授权列名（view/upload/update/delete） */
+    /* 档案库授权列名（view/upload/update/delete） */
     perm: {
       view: '查看',
       upload: '上传',
@@ -828,5 +835,76 @@ export default {
     placeholder: '选择权限（可输入自定义码）',
     typeMenu: '菜单',
     typeButton: '按钮',
+  },
+
+  // 设计开发（Phase A 占位）
+  design: {
+    pageTitle: '页面设计',
+    pageDesc: '可视化拖拽门户首页：组件库 + 画布 + 属性面板 + 角色绑定',
+    pagePlaceholderTitle: '建设中',
+    pagePlaceholderDesc: '页面设计器将于下个阶段上线，包含以下能力：',
+    pageFeat1: '从组件库拖入卡片到画布，自由网格 + 可调大小',
+    pageFeat2: '属性面板由组件 config_schema 自动生成',
+    pageFeat3: 'layout_schema JSON 落库，运行时按 JSON 动态渲染',
+    pageFeat4: '按角色绑定：不同登录身份看到不同的门户首页',
+
+    flowTitle: '流程设计',
+    flowDesc: '用户 / 菜单 / 角色 CRUD 操作的审批流程设计器',
+    flowPlaceholderTitle: '后期计划',
+    flowPlaceholderDesc: '审批节点、迁移条件、审批人 / 角色、与现有 user / menu / menu 写操作联动 —— 将在后续版本引入。本期仅保留菜单与权限位。',
+    flowPlannedLater: '计划在后续迭代上线',
+
+    /* 列表页 */
+    createPage: '新建门户页',
+    editDesign: '编辑设计',
+    preview: '预览',
+    publish: '发布',
+    unpublish: '取消发布',
+    published: '已发布',
+    unpublished: '已取消发布',
+    duplicate: '复制',
+    copyJson: '复制 JSON',
+    copied: '已复制到剪贴板',
+    colCode: '代码',
+    colDescription: '说明',
+    colRoles: '绑定角色',
+    colUpdatedAt: '更新时间',
+    noBinding: '未绑定任何角色',
+    phCode: 'kebab-case 标识（如 home-default）',
+    deleteConfirm: '确认删除门户页「{name}」？',
+    emptyTitle: '还没有门户页',
+    emptyDesc: '创建一个门户页开始设计你的首页 / 角色门户。',
+    emptyAction: '新建门户页',
+
+    /* 编辑器 */
+    back: '返回',
+    backToEdit: '返回编辑',
+    backToList: '返回列表',
+    palette: '组件库',
+    canvasEmpty: '画布为空，点击左侧组件添加到画布',
+    unsavedHint: '有未保存的修改，确定离开？',
+    propPanelTitle: '属性',
+    propPanelEmpty: '选中画布上的组件以编辑属性',
+    removeBlock: '移除此块',
+
+    /* 预览/运行时 */
+    previewDesc: '只读预览 —— 实际门户运行时按角色绑定命中。',
+    portalNoBinding: '未命中门户页',
+    portalNoBindingDesc: '当前账号未绑定任何已发布的门户页。',
+
+    /* 图表/表格占位 */
+    chartNoData: '暂无数据，请在属性面板填入 data',
+    dataTableHint: '数据表占位（queryId={id}）',
+    linksEmpty: '未配置链接',
+    iframeEmpty: '未设置 src',
+
+    /* 组件分类标签 */
+    cat: {
+      stat:   '数字',
+      chart:  '图表',
+      table:  '表格',
+      media:  '媒体',
+      layout: '布局',
+    },
   },
 };

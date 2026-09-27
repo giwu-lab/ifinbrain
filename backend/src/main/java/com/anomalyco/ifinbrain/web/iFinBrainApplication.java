@@ -19,7 +19,8 @@ import java.util.TimeZone;
 @EnableJpaRepositories(basePackages = {
     "com.anomalyco.ifinbrain.web.repository",
     "com.anomalyco.ifinbrain.web.datamgmt.repository",
-    "com.anomalyco.ifinbrain.web.documents.repository"
+    "com.anomalyco.ifinbrain.web.documents.repository",
+    "com.anomalyco.ifinbrain.web.design.portal.repository"
 })
 @ConfigurationPropertiesScan(basePackages = "com.anomalyco.ifinbrain.web.config")
 public class iFinBrainApplication {
