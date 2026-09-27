@@ -27,8 +27,15 @@ import { ElMessage } from 'element-plus';
 import { Download } from '@element-plus/icons-vue';
 import { createViewer, setDefaultFileViewerAssetBaseUrl } from '@file-viewer/core/browser';
 import { officeRenderers } from '@file-viewer/preset-office';
+import { imageRenderer } from '@file-viewer/renderer-image';
+import { textRenderer } from '@file-viewer/renderer-text';
+import { enableFileViewerTextTools } from '@file-viewer/capability-text-tools';
 import type { FileViewerLifecycleContext, FileViewerOperationContext } from '@file-viewer/core';
 import { fileRawUrl } from '@/api/document';
+
+// opt-in 能力：注册 patch 比较（diff2html）+ Git bundle 解析（pako）
+// 必须先于 createViewer 调用，否则 textRenderer 收不到这些 hook
+enableFileViewerTextTools();
 
 const props = defineProps<{
   storageKey: string;
@@ -71,9 +78,19 @@ async function load() {
       options: {
         builtinRenderers: 'none',
         rendererMode: 'replace',
-        renderers: officeRenderers,
+        // preset-office 8 个 renderer + image + text；capability-text-tools 已在
+        // 模块加载时通过 enableFileViewerTextTools() 注册到 textRenderer 内部。
+        // 强转 any：officeRenderers / imageRenderer / textRenderer 的 Handler 泛型
+        // 不同，TS 静态无法对账；file-viewer runtime 接受任意 FileRenderHandler。
+        renderers: [...officeRenderers.renderers, imageRenderer, textRenderer] as any,
         styleIsolation: 'scoped',
         toolbar: { position: 'bottom-right' },
+        // 强制亮色主题：不随 OS / 浏览器 prefers-color-scheme 切换
+        theme: 'light',
+        // PDF 默认 150% 缩放；不调用 fitToWidth —— 用户可手动点 toolbar 适应宽度
+        pdf: {
+          initialViewState: { scale: 1.5 },
+        },
         // beforeOperation 是顶层选项；download 由 emit 转给父组件统一处理（避免 file-viewer 内部
         // 与我们的 download() 双触发）。per-archive view perm 已在 FileController.raw() 守住。
         beforeOperation(ctx: FileViewerOperationContext) {

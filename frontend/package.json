@@ -11,8 +11,11 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
+    "@file-viewer/capability-text-tools": "^3.1.2",
     "@file-viewer/core": "^3.1.2",
     "@file-viewer/preset-office": "^3.1.2",
+    "@file-viewer/renderer-image": "^3.1.2",
+    "@file-viewer/renderer-text": "^3.1.2",
     "@file-viewer/vite-plugin": "^3.1.2",
     "@file-viewer/vue3": "^3.1.2",
     "axios": "^1.7.9",

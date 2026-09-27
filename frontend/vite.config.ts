@@ -13,6 +13,10 @@ export default defineConfig({
     Components({ resolvers: [ElementPlusResolver()] }),
     fileViewerRenderers({
       preset: 'office',
+      // 扩展 office 之外的格式：图片 / 代码 / 文本 / Markdown / patch / Git bundle
+      // renderer-image (jpg/png/gif/svg/tiff/heic/...) + renderer-text (md/json/xml/yaml/sql/py/...)
+      // patch + Git bundle 由 capability-text-tools 在 runtime 注册
+      formats: ['image', 'text'],
       copyAssets: true,
       chunkStrategy: 'renderer',
     }),

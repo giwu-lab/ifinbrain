@@ -81,6 +81,9 @@ const staticRoutes: RouteRecordRaw[] = [
     meta: { title: 'Edit Page', permission: 'design:page:update' } },
   { path: '/design/page/:id(\\d+)/preview', component: () => import('@/views/design/page/Preview.vue'),
     meta: { title: 'Preview Page', permission: 'design:page:view' } },
+  // 档案库文件独立 tab 预览（替代 el-drawer）；URL: /preview?key=...&name=...
+  { path: '/preview', component: () => import('@/views/preview/Index.vue'),
+    meta: { title: 'Preview', permission: 'documents:view' } },
   // 运行时门户页（登录后按角色命中）
   { path: '/portal/:code', component: () => import('@/views/portal/Index.vue'),
     meta: { title: 'Portal' } },
