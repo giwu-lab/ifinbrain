@@ -37,3 +37,8 @@ Thumbs.db
 
 # 本机私有脚本（不入库）
 scripts/*.local.sh
+
+# @file-viewer/vite-plugin 自动拷贝的 worker / WASM / 字体 / cmap 资源（30MB）——
+# vite 每次启动自动重新生成，无需入库
+frontend/public/vendor/
+frontend/public/flyfish-viewer-assets.json
