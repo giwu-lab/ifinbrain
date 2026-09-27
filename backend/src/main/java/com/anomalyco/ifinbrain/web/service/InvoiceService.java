@@ -48,6 +48,9 @@ public class InvoiceService {
 
     private static final DateTimeFormatter KEY_TS = DateTimeFormatter.ofPattern("yyyy/MM/");
 
+    /** 发票正式落库路径前缀 —— 根目录/fapiao/（核销单号）/文件名，取消年/月归集。 */
+    private static final String INVOICE_KEY_PREFIX = "fapiao/";
+
     @Transactional(readOnly = true)
     public Page<InvoiceRecord> list(PageReq req) {
         perm.require("invoice:list");
@@ -472,7 +475,13 @@ public List<InvoiceRecord> exportAll(PageReq req) {
                 toCall.add(new FilePart(orig, data, sha, tempKey));
                 pendings.add(new PendingInvoice(orig, sha, tempKey, data.length, uploaderId));
             } catch (Exception ex) {
-                log.warn("Skip {}: {}", mf.getOriginalFilename(), ex.getMessage());
+                // 之前是 log.warn + skip，导致用户上传 5 个文件看到 3 个 pending；
+                // 改成抛错（atomic 语义：要么全成要么全失败），前端可重试。
+                log.error("upload: storage put failed for {}: {}",
+                        mf.getOriginalFilename(), ex.getMessage(), ex);
+                throw new BizException(500,
+                        "上传到存储失败：" + (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage())
+                        + "。请检查存储配置（S3 endpoint/bucket/AK/SK）后重试。");
             }
         }
 
@@ -516,7 +525,8 @@ public List<InvoiceRecord> exportAll(PageReq req) {
 
     /**
      * 保存：把 pending 列表 + 核销三件套绑定后**重命名 storage 文件 + 落库**。
-     * 文件名格式：{发票号码}_{核销单号}.{原扩展名}，落到 storageKey = yyyy/MM/{新名}。
+     * 文件名格式：{发票号码}_{核销单号}.{原扩展名}，落到 storageKey = fapiao/{核销单号}/{新名}。
+     * 取消年/月目录归集——按核销单号直接放在 fapiao/ 下。
      */
     @Transactional
     public List<InvoiceRecord> commit(CommitReq req) {
@@ -553,17 +563,30 @@ public List<InvoiceRecord> exportAll(PageReq req) {
                 baseName = safeName(stripExt(orig)) + "_" + safeName(verNo);
             }
             String newName = baseName + (ext.isEmpty() ? "" : "." + ext);
-            String newKey = KEY_TS.format(LocalDateTime.now()) + newName;
+            String newKey = INVOICE_KEY_PREFIX + safeName(verNo) + "/" + newName;
 
-            // copy + delete（用 storage 的 stream API；不存在则退化为 put）
+            // 复制 temp → 新路径。失败显式抛错（之前是 log.warn + 落库到 tempKey，
+            // 导致 DB 行存在但文件不存在 —— 用户看到「前端有条目、后端无文件」）。
+            byte[] bytes;
             try {
-                byte[] bytes = storage.current().readAllBytes(tempKey);
-                storage.current().put(newKey, new ByteArrayInputStream(bytes), bytes.length, "application/octet-stream");
-                storage.current().delete(tempKey);
+                bytes = storage.current().readAllBytes(tempKey);
             } catch (Exception ex) {
-                log.warn("rename {} -> {} failed: {}", tempKey, newKey, ex.getMessage());
-                // 仍尝试落库，但 storageKey 用旧值
-                newKey = tempKey;
+                log.error("commit: temp file missing/unreadable, tempKey={}: {}", tempKey, ex.getMessage());
+                throw new BizException(400,
+                        "临时文件已失效（可能因存储切换/清理/超时）。请重新上传。[" + tempKey + "]");
+            }
+            try {
+                storage.current().put(newKey, new ByteArrayInputStream(bytes), bytes.length,
+                        "application/octet-stream");
+            } catch (Exception ex) {
+                log.error("commit: storage put failed, newKey={}: {}", newKey, ex.getMessage(), ex);
+                throw new BizException(500,
+                        "保存文件到存储失败：" + ex.getMessage() + "。请检查存储配置后重试。");
+            }
+            // delete(tempKey) 独立 try —— 即使失败也不阻塞提交，orphan _tmp 可下次清理扫掉
+            try { storage.current().delete(tempKey); }
+            catch (Exception ex) {
+                log.warn("commit: temp cleanup failed for {}: {}", tempKey, ex.getMessage());
             }
 
             InvoiceRecord rec = InvoiceRecord.builder()
@@ -626,9 +649,85 @@ public List<InvoiceRecord> exportAll(PageReq req) {
     public void delete(Long id) {
         perm.require("invoice:delete");
         invoiceRepo.findById(id).ifPresent(r -> {
-            try { storage.current().delete(r.getStorageKey()); } catch (Exception ignored) {}
+            try {
+                storage.current().delete(r.getStorageKey());
+            } catch (Exception ex) {
+                // 文件删除失败不阻塞 DB 行删除（best-effort 语义，与 dedupe() 一致），
+                // 但要留痕 —— 否则 admin 在 S3 异常时看到「删除成功」但文件残留，无法排查。
+                log.warn("delete: storage delete failed for id={} key={}: {}",
+                        r.getId(), r.getStorageKey(), ex.getMessage());
+            }
             invoiceRepo.delete(r);
         });
+    }
+
+    /**
+     * 批量删除：对应发票列表「一行 = 一组（同发票号 pdf+xml+ofd 多格式）」场景。
+     * 单事务：DB 原子删除；存储 best-effort 删除，每条失败都计入 missing 让调用方知情。
+     *
+     * @return { rowsDeleted, filesDeleted, filesMissing, skipped, missing[] }
+     */
+    @Transactional
+    public Map<String, Object> deleteBatch(List<Long> ids) {
+        perm.require("invoice:delete");
+        Map<String, Object> result = new LinkedHashMap<>();
+        int rowsDeleted = 0, filesDeleted = 0, filesMissing = 0;
+        List<Long> skipped = new ArrayList<>();
+        List<Map<String, Object>> missing = new ArrayList<>();
+
+        if (ids == null || ids.isEmpty()) {
+            result.put("rowsDeleted", 0);
+            result.put("filesDeleted", 0);
+            result.put("filesMissing", 0);
+            result.put("skipped", List.of());
+            result.put("missing", List.of());
+            return result;
+        }
+
+        for (Long id : ids) {
+            if (id == null) { skipped.add(null); continue; }
+            var opt = invoiceRepo.findById(id);
+            if (opt.isEmpty()) { skipped.add(id); continue; }
+            InvoiceRecord r = opt.get();
+            String key = r.getStorageKey();
+            boolean fileOk = false;
+            if (key != null && !key.isBlank()) {
+                try {
+                    storage.current().delete(key);
+                    fileOk = true;
+                    filesDeleted++;
+                } catch (Exception ex) {
+                    filesMissing++;
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", id);
+                    m.put("storageKey", key);
+                    m.put("reason", ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
+                    missing.add(m);
+                    log.warn("deleteBatch: storage delete failed for id={} key={}: {}",
+                            id, key, ex.getMessage());
+                }
+            } else {
+                // 没有 storageKey —— 视为"已无文件"，仍删 DB 行
+                filesMissing++;
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", id);
+                m.put("storageKey", "");
+                m.put("reason", "empty storageKey on record");
+                missing.add(m);
+            }
+            invoiceRepo.delete(r);
+            rowsDeleted++;
+            log.debug("deleteBatch: removed id={} fileOk={}", id, fileOk);
+        }
+
+        result.put("rowsDeleted", rowsDeleted);
+        result.put("filesDeleted", filesDeleted);
+        result.put("filesMissing", filesMissing);
+        result.put("skipped", skipped);
+        result.put("missing", missing);
+        log.info("deleteBatch: {} rows deleted, {} files removed, {} file failures, {} skipped",
+                rowsDeleted, filesDeleted, filesMissing, skipped.size());
+        return result;
     }
 
     private void applyExtract(PendingInvoice pi, ExtractItem r) {

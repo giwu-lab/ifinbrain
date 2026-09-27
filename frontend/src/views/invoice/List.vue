@@ -208,26 +208,25 @@
             <span class="text-secondary">{{ ((row.createdAt as unknown as string) || '').slice(0, 10) }}</span>
           </template>
         </el-table-column>
-        <el-table-column column-key="actions" :label="t('common.actions')" :width="widthOf('actions', 180)" fixed="right">
+        <el-table-column column-key="actions" :label="t('common.actions')" :width="widthOf('actions', 120)" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-if="auth.hasPerm('invoice:edit')"
-              size="small"
-              link
-              type="primary"
-              @click="openEdit(row as InvoiceGroupItem)"
-            >
-              {{ t('common.edit') }}
-            </el-button>
-            <el-popconfirm
-              v-if="auth.hasPerm('invoice:delete')"
-              :title="t('invoice.deleteGroupConfirm', { n: row.ids.length })"
-              @confirm="remove(row as InvoiceGroupItem)"
-            >
-              <template #reference>
-                <el-button size="small" link type="danger">{{ t('common.delete') }}</el-button>
+            <!-- 编辑：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('invoice:edit')" :content="t('common.edit')" placement="top">
+              <el-button size="small" link :icon="Edit" @click="openEdit(row as InvoiceGroupItem)" />
+            </el-tooltip>
+            <!-- 删除：保留在 ··· 下拉 -->
+            <el-dropdown v-if="auth.hasPerm('invoice:delete')" trigger="click" @command="(cmd: string) => onRowCmd(cmd, row as InvoiceGroupItem)">
+              <el-button :icon="MoreFilled" size="small" link />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="delete" divided>
+                    <span class="danger-text">
+                      <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                    </span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
               </template>
-            </el-popconfirm>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -299,8 +298,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage } from 'element-plus';
-import { Search, Refresh, Check, Brush } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { Search, Refresh, Check, Brush, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { invoiceApi, type InvoiceGroupItem } from '@/api/invoice';
 import CellText from '@/components/CellText.vue';
@@ -485,15 +484,33 @@ async function save() {
 }
 
 async function remove(row: InvoiceGroupItem) {
-  for (const id of row.ids) {
-    try { await invoiceApi.remove(id); }
-    catch (e) {
-      ElMessage.error((e instanceof Error ? e.message : String(e)));
-      return;
+  try {
+    const r = await invoiceApi.batchDelete(row.ids);
+    if (r.filesMissing > 0) {
+      // 文件没全删干净 —— 不阻塞 reload，但要让 admin 知情（去 logs 找 missing[].reason）
+      ElMessage.warning(t('invoice.deletedWithMissing', { n: r.filesMissing }));
+    } else {
+      ElMessage.success(t('common.deleted'));
     }
+  } catch (e) {
+    ElMessage.error((e instanceof Error ? e.message : String(e)));
+    return;
   }
-  ElMessage.success(t('common.deleted'));
   reload();
+}
+
+/** ··· 下拉菜单统一入口 */
+async function onRowCmd(cmd: string, row: InvoiceGroupItem) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('invoice.deleteGroupConfirm', { n: row.ids.length }),
+        t('common.confirmDelete'),
+        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
+      );
+      await remove(row);
+    } catch { /* 用户取消 */ }
+  }
 }
 
 onMounted(reload);

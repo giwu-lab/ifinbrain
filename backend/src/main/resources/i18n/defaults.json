@@ -11,6 +11,14 @@
         "valueJson": "{\"zh-CN\":\"取消\",\"en-US\":\"Cancel\"}"
       },
       {
+        "code": "confirmDelete",
+        "valueJson": "{\"zh-CN\":\"确认删除\",\"en-US\":\"Confirm Delete\"}"
+      },
+      {
+        "code": "confirmTitle",
+        "valueJson": "{\"zh-CN\":\"请确认\",\"en-US\":\"Please Confirm\"}"
+      },
+      {
         "code": "created",
         "valueJson": "{\"zh-CN\":\"创建成功\",\"en-US\":\"Created\"}"
       },
@@ -27,12 +35,24 @@
         "valueJson": "{\"zh-CN\":\"禁用\",\"en-US\":\"Disabled\"}"
       },
       {
+        "code": "download",
+        "valueJson": "{\"zh-CN\":\"下载\",\"en-US\":\"Download\"}"
+      },
+      {
         "code": "edit",
         "valueJson": "{\"zh-CN\":\"编辑\",\"en-US\":\"Edit\"}"
       },
       {
         "code": "enabled",
         "valueJson": "{\"zh-CN\":\"启用\",\"en-US\":\"Enabled\"}"
+      },
+      {
+        "code": "langSwitchedEn",
+        "valueJson": "{\"zh-CN\":\"Switched to English\",\"en-US\":\"Switched to English\"}"
+      },
+      {
+        "code": "langSwitchedZh",
+        "valueJson": "{\"zh-CN\":\"已切换到中文\",\"en-US\":\"Switched to Chinese\"}"
       },
       {
         "code": "logout",
@@ -45,6 +65,10 @@
       {
         "code": "popupBlocked",
         "valueJson": "{\"zh-CN\":\"浏览器拦截了新窗口，请允许弹窗后重试\",\"en-US\":\"Popup blocked by browser. Please allow popups and retry.\"}"
+      },
+      {
+        "code": "preview",
+        "valueJson": "{\"zh-CN\":\"预览\",\"en-US\":\"Preview\"}"
       },
       {
         "code": "reload",
@@ -593,6 +617,10 @@
         "valueJson": "{\"zh-CN\":\"确认删除查询 \\\"{name}\\\" ？删除后无法恢复。\",\"en-US\":\"Delete query \\\"{name}\\\"? This cannot be undone.\"}"
       },
       {
+        "code": "qyDeleteFail",
+        "valueJson": "{\"zh-CN\":\"删除失败\",\"en-US\":\"Delete failed\"}"
+      },
+      {
         "code": "qyDeletePage",
         "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
       },
@@ -639,6 +667,14 @@
       {
         "code": "qyDetailDuplicated",
         "valueJson": "{\"zh-CN\":\"已复制\",\"en-US\":\"Duplicated\"}"
+      },
+      {
+        "code": "qyDetailDuplicatedFail",
+        "valueJson": "{\"zh-CN\":\"复制失败\",\"en-US\":\"Duplicate failed\"}"
+      },
+      {
+        "code": "qyDetailFail",
+        "valueJson": "{\"zh-CN\":\"保存失败\",\"en-US\":\"Save failed\"}"
       },
       {
         "code": "qyDetailInputs",
@@ -869,6 +905,22 @@
         "valueJson": "{\"zh-CN\":\"发布\",\"en-US\":\"Publish\"}"
       },
       {
+        "code": "qyRelTimeDay",
+        "valueJson": "{\"zh-CN\":\"{n} 天前\",\"en-US\":\"{n} day ago\"}"
+      },
+      {
+        "code": "qyRelTimeHour",
+        "valueJson": "{\"zh-CN\":\"{n} 小时前\",\"en-US\":\"{n} hr ago\"}"
+      },
+      {
+        "code": "qyRelTimeJust",
+        "valueJson": "{\"zh-CN\":\"刚刚\",\"en-US\":\"Just now\"}"
+      },
+      {
+        "code": "qyRelTimeMin",
+        "valueJson": "{\"zh-CN\":\"{n} 分钟前\",\"en-US\":\"{n} min ago\"}"
+      },
+      {
         "code": "qyRepublish",
         "valueJson": "{\"zh-CN\":\"重新发布\",\"en-US\":\"Republish\"}"
       },
@@ -933,6 +985,10 @@
         "valueJson": "{\"zh-CN\":\"SELECT * FROM your_table WHERE col = :param_name LIMIT 100\",\"en-US\":\"SELECT * FROM your_table WHERE col = :param_name LIMIT 100\"}"
       },
       {
+        "code": "qyStatusDisabled",
+        "valueJson": "{\"zh-CN\":\"禁用\",\"en-US\":\"Disabled\"}"
+      },
+      {
         "code": "qyTitle",
         "valueJson": "{\"zh-CN\":\"查询库\",\"en-US\":\"Saved queries\"}"
       },
@@ -955,6 +1011,10 @@
       {
         "code": "qyTypeText",
         "valueJson": "{\"zh-CN\":\"长文本\",\"en-US\":\"Text\"}"
+      },
+      {
+        "code": "qyUnitRow",
+        "valueJson": "{\"zh-CN\":\"行\",\"en-US\":\"rows\"}"
       },
       {
         "code": "qyUnpublish",
@@ -1343,6 +1403,30 @@
     "namespace": "documents",
     "items": [
       {
+        "code": "authCodeLabel",
+        "valueJson": "{\"zh-CN\":\"权限码前缀\",\"en-US\":\"Permission Code Prefix\"}"
+      },
+      {
+        "code": "authDialogTitle",
+        "valueJson": "{\"zh-CN\":\"类目授权：{name}\",\"en-US\":\"Category Authorization: {name}\"}"
+      },
+      {
+        "code": "authLoadFailed",
+        "valueJson": "{\"zh-CN\":\"授权加载失败\",\"en-US\":\"Failed to load authorization\"}"
+      },
+      {
+        "code": "authRoleHint",
+        "valueJson": "{\"zh-CN\":\"勾选即授予对应权限（admin 角色 4 项权限始终保留，不可取消）\",\"en-US\":\"Tick to grant the corresponding permission (admin role keeps all 4, cannot be unchecked)\"}"
+      },
+      {
+        "code": "authSaved",
+        "valueJson": "{\"zh-CN\":\"授权已保存\",\"en-US\":\"Authorization saved\"}"
+      },
+      {
+        "code": "authSelectAll",
+        "valueJson": "{\"zh-CN\":\"全选\",\"en-US\":\"All\"}"
+      },
+      {
         "code": "breadcrumbRoot",
         "valueJson": "{\"zh-CN\":\"根目录\",\"en-US\":\"Root\"}"
       },
@@ -1369,6 +1453,10 @@
       {
         "code": "categoryTitle",
         "valueJson": "{\"zh-CN\":\"类目设置\",\"en-US\":\"Category Settings\"}"
+      },
+      {
+        "code": "colAuth",
+        "valueJson": "{\"zh-CN\":\"权限\",\"en-US\":\"Permission\"}"
       },
       {
         "code": "colCategoryCount",
@@ -1511,8 +1599,108 @@
         "valueJson": "{\"zh-CN\":\"{name} — 档案列表\",\"en-US\":\"{name} — Files\"}"
       },
       {
+        "code": "noPermDesc",
+        "valueJson": "{\"zh-CN\":\"当前角色没有此类的查看权限，请联系管理员授予「{perm}」后重试\",\"en-US\":\"Your role lacks the \\\"{perm}\\\" permission for this category. Contact your administrator.\"}"
+      },
+      {
+        "code": "noPermTitle",
+        "valueJson": "{\"zh-CN\":\"权限不足\",\"en-US\":\"No Permission\"}"
+      },
+      {
+        "code": "perm.delete",
+        "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
+      },
+      {
+        "code": "perm.update",
+        "valueJson": "{\"zh-CN\":\"修改\",\"en-US\":\"Update\"}"
+      },
+      {
+        "code": "perm.upload",
+        "valueJson": "{\"zh-CN\":\"上传\",\"en-US\":\"Upload\"}"
+      },
+      {
+        "code": "perm.view",
+        "valueJson": "{\"zh-CN\":\"查看\",\"en-US\":\"View\"}"
+      },
+      {
         "code": "preview",
         "valueJson": "{\"zh-CN\":\"预览\",\"en-US\":\"Preview\"}"
+      },
+      {
+        "code": "previewCopied",
+        "valueJson": "{\"zh-CN\":\"复制\",\"en-US\":\"Copy\"}"
+      },
+      {
+        "code": "previewCopyFail",
+        "valueJson": "{\"zh-CN\":\"复制失败\",\"en-US\":\"Copy failed\"}"
+      },
+      {
+        "code": "previewCopySuccess",
+        "valueJson": "{\"zh-CN\":\"已复制到剪贴板\",\"en-US\":\"Copied to clipboard\"}"
+      },
+      {
+        "code": "previewDownloadBtn",
+        "valueJson": "{\"zh-CN\":\"下载查看\",\"en-US\":\"Download to view\"}"
+      },
+      {
+        "code": "previewDownloadHint",
+        "valueJson": "{\"zh-CN\":\"请下载后用本地应用查看\",\"en-US\":\"Please download and open with a local application\"}"
+      },
+      {
+        "code": "previewError",
+        "valueJson": "{\"zh-CN\":\"预览加载失败\",\"en-US\":\"Preview failed\"}"
+      },
+      {
+        "code": "previewLoading",
+        "valueJson": "{\"zh-CN\":\"正在加载预览...\",\"en-US\":\"Loading preview...\"}"
+      },
+      {
+        "code": "previewPdfEncrypted",
+        "valueJson": "{\"zh-CN\":\"PDF 已加密 / 需要密码\",\"en-US\":\"PDF is encrypted / password required\"}"
+      },
+      {
+        "code": "previewPdfFitPage",
+        "valueJson": "{\"zh-CN\":\"适合页面\",\"en-US\":\"Fit Page\"}"
+      },
+      {
+        "code": "previewPdfFitWidth",
+        "valueJson": "{\"zh-CN\":\"适合宽度\",\"en-US\":\"Fit Width\"}"
+      },
+      {
+        "code": "previewPdfNext",
+        "valueJson": "{\"zh-CN\":\"下一页\",\"en-US\":\"Next\"}"
+      },
+      {
+        "code": "previewPdfPrev",
+        "valueJson": "{\"zh-CN\":\"上一页\",\"en-US\":\"Previous\"}"
+      },
+      {
+        "code": "previewSearchBtn",
+        "valueJson": "{\"zh-CN\":\"查找\",\"en-US\":\"Find\"}"
+      },
+      {
+        "code": "previewSearchNoMatch",
+        "valueJson": "{\"zh-CN\":\"未找到匹配\",\"en-US\":\"No matches found\"}"
+      },
+      {
+        "code": "previewSearchPlaceholder",
+        "valueJson": "{\"zh-CN\":\"输入搜索文本\",\"en-US\":\"Enter search text\"}"
+      },
+      {
+        "code": "previewUnsupported",
+        "valueJson": "{\"zh-CN\":\"此文件类型暂不支持在线预览\",\"en-US\":\"This file type cannot be previewed online\"}"
+      },
+      {
+        "code": "previewXlsxEmpty",
+        "valueJson": "{\"zh-CN\":\"该 sheet 无数据\",\"en-US\":\"No data in this sheet\"}"
+      },
+      {
+        "code": "previewZoomIn",
+        "valueJson": "{\"zh-CN\":\"放大\",\"en-US\":\"Zoom in\"}"
+      },
+      {
+        "code": "previewZoomOut",
+        "valueJson": "{\"zh-CN\":\"缩小\",\"en-US\":\"Zoom out\"}"
       },
       {
         "code": "rename",
@@ -1570,6 +1758,27 @@
       {
         "code": "notFound",
         "valueJson": "{\"zh-CN\":\"页面不存在\",\"en-US\":\"Page not found.\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "iconPicker",
+    "items": [
+      {
+        "code": "empty",
+        "valueJson": "{\"zh-CN\":\"没有匹配的图标\",\"en-US\":\"No matching icons\"}"
+      },
+      {
+        "code": "loading",
+        "valueJson": "{\"zh-CN\":\"加载中…\",\"en-US\":\"Loading…\"}"
+      },
+      {
+        "code": "placeholder",
+        "valueJson": "{\"zh-CN\":\"请选择图标\",\"en-US\":\"Choose an icon\"}"
+      },
+      {
+        "code": "selected",
+        "valueJson": "{\"zh-CN\":\"已选：\",\"en-US\":\"Selected:\"}"
       }
     ]
   },
@@ -1715,6 +1924,10 @@
       {
         "code": "dbDupTitle",
         "valueJson": "{\"zh-CN\":\"核销文件已使用\",\"en-US\":\"Used verification files\"}"
+      },
+      {
+        "code": "deletedWithMissing",
+        "valueJson": "{\"zh-CN\":\"删除成功，但有 {n} 个文件未能从存储中删除（详见后端日志）\",\"en-US\":\"Deleted, but {n} file(s) could not be removed from storage (see server logs)\"}"
       },
       {
         "code": "deleteGroupConfirm",
@@ -1967,6 +2180,10 @@
     "namespace": "login",
     "items": [
       {
+        "code": "brandDesc",
+        "valueJson": "{\"zh-CN\":\"智能识别 · 多存储 · 多角色权限\",\"en-US\":\"Smart OCR · Multi-storage · Role-based access\"}"
+      },
+      {
         "code": "password",
         "valueJson": "{\"zh-CN\":\"密码\",\"en-US\":\"Password\"}"
       },
@@ -2114,6 +2331,23 @@
       {
         "code": "systemUser",
         "valueJson": "{\"zh-CN\":\"用户\",\"en-US\":\"Users\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "permSelector",
+    "items": [
+      {
+        "code": "placeholder",
+        "valueJson": "{\"zh-CN\":\"选择权限（可输入自定义码）\",\"en-US\":\"Select permission (custom code allowed)\"}"
+      },
+      {
+        "code": "typeButton",
+        "valueJson": "{\"zh-CN\":\"按钮\",\"en-US\":\"Button\"}"
+      },
+      {
+        "code": "typeMenu",
+        "valueJson": "{\"zh-CN\":\"菜单\",\"en-US\":\"Menu\"}"
       }
     ]
   },
@@ -2477,6 +2711,10 @@
         "valueJson": "{\"zh-CN\":\"全选\",\"en-US\":\"Select all\"}"
       },
       {
+        "code": "roleAdminTag",
+        "valueJson": "{\"zh-CN\":\"管理员\",\"en-US\":\"Admin\"}"
+      },
+      {
         "code": "roleTitle",
         "valueJson": "{\"zh-CN\":\"角色管理\",\"en-US\":\"Roles\"}"
       },
@@ -2489,8 +2727,28 @@
         "valueJson": "{\"zh-CN\":\"根目录\",\"en-US\":\"Root Path\"}"
       },
       {
+        "code": "s3AccessKeyChange",
+        "valueJson": "{\"zh-CN\":\"修改\",\"en-US\":\"Change\"}"
+      },
+      {
+        "code": "s3AccessKeyConfigured",
+        "valueJson": "{\"zh-CN\":\"已配置\",\"en-US\":\"Configured\"}"
+      },
+      {
+        "code": "s3AccessKeyFailed",
+        "valueJson": "{\"zh-CN\":\"密钥失效\",\"en-US\":\"Invalid\"}"
+      },
+      {
+        "code": "s3AccessKeyKeepPlaceholder",
+        "valueJson": "{\"zh-CN\":\"留空表示不修改（已配置）\",\"en-US\":\"Leave blank to keep existing key\"}"
+      },
+      {
         "code": "s3AccessKeyLabel",
         "valueJson": "{\"zh-CN\":\"Access Key\",\"en-US\":\"Access Key\"}"
+      },
+      {
+        "code": "s3AccessKeyPlaceholder",
+        "valueJson": "{\"zh-CN\":\"输入新的 Access Key\",\"en-US\":\"Enter new Access Key\"}"
       },
       {
         "code": "s3BucketLabel",
@@ -2513,8 +2771,32 @@
         "valueJson": "{\"zh-CN\":\"Region\",\"en-US\":\"Region\"}"
       },
       {
+        "code": "s3SecretFailedHint",
+        "valueJson": "{\"zh-CN\":\"主密钥已轮换，原 Access Key / Secret Key 无法解密，请重新填写后保存。\",\"en-US\":\"Master key was rotated; the stored Access Key / Secret Key cannot be decrypted. Please re-enter and save.\"}"
+      },
+      {
+        "code": "s3SecretKeyChange",
+        "valueJson": "{\"zh-CN\":\"修改\",\"en-US\":\"Change\"}"
+      },
+      {
+        "code": "s3SecretKeyConfigured",
+        "valueJson": "{\"zh-CN\":\"已配置\",\"en-US\":\"Configured\"}"
+      },
+      {
+        "code": "s3SecretKeyFailed",
+        "valueJson": "{\"zh-CN\":\"密钥失效\",\"en-US\":\"Invalid\"}"
+      },
+      {
+        "code": "s3SecretKeyKeepPlaceholder",
+        "valueJson": "{\"zh-CN\":\"留空表示不修改（已配置）\",\"en-US\":\"Leave blank to keep existing key\"}"
+      },
+      {
         "code": "s3SecretKeyLabel",
         "valueJson": "{\"zh-CN\":\"Secret Key\",\"en-US\":\"Secret Key\"}"
+      },
+      {
+        "code": "s3SecretKeyPlaceholder",
+        "valueJson": "{\"zh-CN\":\"输入新的 Secret Key\",\"en-US\":\"Enter new Secret Key\"}"
       },
       {
         "code": "saved",

@@ -101,7 +101,7 @@ public class S3StorageService implements StorageService {
         return client;
     }
 
-    private S3Presigner presigner() {
+    private synchronized S3Presigner presigner() {
         if (presigner == null) {
             EffectiveCfg c = effectiveConfig();
             presigner = S3Presigner.builder()
@@ -249,9 +249,22 @@ public class S3StorageService implements StorageService {
     }
 
     public void invalidate() {
+        S3Client oldClient = client;
+        S3Presigner oldPresigner = presigner;
         client = null;
         presigner = null;
         cachedBucket = null;
+        // 关掉旧实例释放连接池/线程池；任何关闭调用都不阻断 invalidate 本身
+        if (oldClient != null) {
+            try { oldClient.close(); } catch (Exception e) {
+                log.warn("S3 client close failed: {}", e.getMessage());
+            }
+        }
+        if (oldPresigner != null) {
+            try { oldPresigner.close(); } catch (Exception e) {
+                log.warn("S3 presigner close failed: {}", e.getMessage());
+            }
+        }
     }
 
     /**
@@ -261,16 +274,16 @@ public class S3StorageService implements StorageService {
      */
     public Map<String, Object> probe(EffectiveCfg c) {
         long t0 = System.currentTimeMillis();
+        S3Client probe = S3Client.builder()
+                .endpointOverride(c.endpoint().isBlank() ? null : URI.create(c.endpoint()))
+                .region(Region.of(c.region()))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(c.accessKey(), c.secretKey())))
+                .serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(c.pathStyle())
+                        .build())
+                .build();
         try {
-            S3Client probe = S3Client.builder()
-                    .endpointOverride(c.endpoint().isBlank() ? null : URI.create(c.endpoint()))
-                    .region(Region.of(c.region()))
-                    .credentialsProvider(StaticCredentialsProvider.create(
-                            AwsBasicCredentials.create(c.accessKey(), c.secretKey())))
-                    .serviceConfiguration(S3Configuration.builder()
-                            .pathStyleAccessEnabled(c.pathStyle())
-                            .build())
-                    .build();
             probe.headBucket(HeadBucketRequest.builder().bucket(c.bucket()).build());
             long ms = System.currentTimeMillis() - t0;
             return Map.of("ok", true, "message", "OK", "latencyMs", ms, "bucket", c.bucket());
@@ -279,6 +292,10 @@ public class S3StorageService implements StorageService {
             log.warn("S3 probe failed: endpoint={}, bucket={}, err={}", c.endpoint(), c.bucket(), e.toString());
             return Map.of("ok", false, "message", rootCauseMessage(e),
                     "latencyMs", ms, "bucket", c.bucket());
+        } finally {
+            try { probe.close(); } catch (Exception e) {
+                log.warn("S3 probe client close failed: {}", e.getMessage());
+            }
         }
     }
 

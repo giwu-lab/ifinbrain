@@ -59,3 +59,7 @@ ifinbrain:
       path-style: true
   security:
     master-key: ${IFINBRAIN_MASTER_KEY:}
+    # 迁移期开关：true = CryptoUtil.decrypt() 接受非 v1: 前缀的明文值（旧数据迁移用）；
+    #            false = 非 v1: 前缀抛 BizException(500) —— 任何漏 encrypt 的写入路径会立刻爆。
+    # 迁移完成后务必改为 false —— review M17。
+    allow-legacy-plaintext: ${IFINBRAIN_ALLOW_LEGACY_PLAINTEXT:true}

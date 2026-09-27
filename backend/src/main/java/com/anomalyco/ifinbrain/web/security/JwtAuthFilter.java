@@ -50,10 +50,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (JwtException ex) {
-                // 不要因为 token 无效就拒掉整个请求（即使是 permitAll 的 /login 也可能被带 stale token）。
-                // 仅清空 SecurityContext，让请求以匿名身份继续；后续由 Spring Security 决定是否放行。
-                log.debug("JWT parse failed, treating as anonymous: {}", ex.getMessage());
+                // 有 Bearer token 但解析失败 → 必须 401，不要放行匿名（review L19）。
+                // 旧逻辑"放行匿名"会让攻击者用伪造 JWT 探测 server 行为；permitAll 端点
+                // （如 /api/auth/login）不带 token 即可，不会走这个分支。
+                log.warn("JWT parse failed, returning 401: {}", ex.getMessage());
                 SecurityContextHolder.clearContext();
+                writeUnauthorized(response, "Invalid or expired token");
+                return;
             }
         }
         chain.doFilter(request, response);

@@ -39,11 +39,34 @@ public class SettingService {
         dto.getS3().setEndpoint(getString("storage.s3.endpoint", ""));
         dto.getS3().setRegion(getString("storage.s3.region", "us-east-1"));
         dto.getS3().setBucket(getString("storage.s3.bucket", ""));
-        // 密钥字段只回显掩码；前端留空表示「保留旧值」，非空才会被 save 覆盖
-        dto.getS3().setAccessKey(getString("storage.s3.accessKey", "").isEmpty() ? "" : "********");
-        dto.getS3().setSecretKey(getString("storage.s3.secretKey", "").isEmpty() ? "" : "********");
+        // 密钥字段：与解析页 API Key 同样三态 —— 探测解密能成功才回掩码 ok；
+        // 解密失败（如主密钥轮换）→ 不回掩码，避免误导为「已配置」，前端按 failed 态引导重新填写。
+        dto.getS3().setAccessKey(probeSecret("storage.s3.accessKey", dto.getS3()::setAccessKeyStatus));
+        dto.getS3().setSecretKey(probeSecret("storage.s3.secretKey", dto.getS3()::setSecretKeyStatus));
         dto.getS3().setPathStyle(Boolean.parseBoolean(getString("storage.s3.pathStyle", "true")));
         return dto;
+    }
+
+    /**
+     * 探测密钥密文：未存 → "" + missing；可解密 → "********" + ok；不可解密 → "" + failed。
+     * 读操作不应阻断 UI，捕获所有异常并降级为 failed。
+     */
+    private String probeSecret(String settingKey, java.util.function.Consumer<String> statusSetter) {
+        String stored = getString(settingKey, "");
+        if (stored.isEmpty()) {
+            statusSetter.accept("missing");
+            return "";
+        }
+        try {
+            crypto.decrypt(stored);
+            statusSetter.accept("ok");
+            return "********";
+        } catch (Exception ex) {
+            log.warn("Storage secret {} cannot be decrypted with current master key (likely rotated): {}",
+                    settingKey, ex.getMessage());
+            statusSetter.accept("failed");
+            return "";
+        }
     }
 
     @Transactional

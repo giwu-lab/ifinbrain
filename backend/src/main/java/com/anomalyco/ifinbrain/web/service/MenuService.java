@@ -1,5 +1,6 @@
 package com.anomalyco.ifinbrain.web.service;
 
+import com.anomalyco.ifinbrain.web.dto.menu.MenuUpdateReq;
 import com.anomalyco.ifinbrain.web.entity.SysMenu;
 import com.anomalyco.ifinbrain.web.repository.SysMenuRepository;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
@@ -37,18 +38,10 @@ public class MenuService {
     }
 
     @Transactional
-    public void update(Long id, SysMenu menu) {
+    public void update(Long id, MenuUpdateReq req) {
         perm.require("system:menu:update");
         SysMenu existing = menuRepo.findById(id).orElseThrow();
-        existing.setParentId(menu.getParentId() != null ? menu.getParentId() : existing.getParentId());
-        existing.setName(menu.getName() != null ? menu.getName() : existing.getName());
-        existing.setPath(menu.getPath());
-        existing.setComponent(menu.getComponent());
-        if (menu.getIcon() != null) existing.setIcon(menu.getIcon());
-        existing.setSort(menu.getSort() != null ? menu.getSort() : existing.getSort());
-        if (menu.getPermission() != null) existing.setPermission(menu.getPermission());
-        existing.setType(menu.getType() != null ? menu.getType() : existing.getType());
-        existing.setStatus(menu.getStatus() != null ? menu.getStatus() : existing.getStatus());
+        req.applyTo(existing);
         menuRepo.save(existing);
     }
 

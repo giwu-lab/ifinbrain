@@ -112,6 +112,19 @@ export const invoiceApi = {
 
   update: (id: number, data: Partial<InvoiceItem>) => http.put(`/invoices/${id}`, data),
   remove: (id: number) => http.delete(`/invoices/${id}`),
+
+  /**
+   * 批量删除：列表「一行 = 一组」场景，一次调用删整组（含存储文件 + DB 行）。
+   * 返回 { rowsDeleted, filesDeleted, filesMissing, skipped, missing: [{id, storageKey, reason}] }
+   */
+  batchDelete: (ids: number[]) => http.post<unknown, {
+    rowsDeleted: number;
+    filesDeleted: number;
+    filesMissing: number;
+    skipped: number[];
+    missing: { id: number; storageKey: string; reason: string }[];
+  }>('/invoices/batch-delete', { ids }),
+
   downloadUrl: (key: string) => `/api/files/raw?key=${encodeURIComponent(key)}`,
 
   /**

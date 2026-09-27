@@ -24,6 +24,16 @@ export interface DocumentCategory {
   createdAt?: string;
   updatedAt?: string;
   fileCount?: number;
+  /** 类目权限码前缀，如 documents:cw —— 4 个 verb 由后端自动补全 */
+  permissionCode?: string;
+}
+
+/** 类目授权：4 个权限 verb 各绑定到哪些角色 id */
+export interface CategoryPermGrants {
+  view: number[];
+  upload: number[];
+  update: number[];
+  delete: number[];
 }
 
 export interface DocumentItem {
@@ -65,6 +75,12 @@ export const categoryApi = {
   update: (id: number, body: Partial<DocumentCategory>) =>
     http.put<unknown, DocumentCategory>(`/document-categories/${id}`, body),
   remove: (id: number) => http.delete(`/document-categories/${id}`),
+  /** 拉取该类目 4 个权限码当前绑定的角色 id（供授权对话框预填） */
+  permissions: (id: number) =>
+    http.get<unknown, CategoryPermGrants>(`/document-categories/${id}/permissions`),
+  /** 全量替换授权：admin 强制保留，后端负责 */
+  updatePerms: (id: number, grants: CategoryPermGrants) =>
+    http.put(`/document-categories/${id}/permissions`, grants),
 };
 
 export const documentApi = {

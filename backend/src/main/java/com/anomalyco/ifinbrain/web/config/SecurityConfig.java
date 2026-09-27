@@ -97,7 +97,9 @@ public class SecurityConfig {
                         "/actuator/info",
                         "/error"
                 ).permitAll()
-                .requestMatchers("/uploads/**").permitAll() // local-served files
+                // 注意：local-served 文件必须走 /api/files/raw（FileController 内做文档类目 view 鉴权）。
+                // 这里**不再**对 /uploads/** permitAll —— 避免部署 nginx 直连 storage root 时绕过鉴权。
+                // 如确需 nginx 直连，必须在 nginx 层做 JWT 校验 / IP allowlist。
                 .anyRequest().authenticated()
             )
             .exceptionHandling(eh -> eh

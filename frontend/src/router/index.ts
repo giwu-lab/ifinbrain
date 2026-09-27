@@ -72,15 +72,16 @@ const staticRoutes: RouteRecordRaw[] = [
   // 一键生成的查询列表页（不走 sys_menu 静态 path 匹配，因为 path 里是动态 menuId）
   { path: '/data-mgmt/query-page/:menuId(\\d+)', component: () => import('@/views/data-mgmt/query-page/Index.vue'),
     meta: { title: 'Query Page', permission: 'data:query:view' } },
-  // 档案管理 → 类目管理（不走 sys_menu，由静态路由接管；与 /documents/:slug 一致）
+// 档案管理 → 类目管理（不走 sys_menu，由静态路由接管；与 /documents/:slug 一致）
   { path: '/documents/category', component: () => import('@/views/documents/category/Index.vue'),
     meta: { title: 'Categories', permission: 'documents:view', name: 'Categories', component: 'documents/category/Index', path: '/documents/category' } },
   // 档案管理 → 类目列表页（catch-all；运行时由 sys_menu 添加的 path 会因 component 同名被 skip，
   // 全部走这条静态路由 → 永远生效）
+  // 注意：不挂 meta.permission —— 类目级 view 由 page 内 loadBySlug() + requireCategoryPerm() 校验，
+  // 否则 router 守卫会把没全局 documents:view 但有 documents:{slug}:view 的用户挡在 /403。
   { path: '/documents/:slug', component: () => import('@/views/documents/list/Index.vue'),
-    meta: { title: 'Documents', permission: 'documents:view', name: 'Documents', component: 'documents/list/Index', path: '/documents' } },
-  // 档案管理顶级 DIR（无论是否有类目子菜单，点 DIR 都落到类目管理，方便用户先建类目）
-  { path: '/documents', redirect: '/documents/category' }
+    meta: { title: 'Documents', name: 'Documents', component: 'documents/list/Index', path: '/documents' } },
+  // 顶级 DIR (/documents) 不挂路由 —— DIR 只是文件夹容器，点击只展开/收起，不应跳转
 ];
 
 const builtInViews: Record<string, () => Promise<unknown>> = {

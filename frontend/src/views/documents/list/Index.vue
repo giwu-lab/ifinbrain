@@ -15,7 +15,7 @@
       </div>
       <div class="header-actions">
         <el-button
-          v-if="auth.hasPerm('documents:upload') && category"
+          v-if="canUpload && category"
           :icon="FolderAdd"
           @click="openFolderDialog()"
         >
@@ -25,7 +25,7 @@
     </div>
 
     <!-- 拖拽上传区：内联在表格上方（参考上传识别页样式） -->
-    <div v-if="auth.hasPerm('documents:upload') && category" class="upload-area">
+    <div v-if="canUpload && category" class="upload-area">
       <el-upload
         drag multiple :auto-upload="true"
         :action="uploadUrl"
@@ -65,7 +65,7 @@
         <el-table-column :label="t('documents.colName')" min-width="220">
           <template #default="{ row }">
             <template v-if="(row as any).__kind === 'folder'">
-              <div class="name-cell folder-cell" @dblclick="openFolder((row as any).path)">
+              <div class="name-cell folder-cell" @click="openFolder((row as any).path)">
                 <el-icon class="folder-icon"><FolderOpened /></el-icon>
                 <span class="strong">{{ (row as any).name }}</span>
               </div>
@@ -122,25 +122,27 @@
           </template>
         </el-table-column>
         <!-- 操作列：只有文件有；文件夹没操作 -->
-        <el-table-column :label="t('common.actions')" width="64" align="center" fixed="right">
+        <el-table-column :label="t('common.actions')" width="160" align="center" fixed="right">
           <template #default="{ row }">
             <template v-if="(row as any).__kind === 'file'">
-              <el-dropdown trigger="click" @command="(cmd: string) => onCommand(cmd, row as DocumentItem)">
+              <!-- 预览 / 下载 / 重命名：图标直显 -->
+              <el-tooltip :content="t('documents.preview')" placement="top">
+                <el-button size="small" link :icon="View" @click="onCommand('preview', row as DocumentItem)" />
+              </el-tooltip>
+              <el-tooltip :content="t('documents.download')" placement="top">
+                <el-button size="small" link :icon="Download" @click="onCommand('download', row as DocumentItem)" />
+              </el-tooltip>
+              <el-tooltip v-if="canUpdate" :content="t('documents.rename')" placement="top">
+                <el-button size="small" link :icon="Edit" @click="onCommand('rename', row as DocumentItem)" />
+              </el-tooltip>
+              <!-- 删除：保留在 ··· 下拉 -->
+              <el-dropdown v-if="canDelete" trigger="click" @command="(cmd: string) => onCommand(cmd, row as DocumentItem)">
                 <el-button :icon="MoreFilled" size="small" link />
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="preview">
-                      <el-icon><View /></el-icon>{{ t('documents.preview') }}
-                    </el-dropdown-item>
-                    <el-dropdown-item command="download">
-                      <el-icon><Download /></el-icon>{{ t('documents.download') }}
-                    </el-dropdown-item>
-                    <el-dropdown-item v-if="auth.hasPerm('documents:update')" command="rename">
-                      <el-icon><Edit /></el-icon>{{ t('documents.rename') }}
-                    </el-dropdown-item>
-                    <el-dropdown-item v-if="auth.hasPerm('documents:delete')" command="delete" divided>
+                    <el-dropdown-item command="delete" divided>
                       <span class="danger-text">
-                        <el-icon><Delete /></el-icon>{{ t('documents.delete') }}
+                        <el-icon><Delete /></el-icon>{{ t('common.delete') }}
                       </span>
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -161,6 +163,11 @@
       </el-table>
 
       <!-- 空状态：当前路径下没有任何文件 / 文件夹 -->
+      <div v-else-if="!loading && (noPerm || (category && !canView))" class="empty-state no-perm">
+        <el-icon class="empty-icon"><Lock /></el-icon>
+        <h2 class="empty-title">{{ t('documents.noPermTitle') }}</h2>
+        <p class="empty-desc muted">{{ t('documents.noPermDesc') }}</p>
+      </div>
       <div v-else-if="!loading && category" class="empty-state">
         <el-icon class="empty-icon"><FolderOpened /></el-icon>
         <h2 class="empty-title">{{ t('documents.emptyFolder') }}</h2>
@@ -210,16 +217,20 @@
       </template>
     </el-dialog>
 
-    <!-- 预览 drawer（iframe 内嵌 PDF / 图片） -->
+    <!-- 预览 drawer（多格式预览由 FilePreviewer 组件分发） -->
     <el-drawer
       v-model="previewVisible"
       :title="previewTitle"
-      size="70%"
+      size="80%"
       direction="rtl"
       :destroy-on-close="true"
     >
-      <iframe v-if="previewUrl" :src="previewUrl" class="preview-iframe" />
-      <div v-else class="preview-fallback muted">No preview available.</div>
+      <FilePreviewer
+        v-if="previewKey"
+        :storage-key="previewKey"
+        :filename="previewTitle"
+        @download="onPreviewDownload"
+      />
     </el-drawer>
   </div>
 </template>
@@ -229,12 +240,13 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import {
-  ArrowRight, Delete, Download, Edit, Folder, FolderAdd, FolderOpened, InfoFilled, MoreFilled, UploadFilled, View
+  ArrowRight, Delete, Download, Edit, Folder, FolderAdd, FolderOpened, InfoFilled, Lock, MoreFilled, UploadFilled, View
 } from '@element-plus/icons-vue';
 import * as ElIcons from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { categoryApi, documentApi, fileRawUrl, type DocumentCategory, type DocumentItem, type FolderItem, type BrowseResult } from '@/api/document';
+import FilePreviewer from '@/components/FilePreviewer.vue';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -245,7 +257,14 @@ const loading = ref(false);
 const rows = ref<DocumentItem[]>([]);
 const folders = ref<FolderItem[]>([]);
 const category = ref<DocumentCategory | null>(null);
+const noPerm = ref(false);            // 当前 slug 类目存在但用户无 view perm
 const currentPath = ref('');          // 类目内当前路径（空 = 根）
+
+/** 类目级 4 权限 —— 由后端 FileController 同步校验（per-category view 是 preview/download 的硬要求） */
+const canView   = computed(() => !!category.value && auth.hasPerm(`documents:${category.value.slug}:view`));
+const canUpload = computed(() => !!category.value && auth.hasPerm(`documents:${category.value.slug}:upload`));
+const canUpdate = computed(() => !!category.value && auth.hasPerm(`documents:${category.value.slug}:update`));
+const canDelete = computed(() => !!category.value && auth.hasPerm(`documents:${category.value.slug}:delete`));
 
 const renameVisible = ref(false);
 const renameValue = ref('');
@@ -273,7 +292,7 @@ const folderRules: FormRules = {
 };
 
 const previewVisible = ref(false);
-const previewUrl = ref('');
+const previewKey = ref('');     // 当前预览文件的 storageKey（替代原 previewUrl）
 const previewTitle = ref('');
 
 const uploadUrl = computed(() => {
@@ -360,20 +379,27 @@ async function loadBySlug(slug: string) {
   if (!slug) return;
   loading.value = true;
   try {
-    // 先按 slug 查类目
+    // categoryApi.list() 已被后端按 documents:{slug}:view 过滤 —— 不在列表里 = 无 view perm 或不存在
     const all = await categoryApi.list();
     const cat = all.find((c) => c.slug === slug);
     if (!cat) {
       category.value = null;
+      noPerm.value = true;
       rows.value = [];
       folders.value = [];
-      ElMessage.warning(`Category not found: ${slug}`);
       return;
     }
     category.value = cat;
+    noPerm.value = false;
     // 读取 URL query 中的 path（每次进入/点击文件夹都重新 load）
     currentPath.value = ((route.query.path as string) ?? '').trim();
     await reloadDocs();
+  } catch {
+    // 401/403 时拦截器已处理；这里只 reset 状态
+    category.value = null;
+    noPerm.value = true;
+    rows.value = [];
+    folders.value = [];
   } finally {
     loading.value = false;
   }
@@ -463,22 +489,56 @@ async function onCommand(cmd: string, row: DocumentItem) {
 }
 
 function preview(row: DocumentItem) {
-  previewUrl.value = fileRawUrl(row.storageKey, false);
+  previewKey.value = row.storageKey;
   previewTitle.value = row.name;
   previewVisible.value = true;
 }
 
-function download(row: DocumentItem) {
-  // window.open 会带 cookie 受 S3 presigned 限制；用 anchor + download 触发
-  const url = fileRawUrl(row.storageKey, true);
+/** FilePreviewer 内"下载原文件"按钮：复用同一 download() 逻辑 */
+function onPreviewDownload(row: { storageKey: string; name: string }) {
+  download({ storageKey: row.storageKey, originalFilename: row.name, name: row.name } as DocumentItem);
+}
+
+async function download(row: DocumentItem) {
+  // 用 fetch() 直接拿 blob（不走 axios —— 拦截器对 blob 响应处理有 bug，
+  // 之前用 axios + blob 时下载的文件损坏）。
+  //
+  // 关键：JWT cache 问题。用户的 JWT 可能在授权变更前签发，里面没新加的 perm。
+  // 第一轮 fetch 若 403/401 → 自动 refresh JWT → 重试一次。这覆盖了
+  // 「admin 给了权限但用户的旧 JWT 还没刷」的场景 —— 不需要用户重新登录。
+  try {
+    let blob = await fetchFileBlob(row.storageKey);
+    if (!blob) {
+      // 第一轮失败 → refresh JWT → 重试
+      await auth.refreshTokens();
+      blob = await fetchFileBlob(row.storageKey);
+    }
+    if (!blob) throw new Error('refresh+retry failed');
+    saveBlob(blob, row.originalFilename || row.name);
+  } catch (err: any) {
+    ElMessage.error(err?.message || '下载失败');
+  }
+}
+
+async function fetchFileBlob(key: string): Promise<Blob | null> {
+  const resp = await fetch(fileRawUrl(key, true), {
+    headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` },
+  });
+  if (resp.ok) return resp.blob();
+  if (resp.status === 403 || resp.status === 401) return null;  // 触发 refresh + retry
+  // 其他错误（如 500 / 404）—— 提取后端 message 给用户
+  const body = await resp.json().catch(() => ({}));
+  throw new Error(body?.message || `下载失败: HTTP ${resp.status}`);
+}
+
+function saveBlob(blob: Blob, filename: string) {
   const a = document.createElement('a');
-  a.href = url;
-  a.download = row.originalFilename || row.name;
-  a.target = '_blank';
-  a.rel = 'noopener';
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
+  a.remove();
+  URL.revokeObjectURL(a.href);
 }
 
 function openRename(row: DocumentItem) {
@@ -594,16 +654,6 @@ onMounted(() => loadBySlug(slug.value));
 }
 .danger-text {
   color: var(--color-danger);
-}
-.preview-iframe {
-  width: 100%;
-  height: calc(100vh - 120px);
-  border: 0;
-  background: var(--color-bg-soft);
-}
-.preview-fallback {
-  padding: 48px;
-  text-align: center;
 }
 :deep(.doc-delete-confirm .el-message-box__btns .el-button--danger) {
   background: var(--color-danger);

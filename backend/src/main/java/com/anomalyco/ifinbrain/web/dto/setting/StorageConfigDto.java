@@ -16,5 +16,12 @@ public class StorageConfigDto {
         private String accessKey;
         private String secretKey;
         private boolean pathStyle = true;
+        /**
+         * Access Key 真实状态：missing（未存）/ ok（已存且能解密）/ failed（已存但当前主密钥无法解密）。
+         * 前端用此字段显示对应的状态文案，与解析页 API Key 三态一致。
+         */
+        private String accessKeyStatus = "missing";
+        /** Secret Key 真实状态：missing / ok / failed。 */
+        private String secretKeyStatus = "missing";
     }
 }

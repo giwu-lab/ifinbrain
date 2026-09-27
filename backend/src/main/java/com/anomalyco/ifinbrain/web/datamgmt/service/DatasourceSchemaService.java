@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
@@ -96,17 +97,20 @@ public class DatasourceSchemaService {
 
     private DatasourceSchemaDto.TableSchema loadColumnsPg(Connection conn, String schema, String table) throws Exception {
         List<DatasourceSchemaDto.ColumnSchema> cols = new ArrayList<>();
-        try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery(
-                     "SELECT column_name, data_type, is_nullable FROM information_schema.columns "
-                             + "WHERE table_schema = '" + schema + "' AND table_name = '" + table + "' ORDER BY ordinal_position")) {
-            while (rs.next()) {
-                cols.add(DatasourceSchemaDto.ColumnSchema.builder()
-                        .name(rs.getString(1))
-                        .dataType(rs.getString(2))
-                        .type(guessType(rs.getString(2)))
-                        .nullable("YES".equalsIgnoreCase(rs.getString(3)))
-                        .build());
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT column_name, data_type, is_nullable FROM information_schema.columns "
+                        + "WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position")) {
+            ps.setString(1, schema);
+            ps.setString(2, table);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    cols.add(DatasourceSchemaDto.ColumnSchema.builder()
+                            .name(rs.getString(1))
+                            .dataType(rs.getString(2))
+                            .type(guessType(rs.getString(2)))
+                            .nullable("YES".equalsIgnoreCase(rs.getString(3)))
+                            .build());
+                }
             }
         }
         return DatasourceSchemaDto.TableSchema.builder()
@@ -121,15 +125,16 @@ public class DatasourceSchemaService {
         // 库名就是 ds.databaseName
         String db = ds.getDatabaseName();
         List<DatasourceSchemaDto.TableSchema> tables = new ArrayList<>();
-        try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery(
-                     "SELECT table_name, table_schema FROM information_schema.tables "
-                             + "WHERE table_schema = '" + db.replace("'", "''")
-                             + "' ORDER BY table_name")) {
-            while (rs.next()) {
-                String tname = rs.getString(1);
-                String sname = rs.getString(2);
-                tables.add(loadColumnsMysql(conn, sname, tname));
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT table_name, table_schema FROM information_schema.tables "
+                        + "WHERE table_schema = ? ORDER BY table_name")) {
+            ps.setString(1, db);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String tname = rs.getString(1);
+                    String sname = rs.getString(2);
+                    tables.add(loadColumnsMysql(conn, sname, tname));
+                }
             }
         }
         return DatasourceSchemaDto.builder()
@@ -142,19 +147,20 @@ public class DatasourceSchemaService {
 
     private DatasourceSchemaDto.TableSchema loadColumnsMysql(Connection conn, String schema, String table) throws Exception {
         List<DatasourceSchemaDto.ColumnSchema> cols = new ArrayList<>();
-        try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery(
-                     "SELECT column_name, data_type, is_nullable FROM information_schema.columns "
-                             + "WHERE table_schema = '" + schema.replace("'", "''")
-                             + "' AND table_name = '" + table.replace("'", "''")
-                             + "' ORDER BY ordinal_position")) {
-            while (rs.next()) {
-                cols.add(DatasourceSchemaDto.ColumnSchema.builder()
-                        .name(rs.getString(1))
-                        .dataType(rs.getString(2))
-                        .type(guessType(rs.getString(2)))
-                        .nullable("YES".equalsIgnoreCase(rs.getString(3)))
-                        .build());
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT column_name, data_type, is_nullable FROM information_schema.columns "
+                        + "WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position")) {
+            ps.setString(1, schema);
+            ps.setString(2, table);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    cols.add(DatasourceSchemaDto.ColumnSchema.builder()
+                            .name(rs.getString(1))
+                            .dataType(rs.getString(2))
+                            .type(guessType(rs.getString(2)))
+                            .nullable("YES".equalsIgnoreCase(rs.getString(3)))
+                            .build());
+                }
             }
         }
         return DatasourceSchemaDto.TableSchema.builder()
@@ -188,19 +194,20 @@ public class DatasourceSchemaService {
 
     private DatasourceSchemaDto.TableSchema loadColumnsMssql(Connection conn, String schema, String table) throws Exception {
         List<DatasourceSchemaDto.ColumnSchema> cols = new ArrayList<>();
-        try (Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery(
-                     "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS "
-                             + "WHERE TABLE_SCHEMA = '" + schema.replace("'", "''")
-                             + "' AND TABLE_NAME = '" + table.replace("'", "''")
-                             + "' ORDER BY ORDINAL_POSITION")) {
-            while (rs.next()) {
-                cols.add(DatasourceSchemaDto.ColumnSchema.builder()
-                        .name(rs.getString(1))
-                        .dataType(rs.getString(2))
-                        .type(guessType(rs.getString(2)))
-                        .nullable("YES".equalsIgnoreCase(rs.getString(3)))
-                        .build());
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION")) {
+            ps.setString(1, schema);
+            ps.setString(2, table);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    cols.add(DatasourceSchemaDto.ColumnSchema.builder()
+                            .name(rs.getString(1))
+                            .dataType(rs.getString(2))
+                            .type(guessType(rs.getString(2)))
+                            .nullable("YES".equalsIgnoreCase(rs.getString(3)))
+                            .build());
+                }
             }
         }
         return DatasourceSchemaDto.TableSchema.builder()

@@ -49,7 +49,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :xs="12" :sm="12" :md="6">
+      <el-col v-if="auth.hasPerm('setting:view')" :xs="12" :sm="12" :md="6">
         <div class="stat-card stat-info fade-in-up" style="animation-delay: 0.20s">
           <div class="stat-icon"><el-icon><Folder /></el-icon></div>
           <div class="stat-body">
@@ -133,6 +133,9 @@ function goUsers() { router.push('/system/user'); }
 function goStorage() { router.push('/system/storage'); }
 
 onMounted(async () => {
+  // storage 配置是 admin-only 资源（setting:view）—— 没权限的用户连卡片都不渲染，
+  // 避免登录后立刻触发 403 toast
+  if (!auth.hasPerm('setting:view')) return;
   try {
     const c = await settingApi.storage();
     storageLabel.value = c.type.toUpperCase();

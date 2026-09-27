@@ -43,7 +43,8 @@ export const dictApi = {
   deleteItem: (id: number) => http.delete(`/system/dicts/items/${id}`),
 
   /** 全量快照：Map<typeCode, DictItem[]>，供前端缓存用 */
-  cache: () => http.get<unknown, Record<string, DictItem[]>>('/system/dicts/cache'),
+  /** 全量字典缓存（启动时由 main.ts 预加载；无 dict:view 的用户静默跳过） */
+  cache: () => http.get<unknown, Record<string, DictItem[]>>('/system/dicts/cache', { _silent403: true } as any),
 
   /** 导出全库字典为 JSON 字符串（前端再下载） */
   exportUrl: () => '/api/system/dicts/export',

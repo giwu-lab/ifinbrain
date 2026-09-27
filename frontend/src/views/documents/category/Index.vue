@@ -59,28 +59,29 @@
             <span class="count-cell">{{ ((row as DocumentCategory).fileCount ?? 0) }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.actions')" width="120" align="center" fixed="right">
+        <el-table-column :label="t('common.actions')" width="160" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-if="auth.hasPerm('documents:update')"
-              size="small"
-              link
-              type="primary"
-              @click="openEdit(row as DocumentCategory)"
-            >
-              {{ t('common.edit') }}
-            </el-button>
-            <el-popconfirm
-              v-if="auth.hasPerm('documents:delete')"
-              :title="t('documents.deleteCategoryConfirm', { name: (row as DocumentCategory).name })"
-              @confirm="onDelete(row as DocumentCategory)"
-            >
-              <template #reference>
-                <el-button size="small" link type="danger">
-                  {{ t('common.delete') }}
-                </el-button>
+            <!-- 编辑：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('documents:update')" :content="t('common.edit')" placement="top">
+              <el-button size="small" link :icon="Edit" @click="openEdit(row as DocumentCategory)" />
+            </el-tooltip>
+            <!-- 授权：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('documents:upload')" :content="t('documents.colAuth')" placement="top">
+              <el-button size="small" link :icon="Key" @click="openPerms(row as DocumentCategory)" />
+            </el-tooltip>
+            <!-- 删除：保留在 ··· 下拉 -->
+            <el-dropdown v-if="auth.hasPerm('documents:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row as DocumentCategory)">
+              <el-button :icon="MoreFilled" size="small" link />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="delete" divided>
+                    <span class="danger-text">
+                      <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                    </span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
               </template>
-            </el-popconfirm>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -144,21 +145,98 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 类目授权：行=角色，列=4 个 verb（view/upload/update/delete） -->
+    <el-dialog
+      v-model="permsDialog.visible"
+      :title="permsDialog.title"
+      width="640px"
+      :close-on-click-modal="false"
+      align-center
+    >
+      <div v-if="permsDialog.category" class="auth-header">
+        <div class="auth-row">
+          <span class="muted small">{{ t('documents.authCodeLabel') }}：</span>
+          <code class="mono">{{ permsDialog.category.permissionCode }}</code>
+        </div>
+        <div class="form-hint muted">{{ t('documents.authRoleHint') }}</div>
+      </div>
+
+      <el-table
+        :data="allRoles"
+        v-loading="permsDialog.loading"
+        border
+        size="small"
+        class="auth-grid"
+        row-key="id"
+      >
+        <el-table-column :label="t('system.colCode')" min-width="140">
+          <template #default="{ row }">
+            <div class="auth-role-cell">
+              <span class="strong">{{ row.name }}</span>
+              <code class="mono small muted">{{ row.code }}</code>
+              <el-tag v-if="isAdminRole(row as RoleItem)" size="small" type="warning" effect="plain" round>
+                {{ t('system.roleAdminTag') }}
+              </el-tag>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-for="verb in PERM_VERBS"
+          :key="verb"
+          :label="t(`documents.perm.${verb}`)"
+          align="center"
+          width="120"
+        >
+          <template #header>
+            <div class="auth-col-head">
+              <span>{{ t(`documents.perm.${verb}`) }}</span>
+              <el-button link size="small" @click="toggleColumn(verb, true)">
+                {{ t('documents.authSelectAll') }}
+              </el-button>
+            </div>
+          </template>
+          <template #default="{ row }">
+            <el-checkbox
+              :model-value="hasGrant(row.id, verb)"
+              :disabled="isAdminRole(row as RoleItem)"
+              @change="toggleCell(row.id, verb, $event)"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <template #footer>
+        <el-button @click="permsDialog.visible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="permsDialog.saving" @click="savePerms">
+          {{ t('common.save') }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { Folder, Plus } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
+import { Folder, Plus, Edit, Delete, MoreFilled, Key } from '@element-plus/icons-vue';
 import * as ElIcons from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import IconPicker from '@/components/IconPicker.vue';
-import { categoryApi, type DocumentCategory } from '@/api/document';
+import {
+  categoryApi,
+  type DocumentCategory,
+  type CategoryPermGrants,
+} from '@/api/document';
+import { roleApi, type RoleItem } from '@/api/system';
 
 const { t } = useI18n();
 const auth = useAuthStore();
+
+/** 类目 4 个权限 verb —— 与后端 DocumentCategoryService.CAT_PERMS 对齐 */
+const PERM_VERBS = ['view', 'upload', 'update', 'delete'] as const;
+type PermVerb = typeof PERM_VERBS[number];
 
 const loading = ref(false);
 const rows = ref<DocumentCategory[]>([]);
@@ -182,6 +260,28 @@ const form = reactive<{
   status: 1,
   remark: undefined,
 });
+
+// ===================== 授权对话框 =====================
+
+const allRoles = ref<RoleItem[]>([]);
+/** 当前授权对话框正在编辑的类目 */
+const permsDialog = reactive<{
+  visible: boolean;
+  loading: boolean;
+  saving: boolean;
+  title: string;
+  category: DocumentCategory | null;
+}>({
+  visible: false,
+  loading: false,
+  saving: false,
+  title: '',
+  category: null,
+});
+/** 当前类目的 4 个 verb 授权状态：Map<roleId, Set<verb>> —— 勾选/取消都改这里 */
+const grants = ref<Map<number, Set<PermVerb>>>(new Map());
+/** 初始 grants 的快照（用于检测是否有改动） */
+const initialGrants = ref<Map<number, Set<PermVerb>>>(new Map());
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -276,6 +376,9 @@ async function onSubmit() {
     await reload();
     // 同步刷新左侧目录树（sys_menu 也改了 / 增了 / 删了；auth.menus 重新拉一次）
     await auth.fetchMe();
+    // 关键：admin 的 4 个类目权限是新建/改名类目时自动 seed 的；
+    // 旧 JWT 不带这些 perm → 立刻 refresh 一对，让浏览器侧 token 也带新 perm
+    await auth.refreshTokens();
   } catch {
     /* http interceptor */
   } finally {
@@ -289,10 +392,131 @@ async function onDelete(row: DocumentCategory) {
     ElMessage.success(t('documents.deleteSuccess'));
     await reload();
     await auth.fetchMe();
+    await auth.refreshTokens();
   } catch (e: any) {
     // 服务端已传 400 + 业务消息（"类目下仍有 N 个档案"），interceptor 已 toast
     // 但 BizException 400 仍会走到这里；前端无需再弹
     void e;
+  }
+}
+
+/** ··· 下拉菜单统一入口 */
+async function onCmd(cmd: string, row: DocumentCategory) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('documents.deleteCategoryConfirm', { name: row.name }),
+        t('common.confirmDelete'),
+        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
+      );
+      await onDelete(row);
+    } catch { /* 用户取消 */ }
+  }
+}
+
+// ===================== 授权对话框逻辑 =====================
+
+/** 判断一个角色是否是 admin —— admin 永远 4 权限勾选且不可取消 */
+function isAdminRole(role: RoleItem): boolean {
+  return role.code === 'admin';
+}
+
+function hasGrant(roleId: number, verb: PermVerb): boolean {
+  return grants.value.get(roleId)?.has(verb) ?? false;
+}
+
+function setGrant(roleId: number, verb: PermVerb, on: boolean) {
+  const set = grants.value.get(roleId) ?? new Set<PermVerb>();
+  if (on) set.add(verb); else set.delete(verb);
+  grants.value.set(roleId, set);
+  // 触发响应式更新
+  grants.value = new Map(grants.value);
+}
+
+/** 单格切换 */
+function toggleCell(roleId: number, verb: PermVerb, on: boolean | string | number) {
+  setGrant(roleId, verb, Boolean(on));
+}
+
+/** 行级全选/清空（admin 行禁用） */
+function toggleRow(role: RoleItem, on: boolean) {
+  if (isAdminRole(role)) return;
+  for (const v of PERM_VERBS) setGrant(role.id, v, on);
+}
+
+/** 列级全选/清空 —— 把所有非 admin 行批量 toggle */
+function toggleColumn(verb: PermVerb, on: boolean) {
+  for (const r of allRoles.value) {
+    if (isAdminRole(r)) continue;
+    setGrant(r.id, verb, on);
+  }
+}
+
+async function openPerms(row: DocumentCategory) {
+  permsDialog.category = row;
+  permsDialog.title = t('documents.authDialogTitle', { name: row.name });
+  permsDialog.visible = true;
+  permsDialog.loading = true;
+  grants.value = new Map();
+  initialGrants.value = new Map();
+  try {
+    const [roles, current] = await Promise.all([
+      allRoles.value.length
+        ? Promise.resolve(allRoles.value)
+        : roleApi.list().then(rs => (allRoles.value = rs)),
+      categoryApi.permissions(row.id),
+    ]);
+    // 把 {view,upload,update,delete} 拍扁成 Map<roleId, Set<verb>>
+    const next = new Map<number, Set<PermVerb>>();
+    for (const v of PERM_VERBS) {
+      for (const rid of current[v] ?? []) {
+        if (!next.has(rid)) next.set(rid, new Set<PermVerb>());
+        next.get(rid)!.add(v);
+      }
+    }
+    // admin 强制 4 权限勾选
+    const adminRole = roles.find(isAdminRole);
+    if (adminRole) {
+      next.set(adminRole.id, new Set<PermVerb>([...PERM_VERBS]));
+    }
+    grants.value = next;
+    initialGrants.value = new Map(
+      Array.from(next.entries()).map(([k, v]) => [k, new Set(v)]),
+    );
+  } catch {
+    ElMessage.error(t('documents.authLoadFailed'));
+    permsDialog.visible = false;
+  } finally {
+    permsDialog.loading = false;
+  }
+}
+
+/** 拍扁 grants 回后端期望的 {view: [roleIds], upload: [...], ...} */
+function flattenGrants(): CategoryPermGrants {
+  const out: CategoryPermGrants = { view: [], upload: [], update: [], delete: [] };
+  for (const [roleId, verbs] of grants.value.entries()) {
+    for (const v of PERM_VERBS) {
+      if (verbs.has(v)) out[v].push(roleId);
+    }
+  }
+  return out;
+}
+
+async function savePerms() {
+  if (!permsDialog.category) return;
+  permsDialog.saving = true;
+  try {
+    await categoryApi.updatePerms(permsDialog.category.id, flattenGrants());
+    ElMessage.success(t('documents.authSaved'));
+    permsDialog.visible = false;
+    // 授权变更会影响 sidebar 显示 —— 立即刷新当前用户的菜单
+    await auth.fetchMe();
+    // 关键：当前用户自己（或 admin）的 perm 刚被改 → 重发 JWT 让浏览器侧立刻看到
+    await auth.refreshTokens();
+  } catch {
+    /* http interceptor already toasted */
+  } finally {
+    permsDialog.saving = false;
   }
 }
 
@@ -391,6 +615,34 @@ onMounted(reload);
 .form-hint {
   margin-top: 4px;
   font-size: 12px;
+}
+
+/* ===================== 授权对话框 ===================== */
+.auth-header {
+  margin-bottom: 12px;
+}
+.auth-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.auth-role-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.auth-col-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.2;
+}
+.auth-grid :deep(.el-table__cell) {
+  padding: 6px 0 !important;
+}
+.auth-grid :deep(.cell) {
+  padding: 0 8px !important;
 }
 
 /* 空状态：表格容器随行数自动调节（不强制 min-height） */

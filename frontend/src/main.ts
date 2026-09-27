@@ -94,12 +94,31 @@ const dictStore = useDictStore();
 const i18nStore = useI18nStore();
 const token = localStorage.getItem('accessToken');
 const refresh = localStorage.getItem('refreshToken');
+
+/** 解码 JWT payload 的 perm 列表 —— 用于「没权限时跳过后台预加载」 */
+function jwtPerms(t: string): string[] {
+  try {
+    const payload = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = payload.length % 4 ? 4 - (payload.length % 4) : 0;
+    const json = atob(payload + '='.repeat(pad));
+    return (JSON.parse(json).p as string[]) || [];
+  } catch { return []; }
+}
+
 if (token && refresh) {
   // 仅在 refreshToken 也在时才预加载字典/i18n 缓存：
   // accessToken 过期 + 没 refreshToken 时，调用会 401 且救不回来，反而报 console error
   // （http.ts 自动 refresh+retry 的路径只走 axios，本预加载只走一次）
-  dictStore.load().catch(() => { /* 静默失败，组件首次访问时再重试 */ });
-  i18nStore.load().catch(() => { /* 静默失败，保留 ts 文件作 fallback */ });
+  //
+  // 仅当用户有对应 view perm 时才发请求 —— 否则用户连后台都没必要命中 API（也避免无意义 403）。
+  // dictApi.cache / i18nApi.messagesAll 同时打了 _silent403 标记以防 toast 漏出来。
+  const perms = jwtPerms(token);
+  if (perms.includes('dict:view')) {
+    dictStore.load().catch(() => { /* 静默失败，组件首次访问时再重试 */ });
+  }
+  if (perms.includes('i18n:view')) {
+    i18nStore.load().catch(() => { /* 静默失败，保留 ts 文件作 fallback */ });
+  }
 }
 
 app.mount('#app');

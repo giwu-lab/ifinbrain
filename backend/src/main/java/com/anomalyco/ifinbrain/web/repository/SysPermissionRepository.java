@@ -11,8 +11,13 @@ public interface SysPermissionRepository extends JpaRepository<SysPermission, Lo
 
     Optional<SysPermission> findByCode(String code);
 
+    boolean existsByCode(String code);
+
     List<SysPermission> findByIdIn(List<Long> ids);
 
     @Query("SELECT p FROM SysPermission p WHERE p.id IN (SELECT rp.permId FROM SysRolePerm rp WHERE rp.roleId IN :roleIds)")
     List<SysPermission> findByRoleIds(List<Long> roleIds);
+
+    /** 类目权限码：documents:{slug}:{view|upload|update|delete} —— 按前缀匹配 */
+    List<SysPermission> findByCodeStartingWith(String codePrefix);
 }

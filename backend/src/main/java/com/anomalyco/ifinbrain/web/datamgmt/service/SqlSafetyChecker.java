@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
  *
  * 限制（不引入 SQL parser 的前提下能做到的）：
  * <ul>
- *   <li>拒绝包含禁词的 SQL（覆盖 UPDATE/INSERT/DELETE/DROP/ALTER/TRUNCATE/CREATE/GRANT/REVOKE/MERGE/EXEC/RENAME/CALL 等）</li>
+ *   <li>拒绝包含禁词的 SQL（覆盖 UPDATE/INSERT/DELETE/REPLACE/DROP/ALTER/TRUNCATE/CREATE/GRANT/REVOKE/MERGE/EXEC/HANDLER/SHOW/LOAD DATA/INTO OUTFILE/CALL/SET/COMMIT 等）</li>
  *   <li>拒绝多语句（除注释外不允许出现第二个 ';')</li>
  *   <li>不解析字符串字面量里的禁词（极小概率的误判用 biz 提示给用户自检）</li>
  * </ul>
@@ -23,12 +23,35 @@ import java.util.regex.Pattern;
 @Component
 public class SqlSafetyChecker {
 
-    /** 禁词；大小写不敏感；词边界 \b 避免误伤 column 名包含 delete 之类 */
+    /**
+     * 禁词；大小写不敏感；词边界 \b 避免误伤 column 名包含 delete 之类。
+     *
+     * 覆盖：
+     *  - 写：DML（INSERT/UPDATE/DELETE/REPLACE/MERGE）+ 锁/事务（LOCK/SET/COMMIT/ROLLBACK/BEGIN/START）
+     *  - DDL/对象管理（CREATE/DROP/ALTER/TRUNCATE/RENAME/GRANT/REVOKE/COPY）
+     *  - 存储/执行（EXEC/EXECUTE/CALL/HANDLER）
+     *  - 元数据泄漏（SHOW/DESCRIBE/EXPLAIN/USE）
+     *  - 文件 I/O（LOAD/OUTFILE/DUMPFILE）
+     *  - PG 特有（VACUUM/REINDEX/ANALYZE/CLUSTER）
+     */
     private static final Set<String> FORBIDDEN = new LinkedHashSet<>(java.util.List.of(
-            "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE",
-            "CREATE", "GRANT", "REVOKE", "MERGE", "EXEC", "EXECUTE",
-            "RENAME", "CALL", "LOCK", "SET", "COMMIT", "ROLLBACK",
-            "COPY", "VACUUM", "REINDEX"
+            // DML 写
+            "INSERT", "UPDATE", "DELETE", "REPLACE", "MERGE", "UPSERT",
+            // 事务 / 锁
+            "SET", "COMMIT", "ROLLBACK", "BEGIN", "START", "LOCK", "UNLOCK",
+            // DDL / 对象管理
+            "DROP", "ALTER", "TRUNCATE", "CREATE", "RENAME", "GRANT", "REVOKE",
+            "COPY",
+            // 存储 / 执行
+            "EXEC", "EXECUTE", "CALL", "HANDLER",
+            // 元数据泄漏
+            "SHOW", "DESCRIBE", "DESC", "EXPLAIN", "USE",
+            // 文件 I/O（MySQL: LOAD DATA INFILE / SELECT ... INTO OUTFILE / DUMPFILE）
+            "LOAD", "OUTFILE", "DUMPFILE",
+            // PG 特有
+            "VACUUM", "REINDEX", "ANALYZE", "CLUSTER",
+            // SQLite 特有
+            "ATTACH", "DETACH", "PRAGMA"
     ));
 
     private static final Pattern KEYWORD_PATTERN;

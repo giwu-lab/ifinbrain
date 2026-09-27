@@ -14,7 +14,7 @@
           </el-icon>
           <span v-else class="trigger-placeholder">—</span>
         </span>
-        <span class="trigger-name">{{ modelValue || placeholder }}</span>
+        <span class="trigger-name">{{ modelValue || placeholderText }}</span>
         <el-icon class="trigger-arrow"><ArrowDown /></el-icon>
         <el-icon
           v-if="modelValue && clearable"
@@ -52,12 +52,12 @@
           <el-icon><component :is="resolve(name)" /></el-icon>
         </button>
         <div v-if="displayed.length === 0" class="empty">
-          {{ keyword ? '没有匹配的图标' : '加载中…' }}
+          {{ keyword ? t('iconPicker.empty') : t('iconPicker.loading') }}
         </div>
       </div>
 
       <div v-if="modelValue" class="preview">
-        <span class="muted">已选：</span>
+        <span class="muted">{{ t('iconPicker.selected') }}</span>
         <el-icon class="preview-icon"><component :is="currentIcon" /></el-icon>
         <span class="preview-name">{{ modelValue }}</span>
       </div>
@@ -67,8 +67,11 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import * as ElIcons from '@element-plus/icons-vue';
 import { ArrowDown, CircleClose, Search } from '@element-plus/icons-vue';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -77,12 +80,14 @@ const props = withDefaults(
     clearable?: boolean;
     pageSize?: number;
   }>(),
-  {
-    placeholder: '请选择图标',
-    clearable: true,
-    pageSize: 120,
-  }
+  // placeholder 默认值用空串 —— 实际值走 placeholderText computed，
+  // 因为 withDefaults 的 defaults 会被 vue compiler hoist 到 setup 外面，不能引用
+  // 局部 t()。
+  { placeholder: '', clearable: true, pageSize: 120 }
 );
+
+// 当调用方未传 placeholder 时，回退到 i18n 的 iconPicker.placeholder。
+const placeholderText = computed(() => props.placeholder || t('iconPicker.placeholder'));
 
 const emit = defineEmits<{ 'update:modelValue': [string | null] }>();
 

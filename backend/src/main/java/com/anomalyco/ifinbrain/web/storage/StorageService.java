@@ -41,7 +41,7 @@ public interface StorageService {
      * 列出 {@code prefix} 下的"真子目录"名（immediate subdirs only）。
      * - local：{@code Files.list()} 后过滤目录，返回目录名（不含 prefix）
      * - S3：{@code listObjectsV2(Prefix=prefix, Delimiter='/')} 的 CommonPrefixes
-     *        —— 但只保留那些有占位对象（0-byte 结尾带 /）的，避免把 yyyy/MM 误判为文件夹
+     *        —— 但只保留那些有占位对象（0-byte 结尾带 /）的，避免把上传时自动产生的中间目录误判为文件夹
      */
     default List<String> listFolders(String prefix) {
         return List.of();

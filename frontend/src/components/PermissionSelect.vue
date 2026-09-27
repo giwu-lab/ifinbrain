@@ -5,7 +5,7 @@
     :filter-method="filterMethod"
     allow-create
     clearable
-    :placeholder="placeholder"
+    :placeholder="placeholderText"
     class="perm-select"
     :loading="loading"
     @update:model-value="onChange"
@@ -47,8 +47,14 @@ const props = withDefaults(
     modelValue?: string | null;
     placeholder?: string;
   }>(),
-  { placeholder: '选择权限（可输入自定义码）' }
+  // placeholder 默认值用空串 —— 实际值走 placeholderText computed，
+  // 因为 withDefaults 的 defaults 会被 vue compiler hoist 到 setup() 外面，不能引用
+  // 局部 t()。
+  { placeholder: '' }
 );
+
+// 调用方未传 placeholder 时，回退到 i18n 的 permSelector.placeholder。
+const placeholderText = computed(() => props.placeholder || _t('permSelector.placeholder'));
 
 const emit = defineEmits<{ 'update:modelValue': [string | null] }>();
 
@@ -106,8 +112,8 @@ function modLabel(mod: { name: string; perms: PermissionLike[] }) {
 
 const typeLabels: Record<string, string> = {
   API: 'API',
-  MENU: '菜单',
-  BUTTON: '按钮',
+  MENU: _t('permSelector.typeMenu'),
+  BUTTON: _t('permSelector.typeButton'),
 };
 function typeLabel(t: string) {
   return typeLabels[t] || t;

@@ -1,273 +1,256 @@
 # iFinBrain 项目规则（AGENTS.md）
 
-新会话从这里开始。本文件记录项目特有的硬性约束，所有 AI / 自动化工具执行任务前都应先扫一遍。
+新会话从这里开始。本文件记录项目硬性约束 —— 所有 AI / 自动化工具执行任务前应先扫一遍。
 
 ---
 
-## 1. 国际化（i18n）硬规则
+## 1. 项目概览
 
-**新增任何面向用户的页面、表单、菜单、提示文案，必须同时更新 3 个地方**：
-
-| 位置 | 内容 |
-|---|---|
-| `frontend/src/i18n/locales/zh-CN.ts` | 添加中文文案（namespace 与 en-US 对齐）|
-| `frontend/src/i18n/locales/en-US.ts` | 添加英文文案 |
-| `backend/src/main/resources/i18n/defaults.json` | **必须**运行 `frontend/scripts/i18n-export.mjs` 自动重新生成，**不要**手改 |
-
-**新增 namespace 流程**：
-1. 两个 ts 文件都加 namespace（key 结构必须镜像一致）
-2. `node frontend/scripts/i18n-export.mjs` 重新生成 defaults.json
-3. 如果加了任何 key，`frontend/src/stores/i18n.ts` 里的 `CACHE_KEY` 必须 bump 版本（v6 → v7 → ...）以让前端丢弃旧缓存
-4. 菜单 key 命名规则：`menu.<path-segment1>[.<sub-segments>].<component-filename>`；DIR 自身用 `_`（详见 `BasicLayout.vue:menuName()`）
-5. 同步通过 `POST /api/system/i18n/sync-defaults` 把 DB 里的 `sys_i18n_message` 表与 defaults.json 对齐
-
-**检查方式**：grep `t('namespace.x')` 用到的 key 在 `defaults.json` 里 100% 存在；不允许 fallback 到 literal key。
+**技术栈**：Spring Boot 4.1.1 + Java 21 · Vue 3 + Vite 6 + Element Plus · Pinia · vue-i18n v11 · SQLite（开发）/ PostgreSQL（生产）
+**包根**：`com.anomalyco.ifinbrain.web`（Service 单类，无 `*Impl.java`）
+**前端根**：`frontend/`
+**默认凭据**：admin / Admin@123（其他角色由 admin 在「系统设置 → 用户管理」创建）
+**开发脚本**：`./scripts/dev.sh restart`（前后端一起）；前端 HMR 自动生效
+**目录约定**：
+- 后端：`backend/src/main/java/com/anomalyco/ifinbrain/web/{module}/`
+- 前端页面：`frontend/src/views/<module>/<view>/Index.vue`
 
 ---
 
-## 2. 权限（Permission）硬规则
+## 2. 国际化（i18n）
+
+新增面向用户的页面 / 表单 / 菜单 / 提示文案，**5 处必须同步更新**：
+
+| # | 位置 | 操作 |
+|---|---|---|
+| 1 | `frontend/src/i18n/locales/zh-CN.ts` | 手工添加中文文案 |
+| 2 | `frontend/src/i18n/locales/en-US.ts` | 手工添加英文文案 |
+| 3 | `backend/src/main/resources/i18n/defaults.json` | **`node frontend/scripts/i18n-export.mjs` 自动生成**，不要手改 |
+| 4 | `frontend/src/stores/i18n.ts` | bump `CACHE_KEY`（v45 → v46 → ...），让前端丢弃旧缓存 |
+| 5 | DB `sys_i18n_message` 表 | admin 登录后调 `POST /api/system/i18n/sync-defaults` |
+
+**菜单 key 命名**：`<menu>.<path>.<component>`。`BasicLayout.menuName()` 把 component 里的 `/` 替换为 `.`，得到 `menu.data-mgmt.datasource.Index`（保留大小写含 `-`）；而 page 内 i18n 用 camelCase `menu.dataMgmt.datasource.Index`。**两组都给 key 才能覆盖所有路径**。
+
+**检查方式**：`grep "t('namespace.x')"` 用到的 key 在 `defaults.json` 里 100% 存在；不允许 fallback 到 literal key。
+
+---
+
+## 3. 权限（Permission）
 
 **新功能涉及任何操作必须**：
-1. 在 `backend/src/main/resources/db/migration-{dev,prod}/` **同步**新增一个 V{n+1}.sql（两份都要）
-3. 同步插入 `sys_permission` (type='API') + `sys_role_perm`（admin 全拿 / operator / viewer 按业务分配）
-4. 同步插入 `sys_menu`（顶层 DIR 用 `parent_id=0, type='DIR', component=NULL`；子菜单用 `type='MENU', component='<module>/<view>/Index'`）
-5. 前端用 `v-if="auth.hasPerm('<code>')"` 守护每个操作按钮
-6. 后端 `@Service` 类用 `perm.require('<code>')` 守护每个公开方法
+1. 在 `backend/src/main/resources/db/migration-{dev,prod}/` **同步**新增 V{n+1}.sql（两份都要）
+2. 插入 `sys_permission`（type='API'） + `sys_role_perm`（admin 全拿 / operator / viewer 按业务分配）
+3. 插入 `sys_menu`（顶层 DIR 用 `parent_id=0, type='DIR', component=NULL`；子菜单用 `type='MENU', component='<module>/<view>/Index'`）
+4. 前端用 `v-if="auth.hasPerm('<code>')"` 守护每个操作按钮
+5. 后端 `@Service` 类用 `perm.require('<code>')` 守护每个公开方法
 
-权限码格式 `<module>:<resource>:<verb>`，如 `data:datasource:update`。
+**权限码格式**：`<module>:<resource>:<verb>`，如 `data:datasource:update`。
+
+**角色权限自动 seed**：
+- `seedAdminAccess()`：新建/重命名类目时 admin 自动获得 4 个类目 perm（JWT 通过 `auth.refreshTokens()` 重发）
+- V23 迁移：现存类目 + 仅 admin seed 类目级 perm
+- V17 绑定：全局 `documents:view/upload/update/delete` 给 admin/operator/viewer
 
 ---
 
-## 3. 数据库迁移（Flyway）硬规则
+## 4. 数据持久化
 
-- **新增表 / 新增菜单 / 新增权限必须**走 Flyway，**不要**直接 DDL
-- 文件命名 `V{n}__{snake_case}.sql`，n 沿用递增（最近一次是 V10）
-- 必须**同时**写两份：`migration-dev/` 和 `migration-prod/`，内容**除注释外完全一致**
-- 列定义沿用 SQLite 兼容写法：`id INTEGER PRIMARY KEY AUTOINCREMENT`、`VARCHAR(n) NOT NULL`、`SMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`
+### 4.1 Flyway 迁移
+
+- 新增表 / 菜单 / 权限必须走 Flyway，不要直接 DDL
+- 文件命名 `V{n}__{snake_case}.sql`，n 递增
+- 必须同时写两份 `migration-dev/` 和 `migration-prod/`，内容除注释外完全一致
+- 列定义 SQLite 兼容：`id INTEGER PRIMARY KEY AUTOINCREMENT`、`VARCHAR(n) NOT NULL`、`SMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`
 - 软删除**未启用**；删除是真 `DELETE FROM`
 - JPA entity 用 `@PrePersist` / `@PreUpdate` 维护 `created_at` / `updated_at`
 
----
-
-## 4. 加密字段硬规则
+### 4.2 加密字段
 
 任何"密钥 / 密码 / token"字段必须：
 1. 数据库列以 `_enc` 后缀（如 `password_enc`、`api_key_enc`）
-2. 用 `CryptoUtil.encrypt(plain)` 落库（已有 `backend/.../security/CryptoUtil.java`）
-3. API 返回**永远**只回掩码 `********` + `passwordStatus: 'missing' | 'ok' | 'failed'`
-4. 前端三态密码组件（与 OCR API Key 一致）：missing → 必填输入框；ok → "已配置 · 修改"；failed → "密钥失效 · 修改"
-5. 更新时 `""` / `null` / `"********"` 视为"保留旧值"，**不覆盖**密文
+2. 用 `CryptoUtil.encrypt(plain)` 落库（`backend/.../security/CryptoUtil.java`）
+3. API 返回永远只回掩码 `********` + `passwordStatus: 'missing' | 'ok' | 'failed'`
+4. 前端三态密码组件：missing → 必填；ok → "已配置 · 修改"；failed → "密钥失效 · 修改"
+5. 更新时 `""` / `null` / `"********"` 视为"保留旧值"，不覆盖密文
 
-master key 环境变量：`IFINBRAIN_MASTER_KEY`（≥32字节，SHA-256 派生为 AES-256-GCM key）。轮换时已加密字段无法解密 → `passwordStatus='failed'`，用户必须重填。
+master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AES-256-GCM）。轮换时旧字段无法解密 → `passwordStatus='failed'`，用户必须重填。
 
 ---
 
-## 5. 后端结构硬规则
+## 5. 后端结构
 
-- 包根：`com.anomalyco.fapiao.web`，**没有** `*Impl.java`（Service 都是单类）
+- 包根：`com.anomalyco.ifinbrain.web`，**没有** `*Impl.java`
 - Lombok：`@Service @RequiredArgsConstructor @Slf4j`
 - 写操作 `@Transactional`，读 `@Transactional(readOnly = true)`
 - DTO 三件套：`<Resource>Dto`（响应）/ `<Resource>CreateReq` / `<Resource>UpdateReq`（请求，带 `jakarta.validation.constraints.*`）
 - Controller `@RestController @RequestMapping("/api/<module>")`，方法返回 `Result.ok(...)` 公共信封
-- 新增 Repository 必须同时改 `FapiaoWebApplication.java` 的 `@EnableJpaRepositories(basePackages = {...})` 列表
+- 新增 Repository：自动扫描 `@EnableJpaRepositories(basePackages = {...})` 在 `iFinBrainApplication.java`
 
 ---
 
-## 6. 前端结构硬规则
+## 6. 前端结构
 
-- 路由**完全由 `sys_menu` 驱动**（见 `frontend/src/router/index.ts`）；新增页面**只**需要：
+- 路由**完全由 `sys_menu` 驱动**（`frontend/src/router/index.ts`）；新增页面只：
   1. 在 `builtInViews` 加 `'module/view/Index': () => import(...)`
-  2. 数据库迁移插入 `sys_menu` 行（component 字符串对应上述 key）
+  2. DB 迁移插入 `sys_menu` 行（component 字符串对应上述 key）
 - API 文件：`frontend/src/api/<domain>.ts`，导出 `xxxApi = { list, create, update, remove, ... }`
 - 页面：`frontend/src/views/<module>/<view>/Index.vue`，`<script setup lang="ts">`
-- 权限：`auth.hasPerm('xxx')`，**不要**自己写 enum
-- i18n：`useI18n()` + `t('xxx')`，**不要**写硬编码中文
+- 权限：`auth.hasPerm('xxx')`，不要自己写 enum
+- i18n：`useI18n()` + `t('xxx')`，不要写硬编码中文
 
 ---
 
-## 7. 设计原则（来自 frontend-design skill）
+## 7. 设计原则
 
-- **避开 SaaS-card 套娃**：主列表区不强制套 `<el-card class="card-table">`，必要时用 plain 边框 div
-- **状态在布局中表达**：左侧竖条 / 行内图标 / 等宽 monospace 连接串，**不滥用** tag/pill
-- **测试反馈就地显示**：行内 icon + 文字摘要；**不弹** toast 轰炸
-- **数字序 `01/02/03` 仅用于真正的有序步骤**（如 Phase 2 占位页的三步引导），**不要**当装饰
+- **避开 SaaS-card 套娃**：主列表区不强制套 `<el-card class="card-table">`，用 plain 边框 div
+- **状态在布局中表达**：左侧竖条 / 行内图标 / 等宽 monospace 连接串，不滥用 tag/pill
+- **测试反馈就地显示**：行内 icon + 文字摘要；不弹 toast 轰炸
+- **数字序 `01/02/03` 仅用于真正的有序步骤**，不当装饰
 - **不写** `→` 加在按钮后；**不写** ALL-CAPS eyebrow label；**不写** gradient wash
-- 弹窗 `label-width="100px"`（label 长的页面如 ocr 用 160px）
+- 弹窗 `label-width="100px"`（label 长的页面如 parser 用 160px）
 
-### 7.1 `<el-table>` 标准（与发票列表页对齐）
-
-所有列表页的 `<el-table>` **统一以下属性 + 全局样式**，不要在页面里再 inline 覆盖：
-
-```vue
-<el-table
-  :data="rows"
-  v-loading="loading"
-  border
-  stripe
-  size="small"
->
-```
-
-**全局样式**（已在 `styles/global.css` 落定，所有页面默认生效）：
-
-| 元素 | 样式 |
-|---|---|
-| 表头背景 | `var(--color-bg)` |
-| 表头颜色 | `var(--color-text)`（强调色，不是 secondary） |
-| 表头字重 | `600` |
-| 表头字号 | `var(--font-size-sm)` = `13px` |
-| 单元格字号 | `var(--font-size-sm)` = `13px` |
-| 行底边 | `1px solid var(--color-border-soft)` |
-| Hover | `var(--color-primary-soft)` |
-
-**禁止** 在页面里 inline `:header-cell-style` / `:cell-style` 重复声明同一份样式 —— 那是冗余代码，且容易漂移。需要局部变体（如强调某列、固定列着色）才 inline。
-
-### 7.2 页面布局标准（与数据源 / 类目设置页对齐）
-
-所有管理类页面**统一以下骨架**，不要自己造结构：
+### 7.1 页面骨架（所有管理类页面统一）
 
 ```vue
 <template>
   <div class="page-container fade-in-up {domain}-page">
-    <!-- ① 标题行：左标题描述，右主操作按钮（flex space-between） -->
     <div class="page-header">
       <div>
         <h1 class="page-title">{{ t('xxx.title') }}</h1>
         <p class="page-desc muted">{{ t('xxx.desc') }}</p>
       </div>
-      <!-- 主操作按钮：
-           - 单按钮：直接子元素
-           - 多按钮：<div class="header-actions"> 包裹（否则被 space-between 分散） -->
       <el-button v-if="auth.hasPerm('xxx:create')" type="primary" :icon="Plus" @click="openCreate">
         {{ t('xxx.create') }}
       </el-button>
     </div>
-
-    <!-- ② 列表区：plain 1px 边框容器，避开 SaaS-card 套娃 -->
     <div class="{domain}-table-wrap">
-      <el-table :data="rows" v-loading="loading" border stripe size="small">
-        <!-- ... 列定义 ... -->
-      </el-table>
+      <el-table :data="rows" v-loading="loading" border stripe size="small">...</el-table>
     </div>
   </div>
 </template>
-
-<style scoped>
-/* 标题行：与数据源/类目设置页完全一致 */
-.{domain}-page .page-header {
-  display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;
-}
-.{domain}-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.{domain}-page .page-desc  { margin: 4px 0 0; font-size: 13px; }
-
-/* 列表区：1px 边框 + bg-elev 背景 + 圆角，与数据源完全一致 */
-.{domain}-table-wrap {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elev);
-  overflow: hidden;
-}
-</style>
 ```
-
-**强制约定**：
 
 | 项 | 标准 |
 |---|---|
-| 根 class | `page-container fade-in-up {domain}-page`（`{domain}` 是业务域，如 `ds` / `cat` / `user` / `role`） |
+| 根 class | `page-container fade-in-up {domain}-page`（如 `ds` / `cat` / `user`） |
 | 标题字号 / 字重 | `22px` / `700` |
-| 标题与操作按钮对齐方式 | 标题左、按钮右，**底部对齐**（`align-items: flex-end`） |
-| 操作按钮位置 | 单按钮时为 `.page-header` **直接子元素**；多按钮时用 `<div class="header-actions">` 包裹（避免被 space-between 分散到三处） |
-| 列表区容器 | 必须有 1px 边框包裹，**禁用 `<el-card>` / `.card-table`** |
-| 多按钮 | 标题右侧直接并列，flex gap 用 `style scoped` 控制 |
+| 按钮对齐 | 标题左 / 按钮右，底部对齐（`align-items: flex-end`） |
+| 多按钮 | 包 `<div class="header-actions">` |
+| 列表区 | 必须 1px 边框包裹，**禁用 `<el-card>` / `.card-table`** |
 
-**禁止**：
-- 标题和按钮分两行 / 用 `margin-top` 推下去
-- 操作按钮放进任何额外 div 包裹
-- 列表区直接裸露不包裹 / 套用 `.card-table`
-- 标题字号小于 22px（看起来不像"页面"像"区块"）
+**例外**：表单页（创建/详情）按 `el-form` + `el-card`；查询编辑器结果面板（`query/Detail.vue`）保留自有视觉。
 
-**例外**：
-- 表单页（创建/详情）不需要表格布局，按 `el-form` + `el-card` 标准即可
-- 查询编辑器结果面板（`query/Detail.vue`）保留自有视觉语言
-
-### 7.3 双层吸顶（页头 + 表头）
-
-所有用 `<el-table>` 的列表页，**默认开启**：
-- `.page-header` 始终吸在滚动容器顶部（`position: sticky; top: 0; z-index: 30`）
-- 表头（`<th>`）紧跟页头下方吸顶（`position: sticky; top: <页头高度>; z-index: 20`）
-- 两层都需要 **opaque 背景**（`var(--color-bg)`），否则滚动时下方表格行会穿透
-
-参考值（`docs-page` / `cat-page`）：
+### 7.2 双层吸顶（`<el-table>` 列表页默认开启）
 
 ```css
-.{domain}-page .page-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: var(--color-bg);
-  padding: 12px 0 16px;
-  margin-bottom: 0;          /* 让 .table-wrap 的 margin-top 接管间距 */
-}
-.{domain}-table-wrap {
-  margin-top: 16px;          /* 与吸顶的页头之间留 16px 间隔 */
-  overflow: visible;         /* 关键：保持默认 visible，让 th sticky 能透到外层滚动容器 */
-}
+.{domain}-page .page-header { position: sticky; top: 0; z-index: 30; background: var(--color-bg); }
+.{domain}-table-wrap { margin-top: 16px; overflow: visible; }   /* 不要 overflow:hidden */
 :deep(.{domain}-table-wrap th.el-table__cell) {
-  position: sticky;
-  top: 92px;                 /* = 页头高度（约 76-80px）+ 16px margin；按实际渲染微调 */
-  z-index: 20;
-  background: var(--color-bg) !important;
+  position: sticky; top: 92px; z-index: 20; background: var(--color-bg) !important;
 }
 ```
 
-**关键陷阱**：
+`overflow: hidden` 会让 th sticky 只在该容器内有效，**不要加**。
 
-| 陷阱 | 原因 | 解决 |
+---
+
+## 8. 表格标准
+
+### 8.1 `<el-table>` 样式
+
+所有列表页统一以下属性 + 全局样式（已在 `styles/global.css`），不要 inline 覆盖：
+
+```vue
+<el-table :data="rows" v-loading="loading" border stripe size="small">
+```
+
+| 元素 | 样式 |
+|---|---|
+| 表头背景 / 颜色 / 字重 | `var(--color-bg)` / `var(--color-text)` / `600` |
+| 表头与单元格字号 | `var(--font-size-sm)` = `13px` |
+| 行底边 | `1px solid var(--color-border-soft)` |
+| Hover | `var(--color-primary-soft)` |
+
+### 8.2 操作列（高频图标直显 + 删除在 `···` 下拉）
+
+| 操作类型 | 表现 |
+|---|---|
+| 高频 / 非危险（编辑 / 查看 / 测试 / 授权 ...）| **图标直显** + `el-tooltip` 中文提示 |
+| 危险操作（**仅限删除**）| 收纳进 `···` 下拉（`MoreFilled` 触发），下拉里就一项「删除」+ 红色 |
+
+**模板样板**：
+```vue
+<el-table-column :label="t('common.actions')" :width="WIDTH" align="center" fixed="right">
+  <template #default="{ row }">
+    <el-tooltip v-if="auth.hasPerm('xxx:verb')" :content="t('xxx.edit')" placement="top">
+      <el-button size="small" link :icon="Edit" @click="onCmd('edit', row)" />
+    </el-tooltip>
+    <el-dropdown v-if="auth.hasPerm('xxx:delete')" trigger="click" @command="(cmd) => onCmd(cmd, row)">
+      <el-button :icon="MoreFilled" size="small" link />
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item command="delete" divided>
+            <span class="danger-text">
+              <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+            </span>
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+  </template>
+</el-table-column>
+```
+
+**宽度**：1 图标+下拉 = 96；2 = 120；3 = 160；4+ = 180+（按 32px/图标递增）
+
+**删除确认**（统一 onCmd 入口）：
+```ts
+async function onCmd(cmd: string, row: T) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('xxx.confirmDelete', { name: row.name }),  // 页面特定文案
+        t('common.confirmDelete'),                   // 标题统一
+        { type: 'warning',
+          confirmButtonText: t('common.delete'),
+          cancelButtonText: t('common.cancel') }
+      );
+      await remove(row);
+    } catch { /* 用户取消 */ }
+  }
+}
+```
+
+**实现要点**：
+- 树节点（el-tree）删除按钮需 `@click.stop` 防冒泡触发节点展开
+- 每个文件 script 顶部 `import { Edit, Delete, MoreFilled } from '@element-plus/icons-vue';`
+- 风格 CSS：`.danger-text { color: var(--color-danger); }`（global.css 已有）
+
+**已应用页面（10 个）**：
+
+| 页面 | 操作 | 宽度 |
 |---|---|---|
-| `.table-wrap` 加 `overflow: hidden` | 创建独立 scrollport，th sticky 只在该容器内有效，页面滚动时 th 跟着走 | **不要加**，clip 由 `.el-table` 自身 `border-radius` 保证 |
-| `top` 值不对齐页头实际高度 | sticky th 与页头重叠 / 出现空白 | 改完页头 padding 后同步调整 `top`（先用 92px 占位，按实际像素微调） |
-| 背景透明 | 滚动时下方表格行文字穿透表头 | `background: var(--color-bg) !important` 强制 opaque |
+| `documents/list/Index.vue` | 预览/下载/重命名/删除 | 160 |
+| `documents/category/Index.vue` | 编辑/授权/删除 | 160 |
+| `system/user/Index.vue` | 编辑/删除 | 120 |
+| `system/role/Index.vue` | 编辑/删除 | 120 |
+| `system/menu/Index.vue` | 新增子/编辑/删除 | 160 |
+| `system/dict/Index.vue`（条目表 + 类型树）| 编辑/删除 | 120 |
+| `system/dict/I18nPanel.vue` | 编辑/删除 | 120 |
+| `invoice/List.vue` | 编辑/删除 | 120 |
+| `data-mgmt/datasource/Index.vue` | 测试/编辑/删除 | 160 |
+| `data-mgmt/query/Index.vue` | 编辑/复制/删除 | 120 |
 
-**禁止**：在 `.table-wrap` 上加 `overflow: hidden` / `overflow: auto` —— 那是 bug 不是优化。
-
----
-
-## 8. 项目特定技术约束
-
-- Spring Boot **4.1.1** + Java **21**（Spring Boot 4 用 `tools.jackson.databind.ObjectMapper`，**不是** com.fasterxml）
-- JDBC 驱动已就位：mysql-connector-j、mssql-jdbc、postgresql（HikariCP 由 spring-boot-starter-data-jpa 间接带入）
-- 时区：JVM 默认 `Asia/Shanghai`（`FapiaoWebApplication.main` 强制设置），勿依赖宿主机
-- SQLite 默认开发库（`./data/ifinbrain.db`），生产支持 PG / H2；FK CASCADE 需 `PRAGMA foreign_keys = ON`
-- HikariDataSource 池：多数据源**自建** `DatasourceConnectionService`（轻量、动态），**不用** dynamic-datasource-spring-boot-starter / AbstractRoutingDataSource
-- vue-i18n v11 用 `.` 作路径分隔符；菜单 key 嵌套规则见 §1
-- 测试前 `dev.sh restart`；前端 HMR 自动生效；后端 `mvn spring-boot:run`
+**禁止的反模式**：
+- ❌ 操作列里直接放文字删除按钮
+- ❌ `<el-popconfirm>` 做删除确认
+- ❌ 删除按钮和其他危险操作混在图标里
 
 ---
 
-## 9. 默认凭据
+## 9. 资源文件同步（i18n + 资源）
 
-- Admin：`admin / Admin@123`
-- Operator / Viewer 由 admin 在「用户管理」创建
-
----
-
-## 10. 不要做的事
-
-- 不要直接 `git commit` / `git push`（除非用户明确要求）
-- 不要在 `i18n/defaults.json` 里手改文案（永远走 `i18n-export.mjs` 自动生成）
-- 不要写 `*Impl.java` 后缀的 Service
-- 不要在迁移里写方言特定语法（保持 SQLite/PG 兼容）
-- 不要把硬编码中文 / 英文放进 Vue 模板的 `<template>` 文本节点
-- 不要绕过 `PermissionChecker` 直接 @PreAuthorize 字符串权限码
-
----
-
-## 11. 资源文件同步（最常踩的坑）
-
-Spring Boot 运行时从 **`backend/target/classes/`** 读资源，不读 `src/main/resources/`。
-`mvn spring-boot:run` 不会自动复制 `src/main/resources/i18n/defaults.json` 到 target，
-每次改了 i18n 文案后必须**显式搬运一次**：
+Spring Boot 运行时从 `backend/target/classes/` 读资源，不读 `src/main/resources/`。`mvn spring-boot:run` 不会自动复制 `i18n/defaults.json`。**改了 i18n 文案后必须**：
 
 ```bash
 cp backend/src/main/resources/i18n/defaults.json backend/target/classes/i18n/defaults.json
@@ -275,40 +258,19 @@ cp backend/src/main/resources/i18n/defaults.json backend/target/classes/i18n/def
 cd backend && mvn -q process-resources
 ```
 
-不搬运的话 `POST /api/system/i18n/sync-defaults` 会读到旧版 defaults.json，前端
-i18n store 写入的也是旧文案，新加的 key 永远到不了 DB。同步后端日志会显示
-"inserted/updated" 数明显偏少。
-
-i18n 命名空间新增要改两个 `.ts` 文件 + `defaults.json` + i18n cache bump，缺一不可：
-- `frontend/src/i18n/locales/zh-CN.ts`
-- `frontend/src/i18n/locales/en-US.ts`
-- `backend/src/main/resources/i18n/defaults.json`（用 `node frontend/scripts/i18n-export.mjs` 自动生成）
-- `backend/target/classes/i18n/defaults.json`（手动 cp，§11）
-- `frontend/src/stores/i18n.ts`: `CACHE_KEY` bump（v6 → v7 → v8 → ...）
-- `POST /api/system/i18n/sync-defaults`（admin 登录后调用）
-
-### i18n 命名空间命名约定（URL 路径 vs key）
-
-| 类型 | 约定 | 例 |
-|---|---|---|
-| 页面 content | camelCase（前端代码风格） | `dataMgmt.dsTitle` |
-| 菜单 namespace | URL 路径 kebab-case | `/data-mgmt/datasource` → component `data-mgmt/datasource/Index` |
-| menu 命名空间 key | **同时**支持 camelCase 和 kebab-case | `menu.dataMgmt.datasource.Index` **和** `menu.data-mgmt.datasource.Index` 都要有 |
-
-原因：`BasicLayout.menuName()` 把 `component` 字段里的 `/` 替换成 `.`，但保持原大小写
-（含 `-`），得到 `menu.data-mgmt.datasource.Index`；而 page 里的 i18n key 用 camelCase
-`menu.dataMgmt.datasource.Index`。**两组都给 key 才能覆盖所有路径**。
+否则 `POST /api/system/i18n/sync-defaults` 会读到旧版 defaults.json，后端日志显示 "inserted/updated" 数偏少。
 
 ---
 
-## 12. Vite 6 + Monaco Editor 的坑（dev 模式）
+## 10. 特殊坑（dev 模式）
 
-**问题**：Vite 6.4.x 没法解析 `import 'monaco-editor/esm/vs/editor/editor.worker?worker'` —— `?worker`
-查询后缀在 bare-specifier (从 node_modules) 上失败，报 *"Failed to resolve import ... Does the file exist?"*。
-`vite-plugin-monaco-editor` 也不能解决（它走的是 CDN 路线，跟我们 dev/local 部署不匹配）。
+### 10.1 Vite 6 + Worker（Monaco / PDF.js）
 
-**解决**：用 Vite 的 `/@fs/<absolute-path>` filesystem 路由，直接引用 node_modules 里的 worker：
+Vite 6.4.x 无法解析 `import 'xxx/worker?worker'`（bare-specifier）。`vite-plugin-monaco-editor` 走 CDN 路线，不适合本地部署。
 
+**统一解决**：worker 文件经 Vite dev server 的 `/@fs/<绝对路径>` filesystem 路由加载。worker 文件**不能**放 `public/`（其内部相对导入路径会断）。
+
+**Monaco 示例**（`data-mgmt/query/Detail.vue:228-234`）：
 ```ts
 self.MonacoEnvironment = {
   getWorker: () => new Worker(
@@ -318,11 +280,40 @@ self.MonacoEnvironment = {
 };
 ```
 
-Vite 会自动把 worker 文件内部的相对导入（`'../internal/common/initialize.js'`）改写成
-`'/node_modules/monaco-editor/esm/vs/internal/common/initialize.js?v=xxx'`，浏览器按 Vite 模块图加载即可。
+**PDF.js 示例**（`components/PdfViewer.vue` + `utils/pdfWorker.ts`）：**用 `fetch` 拿到 worker 文本后，先 `replace()` 剥掉 Vite 在首行注入的 `import { injectQuery as __vite__injectQuery } from "/@vite/client";`，再用 `URL.createObjectURL(new Blob([cleanSource]))` 喂给 Worker**。**不要用 `workerSrc` URL 字符串**——`/@fs/...` 响应里始终带这个首行注入，worker 用 `type:'module'` 加载时会尝试 import `/@vite/client` 失败 → Worker 启动失败 → `getDocument().promise` 永远 hang → canvas 空白。
 
-**限制**：这条只对 **dev 模式** 有效（`@fs/` 是 Vite dev server 的特权路由）。生产 build 需要
-走 Vite worker plugin 或 esbuild bundling —— 当前项目 dev-only，未做 prod build 配置。
+**关键陷阱**：直接 `fetch('/@fs/.../pdf.worker.min.mjs')` 拿到的字节**也是被注入后的内容**（注入发生在 HTTP 响应阶段，不是 URL 阶段）。所以光 `fetch + blob` 不够，**必须**剥首行：
 
-**为什么不用 `public/monaco/` 复制方案**：worker 内部的相对导入路径依赖原 node_modules 树结构，
-单独复制 worker 文件会让相对路径（`'../internal/...'）找不到。`@fs/` 保持原路径结构。
+```ts
+const VITE_INJECT_PREFIX =
+  /^\s*import\s*\{\s*injectQuery\s+as\s+__vite__injectQuery\s*\}\s*from\s*["']\/@vite\/client["']\s*;?/;
+source = source.replace(VITE_INJECT_PREFIX, '');
+```
+
+实现见 `frontend/src/utils/pdfWorker.ts`（模块级单例 Promise，`load()` 入口 `await ensurePdfWorkerReady()`，避免 race condition）。
+
+**限制**：当前项目 dev-only（无 prod build 配置）。
+
+### 10.2 其他
+
+- 时区：JVM 默认 `Asia/Shanghai`（`iFinBrainApplication.main` 强制设置），不依赖宿主机
+- vue-i18n v11 用 `.` 作路径分隔符
+- 多数据源自建 `DatasourceConnectionService`，**不用** `dynamic-datasource-spring-boot-starter` / `AbstractRoutingDataSource`
+- JD 驱动：mysql-connector-j、mssql-jdbc、postgresql（HikariCP 由 starter 间接带入）
+- SQLite 默认开发库；生产支持 PG / H2；FK CASCADE 需 `PRAGMA foreign_keys = ON`
+
+---
+
+## 11. 不要做的事
+
+- 不要直接 `git commit` / `git push`（除非用户明确要求）
+- 不要在 `i18n/defaults.json` 里手改文案（永远走 `i18n-export.mjs` 自动生成）
+- 不要写 `*Impl.java` 后缀的 Service
+- 不要在迁移里写方言特定语法（保持 SQLite/PG 兼容）
+- 不要把硬编码中文 / 英文放进 Vue 模板的 `<template>` 文本节点
+- 不要绕过 `PermissionChecker` 直接用 `@PreAuthorize` 字符串权限码
+- 不要在 `<el-table>` 操作列里用文字按钮（必须图标 + ···）
+- 不要用 `<el-popconfirm>` 做删除确认（统一 `ElMessageBox.confirm`）
+- 不要用 axios 接收 blob 响应（已知 bug，会损坏文件）—— 用原生 `fetch().blob()` 或 `arrayBuffer()`
+- 不要给所有用户都 broadcast 同一份菜单（每个用户按 perm 过滤；admin 应能看到 Documents DIR 即使没类目）
+- **不要在测试结束后把 `storage.type` 切回 `local` 或用 fake AK/SK 覆盖用户密文**——用户的 S3 配置（内网 MinIO 192.168.3.160:9000 / bucket=ifinbrain）是真实测试环境。验证存储相关修复时：用临时 prefix（如 `bucket=ifinbrain-test`）、隔离 AK/SK、或只测 GET/probe 不写回 sys_setting；**除非用户明确要求重置，否则保留当前 storage 配置不动**。

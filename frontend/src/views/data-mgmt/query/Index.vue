@@ -24,7 +24,7 @@
           <template #default="{ row }">
             <div class="qy-name-row">
               <span class="qy-name-text">{{ row.name }}</span>
-              <span v-if="row.status === 0" class="qy-tag-disabled">禁用</span>
+              <span v-if="row.status === 0" class="qy-tag-disabled">{{ t('dataMgmt.qyStatusDisabled') }}</span>
               <span v-if="row.description" class="muted small qy-desc-inline">· {{ row.description }}</span>
             </div>
           </template>
@@ -46,7 +46,7 @@
                 <span class="dot" />
                 <span class="small">{{ formatTime(row.lastRunAt) }}</span>
                 <span v-if="row.lastRunRowCount != null" class="small muted">
-                  · {{ row.lastRunRowCount }} {{ t('dataMgmt.qyResultRowCount', { n: '' }).trim() }}
+                  · {{ row.lastRunRowCount }} {{ t('dataMgmt.qyUnitRow') }}
                 </span>
                 <span v-if="row.lastRunDurationMs != null" class="small muted">· {{ row.lastRunDurationMs }} ms</span>
               </span>
@@ -100,22 +100,26 @@
             </div>
           </template>
         </el-table-column>
-        <!-- 操作列：仅 ⋯ 下拉（SQL 编辑 / 复制 / 删除查询） -->
-        <el-table-column :label="t('system.colAction')" width="64" align="right" fixed="right">
+        <!-- 操作列：编辑 / 复制（图标直显） + 删除（保留在 ··· 下拉） -->
+        <el-table-column :label="t('system.colAction')" width="120" align="center" fixed="right">
           <template #default="{ row }">
-            <el-dropdown v-if="auth.hasPerm('data:query:update') || auth.hasPerm('data:query:delete')"
-              trigger="click" size="small" @command="(c: string) => onActionCommand(c, row as unknown as QueryItem)">
-              <el-button link size="small" type="info" class="qy-more-btn">⋯</el-button>
+            <!-- 编辑：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('data:query:update')" :content="t('common.edit')" placement="top">
+              <el-button size="small" link :icon="Edit" @click="onActionCommand('edit', row as unknown as QueryItem)" />
+            </el-tooltip>
+            <!-- 复制：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('data:query:create')" :content="t('dataMgmt.qyDetailDuplicate')" placement="top">
+              <el-button size="small" link :icon="CopyDocument" @click="onActionCommand('duplicate', row as unknown as QueryItem)" />
+            </el-tooltip>
+            <!-- 删除：保留在 ··· 下拉 -->
+            <el-dropdown v-if="auth.hasPerm('data:query:delete')" trigger="click" @command="(c: string) => onActionCommand(c, row as unknown as QueryItem)">
+              <el-button :icon="MoreFilled" size="small" link />
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item v-if="auth.hasPerm('data:query:update')" command="edit">
-                    {{ t('common.edit') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="auth.hasPerm('data:query:create')" command="duplicate">
-                    {{ t('dataMgmt.qyDetailDuplicate') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="auth.hasPerm('data:query:delete')" command="delete" divided>
-                    <span style="color: var(--color-danger, #f56c6c)">{{ t('common.delete') }}</span>
+                  <el-dropdown-item command="delete" divided>
+                    <span class="danger-text">
+                      <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                    </span>
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -151,6 +155,7 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import { Edit, Delete, MoreFilled, CopyDocument } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { queryApi, type QueryItem } from '@/api/query';
 import { queryPageApi, parseConfig, type QueryPageConfig } from '@/api/queryPage';
@@ -189,13 +194,13 @@ async function onDuplicate(row: QueryItem) {
     ElMessage.success(t('dataMgmt.qyDetailDuplicated'));
     router.push(`/data-mgmt/query/${r.id}`);
   } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || e?.message || 'Duplicate failed');
+    ElMessage.error(e?.response?.data?.message || e?.message || t('dataMgmt.qyDetailDuplicatedFail'));
   }
 }
 
 async function onDelete(row: QueryItem) {
   try {
-    await ElMessageBox.confirm(t('dataMgmt.qyDeleteConfirm', { name: row.name }), '', {
+    await ElMessageBox.confirm(t('dataMgmt.qyDeleteConfirm', { name: row.name }), t('common.confirmDelete'), {
       confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel'),
       type: 'warning',
     });
@@ -203,7 +208,7 @@ async function onDelete(row: QueryItem) {
     ElMessage.success(t('common.deleted'));
     await loadList();
   } catch (e: any) {
-    if (e !== 'cancel') ElMessage.error(e?.message || 'Delete failed');
+    if (e !== 'cancel') ElMessage.error(e?.message || t('dataMgmt.qyDeleteFail'));
   }
 }
 

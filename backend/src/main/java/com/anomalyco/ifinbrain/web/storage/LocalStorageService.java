@@ -31,15 +31,25 @@ public class LocalStorageService implements StorageService {
         return root;
     }
 
+    /**
+     * 把 key 解析成 root 内的绝对路径并校验不越界。
+     * 所有公开方法（put/get/delete/exists/ensurePrefix/deletePrefix/listFolders）必须走这里，
+     * 避免单个方法漏校验导致路径穿越（review L4 / M5）。
+     */
+    private Path resolveSafe(String key) {
+        Path p = root().resolve(key).normalize();
+        if (!p.startsWith(root())) {
+            throw new SecurityException("Invalid storage key (path traversal): " + key);
+        }
+        return p;
+    }
+
     @Override
     public String type() { return "local"; }
 
     @Override
     public void put(String key, InputStream in, long size, String contentType) {
-        Path target = root().resolve(key).normalize();
-        if (!target.startsWith(root())) {
-            throw new SecurityException("Invalid storage key: " + key);
-        }
+        Path target = resolveSafe(key);
         try {
             Files.createDirectories(target.getParent());
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
@@ -51,7 +61,7 @@ public class LocalStorageService implements StorageService {
     @Override
     public InputStream get(String key) {
         try {
-            return Files.newInputStream(root().resolve(key));
+            return Files.newInputStream(resolveSafe(key));
         } catch (Exception ex) {
             throw new RuntimeException("Local storage get failed: " + key, ex);
         }
@@ -60,7 +70,7 @@ public class LocalStorageService implements StorageService {
     @Override
     public void delete(String key) {
         try {
-            Files.deleteIfExists(root().resolve(key));
+            Files.deleteIfExists(resolveSafe(key));
         } catch (Exception ex) {
             log.warn("Local delete failed: {}", key, ex);
         }
@@ -68,7 +78,7 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public boolean exists(String key) {
-        return Files.exists(root().resolve(key));
+        return Files.exists(resolveSafe(key));
     }
 
     @Override
@@ -79,10 +89,7 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public void ensurePrefix(String prefix) {
-        Path target = root().resolve(prefix).normalize();
-        if (!target.startsWith(root())) {
-            throw new SecurityException("Invalid storage prefix: " + prefix);
-        }
+        Path target = resolveSafe(prefix);
         try {
             Files.createDirectories(target);
             // 放一个 0 字节 ".folder" 标记文件 —— 用与 S3 placeholder 同等的语义
@@ -99,10 +106,7 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public void deletePrefix(String prefix) {
-        Path target = root().resolve(prefix).normalize();
-        if (!target.startsWith(root())) {
-            throw new SecurityException("Invalid storage prefix: " + prefix);
-        }
+        Path target = resolveSafe(prefix);
         if (!Files.exists(target)) return;
         // 安全检查：目录树下还有任何"文件"吗？（空子目录允许，是上传自动创建的空骨架）
         try (var stream = Files.walk(target)) {
@@ -134,10 +138,7 @@ public class LocalStorageService implements StorageService {
      */
     @Override
     public List<String> listFolders(String prefix) {
-        Path target = root().resolve(prefix).normalize();
-        if (!target.startsWith(root())) {
-            throw new SecurityException("Invalid storage prefix: " + prefix);
-        }
+        Path target = resolveSafe(prefix);
         if (!Files.exists(target)) return List.of();
         try (var stream = Files.list(target)) {
             return stream

@@ -20,6 +20,12 @@ import java.util.Base64;
  *
  * 输出格式：v1:{base64(nonce 12B || ciphertext+tag)}，nonce 每次随机。
  * 主密钥来自 ifinbrain.security.master-key（>= 32 字节，启动期校验）。
+ *
+ * 解密兼容策略（迁移期开关）：
+ *  - 默认（allowLegacyPlaintext=true）：非 v1: 前缀按明文返回。**仅**用于一次性迁移。
+ *  - 关闭（allowLegacyPlaintext=false）：非 v1: 前缀抛异常，避免任何写入路径忘了 encrypt 时
+ *    明文密钥可被静默读取。
+ *  生产环境务必显式置 false（application.yml: ifinbrain.security.allow-legacy-plaintext=false）。
  */
 @Component
 @RequiredArgsConstructor
@@ -85,8 +91,14 @@ public class CryptoUtil {
     public String decrypt(String token) {
         if (token == null || token.isEmpty()) return null;
         if (!token.startsWith(VERSION + ":")) {
-            // 兼容未加密的旧值（明文），按原文返回（用于一次性迁移期）
-            return token;
+            if (props.getSecurity().isAllowLegacyPlaintext()) {
+                // 兼容未加密的旧值（明文），按原文返回（用于一次性迁移期）。
+                // ⚠️ 迁移期结束后必须把 allow-legacy-plaintext 设 false，否则任何写入路径
+                // 漏 encrypt 都会让明文密钥被静默接受（review M17）。
+                return token;
+            }
+            throw new BizException(500,
+                    "密文格式非法（缺 v1: 前缀）且 allow-legacy-plaintext=false —— 拒绝明文直通");
         }
         try {
             byte[] all = Base64.getDecoder().decode(token.substring(VERSION.length() + 1));

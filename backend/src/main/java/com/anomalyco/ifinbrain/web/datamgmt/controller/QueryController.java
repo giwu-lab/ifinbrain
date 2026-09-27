@@ -13,11 +13,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.BufferedWriter;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
@@ -120,7 +122,7 @@ public class QueryController {
         QueryService.Prepared p = queryService.prepareForRun(id);
         String fname = sanitize(p.query().getName()) + "-" + LocalDate.now() + ".csv";
         resp.setContentType("text/csv; charset=utf-8");
-        resp.setHeader("Content-Disposition", "attachment; filename=\"" + fname + "\"");
+        setContentDisposition(resp, fname);
         resp.setCharacterEncoding("UTF-8");
 
         try (OutputStream os = resp.getOutputStream();
@@ -158,7 +160,7 @@ public class QueryController {
         QueryService.Prepared p = queryService.prepareForRun(id);
         String fname = sanitize(p.query().getName()) + "-" + LocalDate.now() + ".xlsx";
         resp.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        resp.setHeader("Content-Disposition", "attachment; filename=\"" + fname + "\"");
+        setContentDisposition(resp, fname);
 
         SXSSFWorkbook wb = new SXSSFWorkbook(100);
         try {
@@ -191,9 +193,35 @@ public class QueryController {
         }
     }
 
-    /** 文件名 sanitize：去掉路径分隔符与可疑字符 */
+    /**
+     * 文件名 sanitize：
+     *  - 去掉路径分隔符与 Windows 保留字符
+     *  - 去掉控制字符（含 \r\n —— 防 HTTP header 注入）
+     *  - 保留中文/Unicode 字母数字
+     */
     private static String sanitize(String name) {
         if (name == null || name.isBlank()) return "query";
-        return name.replaceAll("[\\\\/:*?\"<>|\\s]+", "_");
+        String s = name;
+        // 控制字符：除 tab 外全去掉（含 \r\n，避免 HTTP header 注入）
+        s = s.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]", "");
+        // Windows 保留字符 + 路径分隔符
+        s = s.replaceAll("[\\\\/:*?\"<>|]", "_");
+        // 空白（用 _ 替，避免后续 split 出空段）
+        s = s.replaceAll("\\s+", "_");
+        return s;
+    }
+
+    /**
+     * Content-Disposition 的 filename —— 双保险：sanitize 砍可疑字符 + UTF-8 encode。
+     * 同时返回 ASCII fallback（空时回 "query"）和 RFC 6266 filename* 给支持它的浏览器。
+     * 旧浏览器（如 IE）只看 ASCII；现代浏览器优先用 filename*。
+     */
+    private static void setContentDisposition(HttpServletResponse resp, String fname) {
+        // ASCII fallback —— 把非 ASCII 字符替换为 _, 确保旧客户端不踩 UTF-8 错误
+        String ascii = fname.replaceAll("[^\\x20-\\x7E]", "_");
+        if (ascii.isBlank()) ascii = "query";
+        String encoded = URLEncoder.encode(fname, StandardCharsets.UTF_8);
+        resp.setHeader(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"" + ascii + "\"; filename*=UTF-8''" + encoded);
     }
 }

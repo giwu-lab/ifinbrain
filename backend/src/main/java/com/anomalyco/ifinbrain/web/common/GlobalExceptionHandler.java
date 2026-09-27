@@ -48,10 +48,15 @@ public class GlobalExceptionHandler {
         int sc = ex.statusCode();
         String code = ex.awsErrorDetails() != null ? ex.awsErrorDetails().errorCode() : "";
         String msg;
-        if (sc == 403 || "InvalidAccessKeyId".equals(code) || "SignatureDoesNotMatch".equals(code) || "AccessDenied".equals(code)) {
+        // 注意：必须先看 awsCode 再看 sc —— 因为 NoSuchKey / NoSuchBucket 都是 404，
+        // 但含义完全不同（文件丢失 vs bucket 不存在），不能让 status code 短路掉 code。
+        if ("InvalidAccessKeyId".equals(code) || "SignatureDoesNotMatch".equals(code)
+                || "AccessDenied".equals(code) || sc == 403) {
             msg = "S3 访问被拒绝（accessKey / secretKey 无效或权限不足）。请到「系统设置 → 存储」检查 S3 配置，或临时切换为 local 存储。";
-        } else if (sc == 404 || "NoSuchBucket".equals(code)) {
+        } else if ("NoSuchBucket".equals(code)) {
             msg = "S3 bucket 不存在或区域不匹配。请到「系统设置 → 存储」核对 endpoint / bucket / region。";
+        } else if ("NoSuchKey".equals(code)) {
+            msg = "S3 文件不存在。可能因存储切换 / 清理 / 手动删除而丢失。";
         } else {
             msg = "S3 调用失败 [" + sc + " " + code + "]：" + ex.getMessage();
         }
@@ -89,6 +94,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<Void>> unknown(Exception ex) {
         log.error("Unhandled exception", ex);
-        return ResponseEntity.ok(Result.fail(500, "服务器内部错误: " + ex.getMessage()));
+        // 注意：只回固定文案给客户端，不回 ex.getMessage() —— 避免泄漏 SQL/路径/堆栈片段给前端。
+        // 详细异常已写入服务端 log（见上）。
+        return ResponseEntity.ok(Result.fail(500, "服务器内部错误"));
     }
 }

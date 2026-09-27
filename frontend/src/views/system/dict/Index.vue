@@ -56,20 +56,23 @@
                 <el-tag size="small" effect="plain" class="tree-code">{{ data.code }}</el-tag>
                 <span class="tree-count">{{ data.itemCount ?? 0 }}</span>
                 <span class="tree-actions" v-if="auth.hasPerm('dict:update') || auth.hasPerm('dict:delete')">
-                  <el-button
-                    v-if="auth.hasPerm('dict:update')"
-                    size="small" link type="primary"
-                    @click.stop="onEditType(data)"
-                  >{{ t('common.edit') }}</el-button>
-                  <el-popconfirm
-                    v-if="auth.hasPerm('dict:delete') && data.children?.length"
-                    :title="t('dict.confirmDeleteType', { name: data.name })"
-                    @confirm="onDeleteType(data)"
-                  >
-                    <template #reference>
-                      <el-button size="small" link type="danger" @click.stop>{{ t('common.delete') }}</el-button>
+                  <!-- 编辑：图标直显 -->
+                  <el-tooltip v-if="auth.hasPerm('dict:update')" :content="t('common.edit')" placement="top">
+                    <el-button size="small" link :icon="Edit" @click.stop="onEditType(data)" />
+                  </el-tooltip>
+                  <!-- 删除：保留在 ··· 下拉（仅对有子条目的 type 显示 —— 空 type 不让删） -->
+                  <el-dropdown v-if="auth.hasPerm('dict:delete') && data.children?.length" trigger="click" @command.stop="(cmd: string) => onTypeCmd(cmd, data)">
+                    <el-button :icon="MoreFilled" size="small" link />
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="delete" divided>
+                          <span class="danger-text">
+                            <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                          </span>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
                     </template>
-                  </el-popconfirm>
+                  </el-dropdown>
                 </span>
               </span>
             </template>
@@ -135,21 +138,25 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column :label="t('common.actions')" width="160" fixed="right">
+            <el-table-column :label="t('common.actions')" width="120" align="center" fixed="right">
               <template #default="{ row }">
-                <el-button
-                  v-if="auth.hasPerm('dict:update')"
-                  size="small" link type="primary" @click="onEditItem(row)"
-                >{{ t('common.edit') }}</el-button>
-                <el-popconfirm
-                  v-if="auth.hasPerm('dict:delete')"
-                  :title="t('dict.confirmDeleteItem', { code: row.code })"
-                  @confirm="onDeleteItem(row)"
-                >
-                  <template #reference>
-                    <el-button size="small" link type="danger">{{ t('common.delete') }}</el-button>
+                <!-- 编辑：图标直显 -->
+                <el-tooltip v-if="auth.hasPerm('dict:update')" :content="t('common.edit')" placement="top">
+                  <el-button size="small" link :icon="Edit" @click="onEditItem(row)" />
+                </el-tooltip>
+                <!-- 删除：保留在 ··· 下拉 -->
+                <el-dropdown v-if="auth.hasPerm('dict:delete')" trigger="click" @command="(cmd: string) => onItemCmd(cmd, row)">
+                  <el-button :icon="MoreFilled" size="small" link />
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="delete" divided>
+                        <span class="danger-text">
+                          <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                        </span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
                   </template>
-                </el-popconfirm>
+                </el-dropdown>
               </template>
             </el-table-column>
           </el-table>
@@ -274,6 +281,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Plus, Refresh, Search, Folder, Document,
   ArrowDown, ArrowUp, UploadFilled, Download,
+  Edit, Delete, MoreFilled,
   type UploadFile, type UploadInstance,
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
@@ -445,6 +453,20 @@ async function onDeleteType(row: DictType) {
   }
 }
 
+/** 字典类型树 ··· 下拉菜单统一入口 */
+async function onTypeCmd(cmd: string, row: DictType) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('dict.confirmDeleteType', { name: row.name }),
+        t('common.confirmDelete'),
+        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
+      );
+      await onDeleteType(row);
+    } catch { /* 用户取消 */ }
+  }
+}
+
 function resetItemForm() {
   itemForm.id = undefined;
   itemForm.code = ''; itemForm.label = ''; itemForm.value = '';
@@ -506,6 +528,20 @@ async function onDeleteItem(row: DictItem) {
     await loadTypes();
   } catch (e) {
     ElMessage.error((e instanceof Error ? e.message : String(e)));
+  }
+}
+
+/** ··· 下拉菜单统一入口 */
+async function onItemCmd(cmd: string, row: DictItem) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('dict.confirmDeleteItem', { code: row.code }),
+        t('common.confirmDelete'),
+        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
+      );
+      await onDeleteItem(row);
+    } catch { /* 用户取消 */ }
   }
 }
 

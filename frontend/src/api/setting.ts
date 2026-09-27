@@ -10,6 +10,15 @@ export interface StorageConfig {
     accessKey: string;
     secretKey: string;
     pathStyle: boolean;
+    /**
+     * Access Key 真实状态：missing / ok / failed
+     *  - missing: 未存
+     *  - ok: 已存且能解密（accessKey="********"）
+     *  - failed: 已存但当前主密钥无法解密（accessKey=""）— 通常是密钥轮换后未重新填写
+     */
+    accessKeyStatus?: 'missing' | 'ok' | 'failed';
+    /** Secret Key 真实状态：missing / ok / failed。同上。 */
+    secretKeyStatus?: 'missing' | 'ok' | 'failed';
   };
 }
 

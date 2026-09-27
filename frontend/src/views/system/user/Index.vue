@@ -72,26 +72,25 @@
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.actions')" width="180" fixed="right">
+        <el-table-column :label="t('common.actions')" width="120" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-if="auth.hasPerm('system:user:update')"
-              size="small"
-              link
-              type="primary"
-              @click="openEdit(row as UserItem)"
-            >
-              {{ t('common.edit') }}
-            </el-button>
-            <el-popconfirm
-              v-if="auth.hasPerm('system:user:delete')"
-              :title="t('system.confirmDeleteUser')"
-              @confirm="remove(row as UserItem)"
-            >
-              <template #reference>
-                <el-button size="small" link type="danger">{{ t('common.delete') }}</el-button>
+            <!-- 编辑：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('system:user:update')" :content="t('common.edit')" placement="top">
+              <el-button size="small" link :icon="Edit" @click="openEdit(row as UserItem)" />
+            </el-tooltip>
+            <!-- 删除：保留在 ··· 下拉 -->
+            <el-dropdown v-if="auth.hasPerm('system:user:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row as UserItem)">
+              <el-button :icon="MoreFilled" size="small" link />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="delete" divided>
+                    <span class="danger-text">
+                      <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                    </span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
               </template>
-            </el-popconfirm>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -162,8 +161,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { Plus, Search } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
+import { Plus, Search, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { userApi, roleApi, type UserItem, type RoleItem } from '@/api/system';
 
@@ -245,6 +244,20 @@ async function remove(row: UserItem) {
   await userApi.remove(row.id);
   ElMessage.success(t('common.deleted'));
   reload();
+}
+
+/** ··· 下拉菜单统一入口 */
+async function onCmd(cmd: string, row: UserItem) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('system.confirmDeleteUser'),
+        t('common.confirmDelete'),
+        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
+      );
+      await remove(row);
+    } catch { /* 用户取消 */ }
+  }
 }
 
 onMounted(async () => {

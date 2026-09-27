@@ -89,10 +89,25 @@
           <el-table-column :label="t('dict.i18nColUpdatedAt')" prop="updatedAt" min-width="160">
             <template #default="{ row }">{{ formatTime(row.updatedAt) }}</template>
           </el-table-column>
-          <el-table-column :label="t('common.actions')" width="160" fixed="right" v-if="auth.hasPerm('i18n:update') || auth.hasPerm('i18n:delete')">
+          <el-table-column :label="t('common.actions')" width="120" align="center" fixed="right" v-if="auth.hasPerm('i18n:update') || auth.hasPerm('i18n:delete')">
             <template #default="{ row }">
-              <el-button size="small" link type="primary" @click="openEdit(row)" v-if="auth.hasPerm('i18n:update')">{{ t('common.edit') }}</el-button>
-              <el-button size="small" link type="danger" @click="onDelete(row)" v-if="auth.hasPerm('i18n:delete')">{{ t('common.delete') }}</el-button>
+              <!-- 编辑：图标直显 -->
+              <el-tooltip v-if="auth.hasPerm('i18n:update')" :content="t('common.edit')" placement="top">
+                <el-button size="small" link :icon="Edit" @click="openEdit(row)" />
+              </el-tooltip>
+              <!-- 删除：保留在 ··· 下拉 -->
+              <el-dropdown v-if="auth.hasPerm('i18n:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row)">
+                <el-button :icon="MoreFilled" size="small" link />
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="delete" divided>
+                      <span class="danger-text">
+                        <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                      </span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </template>
           </el-table-column>
           <template #empty>
@@ -208,6 +223,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Plus, Refresh, RefreshLeft, Search, Download, UploadFilled, MagicStick,
+  Edit, Delete, MoreFilled,
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { i18nApi, type I18nMessage } from '@/api/i18n';
@@ -309,18 +325,26 @@ async function submitEdit() {
 
 async function onDelete(row: I18nMessage) {
   try {
-    await ElMessageBox.confirm(
-      t('dict.i18nDeleteConfirm', { ns: row.namespace, code: row.code }),
-      t('common.confirmTitle'),
-      { type: 'warning' },
-    );
     await i18nApi.delete(row.namespace, row.code);
     ElMessage.success(t('common.deleteSuccess'));
     await Promise.all([i18nStore.refresh(), i18nStore.refreshMeta()]);
     await loadItems(row.namespace);
   } catch (e: any) {
-    if (e === 'cancel' || e?.message === 'cancel') return;
     ElMessage.error(e?.message || String(e));
+  }
+}
+
+/** ··· 下拉菜单统一入口 */
+async function onCmd(cmd: string, row: I18nMessage) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('dict.i18nDeleteConfirm', { ns: row.namespace, code: row.code }),
+        t('common.confirmDelete'),
+        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
+      );
+      await onDelete(row);
+    } catch { /* 用户取消 */ }
   }
 }
 

@@ -24,6 +24,10 @@ public class DocumentCategoryDto {
     /** 该类目下档案数（status=1），由 service 层填充。0 表示无档案。 */
     private Long fileCount;
 
+    /** 类目权限码前缀，如 documents:cw —— 4 个 verb 由 service 自动补全。
+     *  用于前端授权对话框副标题展示。 */
+    private String permissionCode;
+
     public static DocumentCategoryDto fromEntity(DocumentCategory e) {
         return DocumentCategoryDto.builder()
                 .id(e.getId())
@@ -36,6 +40,7 @@ public class DocumentCategoryDto {
                 .createdBy(e.getCreatedBy())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
+                .permissionCode("documents:" + e.getSlug())
                 .build();
     }
 

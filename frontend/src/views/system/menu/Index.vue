@@ -90,35 +90,29 @@
             />
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.actions')" width="240" fixed="right">
+        <el-table-column :label="t('common.actions')" width="160" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-if="auth.hasPerm('system:menu:create')"
-              size="small"
-              link
-              type="primary"
-              @click="openCreate((row as MenuItem).id)"
-            >
-              + {{ t('system.newMenu') }}
-            </el-button>
-            <el-button
-              v-if="auth.hasPerm('system:menu:update')"
-              size="small"
-              link
-              type="primary"
-              @click="openEdit(row as MenuItem)"
-            >
-              {{ t('common.edit') }}
-            </el-button>
-            <el-popconfirm
-              v-if="auth.hasPerm('system:menu:delete')"
-              :title="t('system.confirmDeleteMenu')"
-              @confirm="remove(row as MenuItem)"
-            >
-              <template #reference>
-                <el-button size="small" link type="danger">{{ t('common.delete') }}</el-button>
+            <!-- 新增子菜单：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('system:menu:create')" :content="t('system.newMenu')" placement="top">
+              <el-button size="small" link :icon="Plus" @click="openCreate((row as MenuItem).id)" />
+            </el-tooltip>
+            <!-- 编辑：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('system:menu:update')" :content="t('common.edit')" placement="top">
+              <el-button size="small" link :icon="Edit" @click="openEdit(row as MenuItem)" />
+            </el-tooltip>
+            <!-- 删除：保留在 ··· 下拉 -->
+            <el-dropdown v-if="auth.hasPerm('system:menu:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row as MenuItem)">
+              <el-button :icon="MoreFilled" size="small" link />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="delete" divided>
+                    <span class="danger-text">
+                      <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                    </span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
               </template>
-            </el-popconfirm>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -196,8 +190,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage, type FormInstance } from 'element-plus';
-import { Plus, ArrowDown, ArrowRight } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
+import { Plus, ArrowDown, ArrowRight, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
 import * as ElIcons from '@element-plus/icons-vue';
 import IconPicker from '@/components/IconPicker.vue';
 import PermissionSelect from '@/components/PermissionSelect.vue';
@@ -296,6 +290,20 @@ async function remove(row: MenuItem) {
   await menuApi.remove(row.id);
   ElMessage.success(t('common.deleted'));
   reload();
+}
+
+/** ··· 下拉菜单统一入口 */
+async function onCmd(cmd: string, row: MenuItem) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('system.confirmDeleteMenu'),
+        t('common.confirmDelete'),
+        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
+      );
+      await remove(row);
+    } catch { /* 用户取消 */ }
+  }
 }
 
 onMounted(reload);

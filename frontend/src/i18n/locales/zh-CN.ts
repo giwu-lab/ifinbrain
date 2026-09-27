@@ -13,6 +13,8 @@ export default {
     reload: '刷新',
     enabled: '启用',
     disabled: '禁用',
+    langSwitchedZh: '已切换到中文',
+    langSwitchedEn: 'Switched to English',
     actions: '操作',
     status: '状态',
     welcome: '欢迎',
@@ -23,6 +25,10 @@ export default {
     required: '不能为空',
     path: '路径',
     popupBlocked: '浏览器拦截了新窗口，请允许弹窗后重试',
+    confirmDelete: '确认删除',
+    confirmTitle: '请确认',
+    download: '下载',
+    preview: '预览',
   },
 
   login: {
@@ -33,6 +39,7 @@ export default {
     usernamePlaceholder: 'admin',
     passwordPlaceholder: 'admin 默认密码',
     submit: '登录',
+    brandDesc: '智能识别 · 多存储 · 多角色权限',
   },
 
   layout: {
@@ -155,6 +162,7 @@ export default {
     colFormat: '文件格式',
     colCreatedDate: '创建日期',
     deleteGroupConfirm: '此发票号共 {n} 条记录，确认全部删除？',
+    deletedWithMissing: '删除成功，但有 {n} 个文件未能从存储中删除（详见后端日志）',
     previewFailOfd: 'OFD 格式浏览器暂不支持预览，将下载文件',
 
     blockErrTitle: '存在识别失败的文件',
@@ -368,6 +376,7 @@ export default {
     editMenuTitle: '编辑菜单',
     newMenuTitle: '新增菜单',
     confirmDeleteMenu: '确定要删除该菜单吗？',
+    roleAdminTag: '管理员',
 
     storageTypeLabel: '存储类型',
     storageTypeLocal: '本地磁盘',
@@ -381,6 +390,17 @@ export default {
     s3AccessKeyLabel: 'Access Key',
     s3SecretKeyLabel: 'Secret Key',
     s3PathStyleLabel: '路径模式',
+    s3AccessKeyPlaceholder: '输入新的 Access Key',
+    s3AccessKeyKeepPlaceholder: '留空表示不修改（已配置）',
+    s3AccessKeyConfigured: '已配置',
+    s3AccessKeyChange: '修改',
+    s3AccessKeyFailed: '密钥失效',
+    s3SecretKeyPlaceholder: '输入新的 Secret Key',
+    s3SecretKeyKeepPlaceholder: '留空表示不修改（已配置）',
+    s3SecretKeyConfigured: '已配置',
+    s3SecretKeyChange: '修改',
+    s3SecretKeyFailed: '密钥失效',
+    s3SecretFailedHint: '主密钥已轮换，原 Access Key / Secret Key 无法解密，请重新填写后保存。',
     saved: '保存成功，下次上传将使用 {type}',
 
     // 解析 API（取代旧 ocr.* key， 通用性配置）
@@ -554,12 +574,21 @@ export default {
     qyLastRunFail: '失败',
     qyNeverRun: '未运行',
     qyLoadingArgs: '加载中…',
+    qyStatusDisabled: '禁用',
+    qyRelTimeJust: '刚刚',
+    qyRelTimeMin: '{n} 分钟前',
+    qyRelTimeHour: '{n} 小时前',
+    qyRelTimeDay: '{n} 天前',
+    qyUnitRow: '行',
+    qyDetailFail: '保存失败',
 
     // 详情页（Metabase 风格）
     qyDetailNamePh: '查询名',
     qyDetailSave: '保存',
     qyDetailDuplicate: '复制',
     qyDetailDuplicated: '已复制',
+    qyDetailDuplicatedFail: '复制失败',
+    qyDeleteFail: '删除失败',
     qyDetailRun: '运行',
     qyDetailDatasource: '数据源',
     qyDetailManage: '管理数据源',
@@ -746,5 +775,58 @@ export default {
     breadcrumbRoot: '根目录',
     folderOpen: '打开文件夹',
     emptyFolder: '此文件夹为空',
+    noPermTitle: '权限不足',
+    noPermDesc: '当前角色没有此类的查看权限，请联系管理员授予「{perm}」后重试',
+
+    /* 类目授权 */
+    colAuth: '权限',
+    authDialogTitle: '类目授权：{name}',
+    authCodeLabel: '权限码前缀',
+    authRoleHint: '勾选即授予对应权限（admin 角色 4 项权限始终保留，不可取消）',
+    authSelectAll: '全选',
+    authSaved: '授权已保存',
+    authLoadFailed: '授权加载失败',
+
+    /* 文件预览 */
+    previewLoading: '正在加载预览...',
+    previewError: '预览加载失败',
+    previewPdfPrev: '上一页',
+    previewPdfNext: '下一页',
+    previewPdfFitWidth: '适合宽度',
+    previewPdfFitPage: '适合页面',
+    previewUnsupported: '此文件类型暂不支持在线预览',
+    previewDownloadHint: '请下载后用本地应用查看',
+    previewDownloadBtn: '下载查看',
+    previewCopied: '复制',
+    previewCopyFail: '复制失败',
+    previewCopySuccess: '已复制到剪贴板',
+    previewZoomIn: '放大',
+    previewZoomOut: '缩小',
+    previewSearchBtn: '查找',
+    previewSearchPlaceholder: '输入搜索文本',
+    previewPdfEncrypted: 'PDF 已加密 / 需要密码',
+    previewSearchNoMatch: '未找到匹配',
+    previewXlsxEmpty: '该 sheet 无数据',
+
+    /* 类目授权列名（view/upload/update/delete） */
+    perm: {
+      view: '查看',
+      upload: '上传',
+      update: '修改',
+      delete: '删除',
+    },
+  },
+
+  iconPicker: {
+    empty: '没有匹配的图标',
+    loading: '加载中…',
+    selected: '已选：',
+    placeholder: '请选择图标',
+  },
+
+  permSelector: {
+    placeholder: '选择权限（可输入自定义码）',
+    typeMenu: '菜单',
+    typeButton: '按钮',
   },
 };

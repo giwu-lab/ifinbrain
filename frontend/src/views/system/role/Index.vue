@@ -30,31 +30,67 @@
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('system.colPermissions')" min-width="280">
+        <el-table-column :label="t('system.colPermissions')" min-width="320">
           <template #default="{ row }">
             <div class="perm-cluster">
               <div v-for="mod in groupedRolePerms(row as RoleItem)" :key="mod.name" class="perm-cluster-row">
                 <span class="mod-label">{{ t(`system.permModule.${mod.name}`, mod.name) }}</span>
-                <el-tag
-                  v-for="p in mod.perms.slice(0, 4)"
-                  :key="p.code"
-                  size="small"
-                  effect="plain"
-                  round
-                  type="success"
-                  class="perm-tag"
-                >
-                  {{ actionOf(p.code) }}
-                </el-tag>
-                <el-tag
-                  v-if="mod.perms.length > 4"
-                  size="small"
-                  effect="plain"
-                  round
-                  class="perm-tag"
-                >
-                  +{{ mod.perms.length - 4 }}
-                </el-tag>
+                <!-- 类目模块特殊处理：按类目细分组（财务部 / 销售部 ...），全局权限单独一行 -->
+                <template v-if="mod.name === 'documents'">
+                  <div v-if="globalDocsPerms(mod.perms).length" class="perm-cluster-sub">
+                    <el-tag
+                      v-for="p in globalDocsPerms(mod.perms)"
+                      :key="p.code"
+                      size="small"
+                      effect="plain"
+                      round
+                      type="success"
+                      class="perm-tag"
+                    >
+                      {{ actionOf(p.code) }}
+                    </el-tag>
+                  </div>
+                  <div
+                    v-for="cat in categoryPermGroups(mod.perms)"
+                    :key="cat.slug"
+                    class="perm-cluster-sub"
+                  >
+                    <span class="cat-label">{{ cat.categoryName }}</span>
+                    <el-tag
+                      v-for="p in cat.perms"
+                      :key="p.code"
+                      size="small"
+                      effect="plain"
+                      round
+                      class="perm-tag"
+                    >
+                      {{ actionOf(p.code) }}
+                    </el-tag>
+                  </div>
+                </template>
+                <!-- 其他模块：原有展示 -->
+                <template v-else>
+                  <el-tag
+                    v-for="p in mod.perms.slice(0, 4)"
+                    :key="p.code"
+                    size="small"
+                    effect="plain"
+                    round
+                    type="success"
+                    class="perm-tag"
+                  >
+                    {{ actionOf(p.code) }}
+                  </el-tag>
+                  <el-tag
+                    v-if="mod.perms.length > 4"
+                    size="small"
+                    effect="plain"
+                    round
+                    class="perm-tag"
+                  >
+                    +{{ mod.perms.length - 4 }}
+                  </el-tag>
+                </template>
               </div>
               <div v-if="(row as RoleItem).permissionCodes.length === 0" class="muted small">—</div>
             </div>
@@ -67,26 +103,25 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.actions')" width="180" fixed="right">
+        <el-table-column :label="t('common.actions')" width="120" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-if="auth.hasPerm('system:role:update')"
-              size="small"
-              link
-              type="primary"
-              @click="openEdit(row as RoleItem)"
-            >
-              {{ t('common.edit') }}
-            </el-button>
-            <el-popconfirm
-              v-if="auth.hasPerm('system:role:delete')"
-              :title="t('system.confirmDeleteRole')"
-              @confirm="remove(row as RoleItem)"
-            >
-              <template #reference>
-                <el-button size="small" link type="danger">{{ t('common.delete') }}</el-button>
+            <!-- 编辑：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('system:role:update')" :content="t('common.edit')" placement="top">
+              <el-button size="small" link :icon="Edit" @click="openEdit(row as RoleItem)" />
+            </el-tooltip>
+            <!-- 删除：保留在 ··· 下拉 -->
+            <el-dropdown v-if="auth.hasPerm('system:role:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row as RoleItem)">
+              <el-button :icon="MoreFilled" size="small" link />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="delete" divided>
+                    <span class="danger-text">
+                      <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                    </span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
               </template>
-            </el-popconfirm>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -157,8 +192,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { Plus } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
+import { Plus, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { roleApi, type RoleItem, type PermissionItem } from '@/api/system';
 import { groupByModule, actionOf, moduleOf } from '@/utils/permission';
@@ -218,6 +253,34 @@ function groupedRolePerms(row: RoleItem): { name: string; perms: PermissionItem[
   return groupByModule(items);
 }
 
+/**
+ * 类目模块的全局权限（如 documents:view / documents:upload）—— 这些是 2 段式 code。
+ * 由 DocumentCategoryService 创建的 4 个类目专属权限都是 3 段式 documents:{slug}:{verb}，归类目分组。
+ */
+function globalDocsPerms(perms: PermissionItem[]): PermissionItem[] {
+  return perms.filter(p => p.code.split(':').length === 2);
+}
+
+/**
+ * 类目权限分组：每个类目一行，展示该角色在该类目下的 4 个 verb。
+ * 类目显示名从 perm.name 字段提取（"财务部 类目查看" → "财务部"）；fallback 到 slug。
+ */
+function categoryPermGroups(perms: PermissionItem[]): { slug: string; categoryName: string; perms: PermissionItem[] }[] {
+  const cats = new Map<string, { slug: string; categoryName: string; perms: PermissionItem[] }>();
+  for (const p of perms) {
+    const parts = p.code.split(':');
+    if (parts.length !== 3 || parts[0] !== 'documents') continue;
+    const slug = parts[1];
+    if (!cats.has(slug)) {
+      const name = (p.name || '').replace(/类目(查看|上传|修改|删除)\s*$/, '').trim();
+      cats.set(slug, { slug, categoryName: name || slug, perms: [] });
+    }
+    cats.get(slug)!.perms.push(p);
+  }
+  // 排序：按 slug 字典序稳定；如需业务排序可在 service 端做
+  return Array.from(cats.values()).sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
 function openCreate() {
   dialog.mode = 'create'; dialog.title = t('system.newRoleTitle');
   Object.assign(form, { id: 0, code: '', name: '', remark: '', status: 1, permissionIds: [] });
@@ -253,6 +316,20 @@ async function remove(row: RoleItem) {
   await roleApi.remove(row.id);
   ElMessage.success(t('common.deleted'));
   reload();
+}
+
+/** ··· 下拉菜单统一入口 */
+async function onCmd(cmd: string, row: RoleItem) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('system.confirmDeleteRole'),
+        t('common.confirmDelete'),
+        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
+      );
+      await remove(row);
+    } catch { /* 用户取消 */ }
+  }
 }
 
 onMounted(async () => { await loadPerms(); await reload(); });
@@ -301,11 +378,24 @@ onMounted(async () => { await loadPerms(); await reload(); });
 
 .perm-cluster { display: flex; flex-direction: column; gap: 4px; line-height: 22px; }
 .perm-cluster-row {
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  display: flex; align-items: flex-start; gap: 6px; flex-wrap: wrap;
+}
+.perm-cluster-sub {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  margin-left: 4px;
+}
+.cat-label {
+  font-size: 11px; color: var(--color-text, #1a1a1a);
+  background: var(--color-primary-soft, #e8edff);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  margin-right: 2px;
 }
 .mod-label {
   font-size: 11px; color: var(--color-text-secondary, #6b6b65);
   min-width: 56px; font-weight: 500;
+  padding-top: 2px;
 }
 .perm-tag { font-family: 'SF Mono', Menlo, ui-monospace, monospace; }
 </style>

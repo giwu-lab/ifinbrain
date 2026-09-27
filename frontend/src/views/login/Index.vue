@@ -26,7 +26,7 @@
           </svg>
         </div>
         <h1 class="brand-title">{{ t('login.title') }}</h1>
-        <p class="brand-desc">智能识别 · 多存储 · 多角色权限</p>
+        <p class="brand-desc">{{ t('login.brandDesc') }}</p>
         <ul class="brand-features">
           <li><span class="dot"></span>批量上传 PDF/XML 发票</li>
           <li><span class="dot"></span>本地磁盘 / S3 兼容存储一键切换</li>

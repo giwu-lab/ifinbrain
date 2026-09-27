@@ -12,6 +12,8 @@ export default {
     reload: 'Reload',
     enabled: 'Enabled',
     disabled: 'Disabled',
+    langSwitchedZh: 'Switched to Chinese',
+    langSwitchedEn: 'Switched to English',
     actions: 'Actions',
     status: 'Status',
     welcome: 'Welcome',
@@ -22,6 +24,10 @@ export default {
     required: 'is required',
     path: 'Path',
     popupBlocked: 'Popup blocked by browser. Please allow popups and retry.',
+    confirmDelete: 'Confirm Delete',
+    confirmTitle: 'Please Confirm',
+    download: 'Download',
+    preview: 'Preview',
   },
 
   login: {
@@ -32,6 +38,7 @@ export default {
     usernamePlaceholder: 'admin',
     passwordPlaceholder: 'default password',
     submit: 'Login',
+    brandDesc: 'Smart OCR · Multi-storage · Role-based access',
   },
 
   layout: {
@@ -153,6 +160,7 @@ export default {
     colFormat: 'Format',
     colCreatedDate: 'Created Date',
     deleteGroupConfirm: 'This invoice has {n} record(s). Delete all?',
+    deletedWithMissing: 'Deleted, but {n} file(s) could not be removed from storage (see server logs)',
     previewFailOfd: 'OFD preview not supported by browser. File will be downloaded.',
 
     blockErrTitle: 'Recognition failed for some files',
@@ -366,6 +374,7 @@ export default {
     editMenuTitle: 'Edit Menu',
     newMenuTitle: 'New Menu',
     confirmDeleteMenu: 'Delete this menu?',
+    roleAdminTag: 'Admin',
 
     storageTypeLabel: 'Storage Type',
     storageTypeLocal: 'Local Disk',
@@ -379,6 +388,17 @@ export default {
     s3AccessKeyLabel: 'Access Key',
     s3SecretKeyLabel: 'Secret Key',
     s3PathStyleLabel: 'Path Style',
+    s3AccessKeyPlaceholder: 'Enter new Access Key',
+    s3AccessKeyKeepPlaceholder: 'Leave blank to keep existing key',
+    s3AccessKeyConfigured: 'Configured',
+    s3AccessKeyChange: 'Change',
+    s3AccessKeyFailed: 'Invalid',
+    s3SecretKeyPlaceholder: 'Enter new Secret Key',
+    s3SecretKeyKeepPlaceholder: 'Leave blank to keep existing key',
+    s3SecretKeyConfigured: 'Configured',
+    s3SecretKeyChange: 'Change',
+    s3SecretKeyFailed: 'Invalid',
+    s3SecretFailedHint: 'Master key was rotated; the stored Access Key / Secret Key cannot be decrypted. Please re-enter and save.',
     saved: 'Saved. New uploads will use {type}',
 
     // Parser API (replaces old ocr.* keys, fully configurable)
@@ -542,11 +562,20 @@ export default {
     qyLastRunFail: 'Failed',
     qyNeverRun: 'Never',
     qyLoadingArgs: 'Loading…',
+    qyStatusDisabled: 'Disabled',
+    qyRelTimeJust: 'Just now',
+    qyRelTimeMin: '{n} min ago',
+    qyRelTimeHour: '{n} hr ago',
+    qyRelTimeDay: '{n} day ago',
+    qyUnitRow: 'rows',
+    qyDetailFail: 'Save failed',
 
     qyDetailNamePh: 'Query name',
     qyDetailSave: 'Save',
     qyDetailDuplicate: 'Duplicate',
     qyDetailDuplicated: 'Duplicated',
+    qyDetailDuplicatedFail: 'Duplicate failed',
+    qyDeleteFail: 'Delete failed',
     qyDetailRun: 'Run',
     qyDetailDatasource: 'Datasource',
     qyDetailManage: 'Manage',
@@ -730,5 +759,58 @@ export default {
     breadcrumbRoot: 'Root',
     folderOpen: 'Open folder',
     emptyFolder: 'This folder is empty',
+    noPermTitle: 'No Permission',
+    noPermDesc: 'Your role lacks the "{perm}" permission for this category. Contact your administrator.',
+
+    /* Category authorization */
+    colAuth: 'Permission',
+    authDialogTitle: 'Category Authorization: {name}',
+    authCodeLabel: 'Permission Code Prefix',
+    authRoleHint: 'Tick to grant the corresponding permission (admin role keeps all 4, cannot be unchecked)',
+    authSelectAll: 'All',
+    authSaved: 'Authorization saved',
+    authLoadFailed: 'Failed to load authorization',
+
+    /* File preview */
+    previewLoading: 'Loading preview...',
+    previewError: 'Preview failed',
+    previewPdfPrev: 'Previous',
+    previewPdfNext: 'Next',
+    previewPdfFitWidth: 'Fit Width',
+    previewPdfFitPage: 'Fit Page',
+    previewUnsupported: 'This file type cannot be previewed online',
+    previewDownloadHint: 'Please download and open with a local application',
+    previewDownloadBtn: 'Download to view',
+    previewCopied: 'Copy',
+    previewCopyFail: 'Copy failed',
+    previewCopySuccess: 'Copied to clipboard',
+    previewZoomIn: 'Zoom in',
+    previewZoomOut: 'Zoom out',
+    previewSearchBtn: 'Find',
+    previewSearchPlaceholder: 'Enter search text',
+    previewPdfEncrypted: 'PDF is encrypted / password required',
+    previewSearchNoMatch: 'No matches found',
+    previewXlsxEmpty: 'No data in this sheet',
+
+    /* Category authorization column names */
+    perm: {
+      view: 'View',
+      upload: 'Upload',
+      update: 'Update',
+      delete: 'Delete',
+    },
+  },
+
+  iconPicker: {
+    empty: 'No matching icons',
+    loading: 'Loading…',
+    selected: 'Selected:',
+    placeholder: 'Choose an icon',
+  },
+
+  permSelector: {
+    placeholder: 'Select permission (custom code allowed)',
+    typeMenu: 'Menu',
+    typeButton: 'Button',
   },
 };

@@ -151,16 +151,16 @@ public class AuthService {
             node.setType(m.getType());
             nodeMap.put(m.getId(), node);
         }
-        // build tree
+        // build tree —— 孤儿菜单（父 DIR 被 SQL 过滤掉）直接丢弃，不提升为顶级
+        // 例：demo 没有类目级 view 时 Documents DIR 被隐藏，其子菜单 Category Settings 也不应单独浮出顶级
         List<MenuNode> roots = new ArrayList<>();
         for (MenuNode n : nodeMap.values()) {
             if (n.getParentId() == null || n.getParentId() == 0L) {
                 roots.add(n);
             } else if (nodeMap.containsKey(n.getParentId())) {
                 nodeMap.get(n.getParentId()).getChildren().add(n);
-            } else {
-                roots.add(n);
             }
+            // else: 父不在结果集（被 SQL 过滤）→ 丢弃，避免在 sidebar 出现游离菜单
         }
         // sort
         sortTree(roots);

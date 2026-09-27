@@ -15,6 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+
+import java.util.ArrayList;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -90,6 +92,25 @@ public class InvoiceController {
     public Result<Void> delete(@PathVariable Long id) {
         invoiceService.delete(id);
         return Result.ok();
+    }
+
+    /**
+     * 批量删除：对应发票分组列表「一行多格式」场景，一次 HTTP 调用完成整组（含存储文件）。
+     * Body: { "ids": [1, 2, 3] }
+     * 返回: { rowsDeleted, filesDeleted, filesMissing, skipped, missing[] }
+     */
+    @PostMapping("/batch-delete")
+    public Result<Map<String, Object>> batchDelete(@RequestBody Map<String, Object> body) {
+        Object raw = body == null ? null : body.get("ids");
+        List<Long> ids = new ArrayList<>();
+        if (raw instanceof java.util.Collection<?> col) {
+            for (Object o : col) {
+                if (o == null) continue;
+                try { ids.add(Long.parseLong(o.toString())); }
+                catch (NumberFormatException ignored) {}
+            }
+        }
+        return Result.ok(invoiceService.deleteBatch(ids));
     }
 
     /** 全库查重：返回按 (发票号, 文件格式) 分组的重复组。

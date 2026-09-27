@@ -19,7 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -36,6 +40,9 @@ public class DocumentService {
     /** storage key 顶层前缀。所有档案共享此根。 */
     private static final String KEY_PREFIX = "documents/";
 
+    /** 上传大小上限（与前端 el-upload 的 100MB 限制一致；review M7） */
+    private static final long MAX_UPLOAD_BYTES = 100L * 1024 * 1024;
+
     private final DocumentRecordRepository documentRepo;
     private final DocumentCategoryRepository categoryRepo;
     private final StorageSelector storage;
@@ -45,7 +52,8 @@ public class DocumentService {
 
     @Transactional(readOnly = true)
     public Page<DocumentDto> list(Long categoryId, int page, int size) {
-        perm.require("documents:view");
+        // 类目级 view —— 防止直接 URL 访问泄漏
+        requireCategoryPerm(categoryId, "view");
         if (page < 0) page = 0;
         if (size <= 0 || size > 200) size = 20;
         Pageable p = PageRequest.of(page, size);
@@ -55,10 +63,11 @@ public class DocumentService {
 
     @Transactional(readOnly = true)
     public DocumentDto detail(Long id) {
-        perm.require("documents:view");
-        return documentRepo.findById(id)
-                .map(DocumentDto::fromEntity)
+        DocumentRecord rec = documentRepo.findById(id)
                 .orElseThrow(() -> new BizException(404, "档案不存在"));
+        // 用档案所属类目校验
+        requireCategoryPerm(rec.getCategoryId(), "view");
+        return DocumentDto.fromEntity(rec);
     }
 
     // ===================== 上传 =====================
@@ -72,9 +81,14 @@ public class DocumentService {
      */
     @Transactional
     public DocumentDto upload(Long categoryId, MultipartFile file, String folderPath) {
-        perm.require("documents:upload");
         if (file == null || file.isEmpty()) {
             throw new BizException(400, "文件为空");
+        }
+        if (file.getSize() > MAX_UPLOAD_BYTES) {
+            // review M7：上传前显式 size 校验，防止大文件爆堆。
+            // 注意：依赖容器 spring.servlet.multipart.max-file-size 已更早拦截（默认 100MB），
+            // 这里加一道纵深防御。
+            throw new BizException(413, "文件超过大小限制");
         }
 
         DocumentCategory cat = categoryRepo.findById(categoryId)
@@ -82,19 +96,34 @@ public class DocumentService {
         if (cat.getStatus() == null || cat.getStatus() != 1) {
             throw new BizException(400, "类目已禁用");
         }
+        // 类目级 upload 权限
+        requireCategoryPerm(categoryId, "upload");
 
         String normalizedFolder = normalizeFolderPath(folderPath);
 
         String orig = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
         String mime = file.getContentType() == null ? "application/octet-stream" : file.getContentType();
 
-        byte[] data;
+        // review M7：用 DigestInputStream 流式算 SHA-256，并把内容写到临时文件
+        // （而非 file.getBytes() 整文件入堆）。
+        // storage.put 时从临时文件再读一次 → 整体内存占用与文件大小无关（除了少量 stream buffer）。
+        Path tmp = null;
         String sha;
+        long size;
         try {
-            data = file.getBytes();
-            sha = sha256Hex(data);
+            tmp = Files.createTempFile("doc-upload-", ".tmp");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            try (InputStream raw = file.getInputStream();
+                 DigestInputStream dis = new DigestInputStream(raw, md);
+                 OutputStream out = Files.newOutputStream(tmp)) {
+                dis.transferTo(out);
+            }
+            sha = HexFormat.of().formatHex(md.digest());
+            size = Files.size(tmp);
         } catch (Exception ex) {
-            throw new BizException(500, "读取上传文件失败: " + ex.getMessage());
+            // review M3：不回 ex.getMessage() 给客户端
+            if (tmp != null) try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
+            throw new BizException(500, "读取上传文件失败");
         }
 
         // 同 sha + 同目录 → 视为重复（同一文件可以放在不同目录）
@@ -102,11 +131,19 @@ public class DocumentService {
         Optional<DocumentRecord> dup = documentRepo
                 .findFirstBySha256AndStorageKeyStartingWith(sha, prefix);
         if (dup.isPresent()) {
+            // 重复：清理临时文件
+            try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
             throw new BizException(409,
                     "档案已存在（同一目录内已有相同内容的档案）: " + dup.get().getName());
         }
         String key = uniqueKey(prefix, orig);
-        storage.current().put(key, new ByteArrayInputStream(data), data.length, mime);
+        try (InputStream in = Files.newInputStream(tmp)) {
+            storage.current().put(key, in, size, mime);
+        } catch (Exception ex) {
+            throw new BizException(500, "保存到存储失败");
+        } finally {
+            try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
+        }
 
         DocumentRecord rec = DocumentRecord.builder()
                 .categoryId(categoryId)
@@ -114,7 +151,7 @@ public class DocumentService {
                 .storageKey(key)
                 .storageType(storage.current().type())
                 .originalFilename(orig)
-                .sizeBytes((long) data.length)
+                .sizeBytes(size)
                 .sha256(sha)
                 .mimeType(mime)
                 .uploaderId(perm.currentUserId())
@@ -124,7 +161,7 @@ public class DocumentService {
         rec = documentRepo.save(rec);
 
         log.info("[documents] uploaded id={} cat={} path={} key={} size={} sha={}",
-                rec.getId(), categoryId, normalizedFolder, key, data.length, sha.substring(0, 8));
+                rec.getId(), categoryId, normalizedFolder, key, size, sha.substring(0, 8));
         return DocumentDto.fromEntity(rec);
     }
 
@@ -164,7 +201,8 @@ public class DocumentService {
      */
     @Transactional(readOnly = true)
     public DocumentBrowseDto browse(Long categoryId, String folderPath) {
-        perm.require("documents:view");
+        // 类目级 view —— 防止直接 URL 访问泄漏
+        requireCategoryPerm(categoryId, "view");
         DocumentCategory cat = categoryRepo.findById(categoryId)
                 .orElseThrow(() -> new BizException(404, "类目不存在"));
         String normalizedFolder = normalizeFolderPath(folderPath);
@@ -205,9 +243,9 @@ public class DocumentService {
 
     @Transactional
     public DocumentDto rename(Long id, String newName) {
-        perm.require("documents:update");
         DocumentRecord rec = documentRepo.findById(id)
                 .orElseThrow(() -> new BizException(404, "档案不存在"));
+        requireCategoryPerm(rec.getCategoryId(), "update");
         String trimmed = newName.trim();
         if (trimmed.isEmpty()) {
             throw new BizException(400, "name 不能为空");
@@ -221,9 +259,9 @@ public class DocumentService {
 
     @Transactional
     public void delete(Long id) {
-        perm.require("documents:delete");
         DocumentRecord rec = documentRepo.findById(id)
                 .orElseThrow(() -> new BizException(404, "档案不存在"));
+        requireCategoryPerm(rec.getCategoryId(), "delete");
 
         // 先删 storage（失败不回滚 DB；记 warn 让用户感知）
         try {
@@ -248,12 +286,12 @@ public class DocumentService {
      */
     @Transactional
     public String createFolder(Long categoryId, String folderPath) {
-        perm.require("documents:upload");
         DocumentCategory cat = categoryRepo.findById(categoryId)
                 .orElseThrow(() -> new BizException(404, "类目不存在"));
         if (cat.getStatus() == null || cat.getStatus() != 1) {
             throw new BizException(400, "类目已禁用");
         }
+        requireCategoryPerm(categoryId, "upload");
 
         // 清理：去掉首尾 / 与多余空白
         String cleanPath = folderPath == null ? "" : folderPath.trim().replaceAll("^/+|/+$", "");
@@ -279,6 +317,26 @@ public class DocumentService {
         storage.current().ensurePrefix(fullPath);
         log.info("[documents] created folder category={} slug={} path={}", cat.getId(), cat.getSlug(), fullPath);
         return fullPath;
+    }
+
+    /**
+     * 类目级权限校验：按 categoryId 查 slug，再用 documents:{slug}:{verb} 校验。
+     * 必须先传 global perm（document:view 等）兜底，然后调这个查类目级 —— 否则用户连 Documents DIR 都看不到。
+     * 实际：本方法内已隐含对 documents:view 全局的"类目可见"判定（任何类目操作都得能 view 该类目）。
+     */
+    private void requireCategoryPerm(Long categoryId, String verb) {
+        if (categoryId == null) throw new BizException(400, "categoryId 不能为空");
+        // 先确认类目存在（status 由 DocumentCategoryService.delete 时的 unbindAndDeleteCategoryPerms 保证 perm 与 category 同步；
+        // 但下面仍判一次 status=1，给「类目禁用」更清晰的提示）
+        DocumentCategory cat = categoryRepo.findById(categoryId)
+                .orElseThrow(() -> new BizException(404, "类目不存在"));
+        if (cat.getStatus() == null || cat.getStatus() != 1) {
+            throw new BizException(400, "类目已禁用");
+        }
+        String permCode = "documents:" + cat.getSlug() + ":" + verb;
+        if (!perm.has(permCode)) {
+            throw new BizException(403, "无权访问该类目（" + permCode + "）");
+        }
     }
 
     // ===================== helpers =====================

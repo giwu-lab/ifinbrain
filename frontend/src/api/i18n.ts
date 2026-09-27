@@ -16,9 +16,9 @@ export interface I18nImportResult {
 }
 
 export const i18nApi = {
-  /** 全量快照：{ locale: nestedMap } — 给前端一次性注入 vue-i18n messages */
+  /** 全量快照：{ locale: nestedMap } — 给前端一次性注入 vue-i18n messages（启动时由 main.ts 预加载；无 i18n:view 的用户静默跳过） */
   messagesAll: () =>
-    http.get<unknown, Record<string, Record<string, any>>>('/system/i18n/messages/all'),
+    http.get<unknown, Record<string, Record<string, any>>>('/system/i18n/messages/all', { _silent403: true } as any),
 
   /** 单个命名空间下所有条目 */
   listByNamespace: (namespace: string) =>

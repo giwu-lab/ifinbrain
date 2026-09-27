@@ -6,6 +6,7 @@ import com.anomalyco.ifinbrain.web.entity.SysUser;
 import com.anomalyco.ifinbrain.web.entity.SysUserRole;
 import com.anomalyco.ifinbrain.web.repository.SysPermissionRepository;
 import com.anomalyco.ifinbrain.web.repository.SysRolePermRepository;
+import com.anomalyco.ifinbrain.web.repository.SysRoleRepository;
 import com.anomalyco.ifinbrain.web.repository.SysUserRepository;
 import com.anomalyco.ifinbrain.web.repository.SysUserRoleRepository;
 import com.anomalyco.ifinbrain.web.common.BizException;
@@ -24,6 +25,7 @@ public class AppUserDetailsService implements UserDetailsService {
 
     private final SysUserRepository userRepo;
     private final SysUserRoleRepository userRoleRepo;
+    private final SysRoleRepository roleRepo;
     private final SysRolePermRepository rolePermRepo;
     private final SysPermissionRepository permRepo;
 
@@ -37,7 +39,7 @@ public class AppUserDetailsService implements UserDetailsService {
         }
         List<Long> roleIds = userRoleRepo.findByUserId(user.getId()).stream()
                 .map(SysUserRole::getRoleId).toList();
-        List<SysRole> roles = roleIds.isEmpty() ? List.of() : List.of();
+        List<SysRole> roles = roleIds.isEmpty() ? List.of() : roleRepo.findByIdIn(roleIds);
         List<Long> permIds = roleIds.isEmpty() ? List.of() : rolePermRepo.findPermIdsByRoleIds(roleIds);
         List<SysPermission> perms = permIds.isEmpty() ? List.of() : permRepo.findByIdIn(permIds);
         return new AppUserDetails(user,

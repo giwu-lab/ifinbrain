@@ -18,6 +18,15 @@ public class iFinBrainProperties {
     public static class Security {
         /** 主密钥（>=32 bytes），用于 AES-256-GCM 加密 API Key。 */
         private String masterKey;
+        /**
+         * 是否允许 CryptoUtil.decrypt() 接受非 v1: 前缀的明文值。
+         * 仅用于一次性迁移期（review M17）；生产环境务必设 false。
+         * 默认 true 保持向后兼容；迁移完成后在 application.yml 显式关掉：
+         *   ifinbrain:
+         *     security:
+         *       allow-legacy-plaintext: false
+         */
+        private boolean allowLegacyPlaintext = true;
     }
 
     @Data

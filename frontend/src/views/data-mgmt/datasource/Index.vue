@@ -70,38 +70,37 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="t('common.actions')" width="180" fixed="right">
+        <el-table-column :label="t('common.actions')" width="160" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-if="auth.hasPerm('data:datasource:test')"
-              :icon="Connection"
-              size="small"
-              link
-              type="warning"
-              :loading="(row as Datasource).__testing"
-              :disabled="!(row as Datasource).status"
-              @click="testRow(row as Datasource)"
-            >
-              {{ t('dataMgmt.testBtn') }}
-            </el-button>
-            <el-button
-              v-if="auth.hasPerm('data:datasource:update')"
-              size="small"
-              link
-              type="primary"
-              @click="openEdit(row as Datasource)"
-            >
-              {{ t('common.edit') }}
-            </el-button>
-            <el-popconfirm
-              v-if="auth.hasPerm('data:datasource:delete')"
-              :title="t('dataMgmt.deleteConfirm', { name: (row as Datasource).name })"
-              @confirm="remove(row as Datasource)"
-            >
-              <template #reference>
-                <el-button size="small" link type="danger">{{ t('common.delete') }}</el-button>
+            <!-- 测试：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('data:datasource:test')" :content="t('dataMgmt.testBtn')" placement="top">
+              <el-button
+                :icon="Connection"
+                size="small"
+                link
+                type="warning"
+                :loading="(row as Datasource).__testing"
+                :disabled="!(row as Datasource).status"
+                @click="testRow(row as Datasource)"
+              />
+            </el-tooltip>
+            <!-- 编辑：图标直显 -->
+            <el-tooltip v-if="auth.hasPerm('data:datasource:update')" :content="t('common.edit')" placement="top">
+              <el-button size="small" link :icon="Edit" @click="openEdit(row as Datasource)" />
+            </el-tooltip>
+            <!-- 删除：保留在 ··· 下拉 -->
+            <el-dropdown v-if="auth.hasPerm('data:datasource:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row as Datasource)">
+              <el-button :icon="MoreFilled" size="small" link />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="delete" divided>
+                    <span class="danger-text">
+                      <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                    </span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
               </template>
-            </el-popconfirm>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -250,8 +249,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { CircleCheckFilled, Coin, Connection, Plus, WarningFilled } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
+import { CircleCheckFilled, Coin, Connection, Plus, WarningFilled, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { datasourceApi, type DbType, type Datasource } from '@/api/datasource';
 import TestResultCell from './TestResultCell.vue';
@@ -413,6 +412,20 @@ async function remove(row: Datasource) {
     await reload();
   } catch (e: any) {
     ElMessage.error(e?.message || String(e));
+  }
+}
+
+/** ··· 下拉菜单统一入口 */
+async function onCmd(cmd: string, row: Datasource) {
+  if (cmd === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('dataMgmt.deleteConfirm', { name: row.name }),
+        t('common.confirmDelete'),
+        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
+      );
+      await remove(row);
+    } catch { /* 用户取消 */ }
   }
 }
 

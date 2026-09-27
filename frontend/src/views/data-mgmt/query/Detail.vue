@@ -219,18 +219,16 @@ import { queryApi, type QueryItem, type QueryParamSchema, type QueryResult } fro
 import { datasourceApi, type DatasourceItem } from '@/api/datasource';
 import { http } from '@/api/http';
 
-// Monaco worker loaded from node_modules via Vite /@fs/ filesystem route.
-// (Vite 6 can't resolve bare-specifier ?worker imports from node_modules, so
-// we reference the file by absolute path through Vite's fs route.)
+// Monaco worker：dev 用裸 /@fs/ 路径（Vite 6.4 不支持 ?worker bare-specifier，
+// 参见 AGENTS.md §10.1 + §10.2 项目 dev-only）。
+// 路径走 utils/workers.ts 集中配置，可通过 VITE_MONACO_WORKER_URL 环境变量覆盖。
 import * as monaco from 'monaco-editor';
+import { MONACO_WORKER_URL } from '@/utils/workers';
 
 declare const self: { MonacoEnvironment?: any };
 
 self.MonacoEnvironment = {
-  getWorker: () => new Worker(
-    '/@fs/home/coder/workspace/ifinbrain/frontend/node_modules/monaco-editor/esm/vs/editor/editor.worker.js',
-    { type: 'module' }
-  )
+  getWorker: () => new Worker(MONACO_WORKER_URL, { type: 'module' })
 };
 
 // very minimal SQL token coloring via monarch — better than nothing
@@ -767,7 +765,14 @@ function exportAs(cmd: string) {
     XLSX.writeFile(wb, filename + '.xlsx');
   }
 }
-function csvEscape(v: string) { return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function csvEscape(v: string) {
+  // 防 CSV formula injection（review M19）：以 =, +, -, @, \t, \r 开头的值，
+  // Excel/LibreOffice 会把它当公式执行，可读取本地文件或发起 HTTP 请求。
+  // 在前面加一个单引号中和（Excel 仍按字符串显示；CSV 解析时 `'` 不影响语义）。
+  let safe = v;
+  if (/^[=+\-@\t\r]/.test(safe)) safe = "'" + safe;
+  return /[",\n]/.test(safe) ? '"' + safe.replace(/"/g, '""') + '"' : safe;
+}
 function downloadBlob(text: string, filename: string, type: string) {
   const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
@@ -795,12 +800,12 @@ function relTime(s: string) {
   if (!s) return '';
   const diff = Date.now() - new Date(s).getTime();
   const min = Math.floor(diff / 60_000);
-  if (min < 1) return '刚刚';
-  if (min < 60) return `${min} 分钟前`;
+  if (min < 1) return t('dataMgmt.qyRelTimeJust');
+  if (min < 60) return t('dataMgmt.qyRelTimeMin', { n: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} 小时前`;
+  if (hr < 24) return t('dataMgmt.qyRelTimeHour', { n: hr });
   const day = Math.floor(hr / 24);
-  return `${day} 天前`;
+  return t('dataMgmt.qyRelTimeDay', { n: day });
 }
 </script>
 

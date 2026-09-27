@@ -34,11 +34,8 @@
         <template v-for="m in auth.menus" :key="m.id">
           <el-sub-menu v-if="m.type === 'DIR'" :index="String(m.id)">
             <template #title>
-              <span
-                class="dir-title"
-                :class="{ clickable: !!dirClickPath(m) }"
-                @click.stop="onDirTitleClick(m, $event)"
-              >
+              <!-- DIR 不绑路由 —— 点击只展开/收起（el-sub-menu 默认行为），不跳转 -->
+              <span class="dir-title">
                 <el-icon v-if="m.icon"><component :is="iconOf(m.icon)!" /></el-icon>
                 <template v-if="!collapsed"><span>{{ menuName(m) }}</span></template>
               </span>
@@ -177,7 +174,7 @@ const breadcrumbLabel = computed(() => {
 function onLang(cmd: string) {
   if (cmd !== 'zh-CN' && cmd !== 'en-US') return;
   setLocale(cmd);
-  ElMessage.success(cmd === 'zh-CN' ? '已切换到中文' : 'Switched to English');
+  ElMessage.success(cmd === 'zh-CN' ? t('common.langSwitchedZh') : t('common.langSwitchedEn'));
 }
 
 function go(index: string) {
@@ -186,42 +183,10 @@ function go(index: string) {
   }
 }
 
-function dirFirstPath(m: { children?: { path?: string | null }[] }): string | undefined {
-  const first = (m.children || []).find((c) => !!c.path);
-  return first?.path || undefined;
-}
-
-/**
- * DIR 标题点击的导航目标：优先第一个子菜单；特殊 DIR（目前只有 Documents）有兜底路径。
- * 无子菜单又无兜底 → 不可点击（el-sub-menu 退化为纯展开/收起）。
- */
-function dirClickPath(m: { path?: string; children?: { path?: string | null }[] }): string | undefined {
-  return dirFirstPath(m) || dirFallback(m);
-}
-
-/** 空 DIR 时的兜底目标。仅 Documents DIR 需要（指向类目管理页）。 */
-function dirFallback(m: { path?: string }): string | undefined {
-  if (m.path === '/documents') return '/documents/category';
-  return undefined;
-}
-
-/**
- * 点击顶级目录的标题：跳转到第一个有效子菜单（或兜底路径）。
- * @click.stop 阻止触发 el-sub-menu 自身的展开/收起。
- */
-function onDirTitleClick(m: { path?: string; children?: { path?: string | null }[] }, e: MouseEvent) {
-  const target = dirClickPath(m);
-  if (target) {
-    e.preventDefault();
-    e.stopPropagation();
-    go(target);
-  }
-}
-
 async function handleCmd(cmd: string) {
   if (cmd === 'logout') {
     await auth.logout();
-    ElMessage.success(t('common.welcome') + ' · ' + t('common.logout'));
+    ElMessage.success(t('common.logout'));
     router.push('/login');
   }
 }
@@ -363,7 +328,6 @@ async function handleCmd(cmd: string) {
   color: var(--color-text-secondary);
 }
 .dir-title { display: inline-flex; align-items: center; gap: 6px; }
-.dir-title.clickable { cursor: pointer; }
 
 /* 侧栏底部：用户小卡片 */
 .aside-footer {
