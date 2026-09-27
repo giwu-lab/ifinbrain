@@ -72,11 +72,9 @@ const staticRoutes: RouteRecordRaw[] = [
   // 一键生成的查询列表页（不走 sys_menu 静态 path 匹配，因为 path 里是动态 menuId）
   { path: '/data-mgmt/query-page/:menuId(\\d+)', component: () => import('@/views/data-mgmt/query-page/Index.vue'),
     meta: { title: 'Query Page', permission: 'data:query:view' } },
-  // 页面设计器（不走 sys_menu；列表/编辑/预览路径动态）
-  { path: '/design/page', component: () => import('@/views/design/page/Index.vue'),
-    meta: { title: 'Page Designer', permission: 'design:page:view' } },
+  // 页面设计器（不走 sys_menu；编辑/预览路径动态）
   { path: '/design/page/new', component: () => import('@/views/design/page/Index.vue'),
-    meta: { title: 'New Portal Page', permission: 'design:page:update' } },
+    meta: { title: 'Page Designer', permission: 'design:page:update' } },
   { path: '/design/page/:id(\\d+)/edit', component: () => import('@/views/design/page/Editor.vue'),
     meta: { title: 'Edit Page', permission: 'design:page:update' } },
   { path: '/design/page/:id(\\d+)/preview', component: () => import('@/views/design/page/Preview.vue'),
@@ -142,27 +140,26 @@ function buildRoutesFromMenus(menus: MenuNode[]): RouteRecordRaw[] {
       routes.push(...buildRoutesFromMenus(m.children || []));
       continue;
     }
-    if (m.type === 'MENU' && m.path) {
-      const compKey = m.component || '';
-      // 发布的查询页面（path 形如 /data-mgmt/query-page/50）由静态参数化路由
-      // /data-mgmt/query-page/:menuId(\d+) 处理 —— 跳过精确路径注册，避免抢路由
-      if (compKey === 'data-mgmt/query-page/Index') continue;
-      // 档案管理 → 档案库列表页：所有档案库共用同一组件 `documents/list/Index`，运行时由 admin
-      // 创建档案库时插入的 sys_menu 行 path = /documents/{slug} 也用此 component。
-      // 跳过精确路径注册，让 `/documents/:slug` 静态路由统一接管（避免双路由冲突）。
-      if (compKey === 'documents/list/Index') continue;
-      // 档案管理 → 档案库：静态路由 `/documents/archive` 接管，跳过精确路径注册避免双路由冲突
-      if (compKey === 'documents/archive/Index') continue;
-      // 页面设计器：精确菜单 path=/design/page 已由下方静态路由接管（new/edit/preview 走参数路由）
-      // 注：list/new 都用同一组件 Index.vue；菜单只挂 /design/page，/new 由前端跳转
-      if (compKey === 'design/page/Index') continue;
-      const component = builtInViews[compKey] || (() => import('@/views/error/404.vue'));
-      routes.push({
-        path: m.path,
-        component,
-        meta: { title: m.name, icon: m.icon, permission: m.permission, name: m.name, component: m.component, path: m.path }
-      });
-    }
+if (m.type === 'MENU' && m.path) {
+    const compKey = m.component || '';
+    // 发布的查询页面（path 形如 /data-mgmt/query-page/50）由静态参数化路由
+    // /data-mgmt/query-page/:menuId(\d+) 处理 —— 跳过精确路径注册，避免抢路由
+    if (compKey === 'data-mgmt/query-page/Index') continue;
+    // 档案管理 → 档案库列表页：所有档案库共用同一组件 `documents/list/Index`，运行时由 admin
+    // 创建档案库时插入的 sys_menu 行 path = /documents/{slug} 也用此 component。
+    // 跳过精确路径注册，让 `/documents/:slug` 静态路由统一接管（避免双路由冲突）。
+    if (compKey === 'documents/list/Index') continue;
+    // 档案管理 → 档案库：静态路由 `/documents/archive` 接管，跳过精确路径注册避免双路由冲突
+    if (compKey === 'documents/archive/Index') continue;
+    // 页面设计器：精确菜单 path=/design/page 已由下方静态路由接管（new/edit/preview 走参数路由）
+    if (compKey === 'design/page/Index') continue;
+    const component = builtInViews[compKey] || (() => import('@/views/error/404.vue'));
+    routes.push({
+      path: m.path,
+      component,
+      meta: { title: m.name, icon: m.icon, permission: m.permission, name: m.name, component: m.component, path: m.path }
+    });
+  }
   }
   return routes;
 }

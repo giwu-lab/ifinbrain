@@ -21,11 +21,6 @@ frontend/tsconfig.tsbuildinfo
 frontend/auto-imports.d.ts
 frontend/components.d.ts
 
-# @file-viewer/vite-plugin 自动拷贝的 worker / WASM / 字体 / cmap 资源（30MB）——
-# vite 每次启动自动重新生成，无需入库
-frontend/public/vendor/
-frontend/public/flyfish-viewer-assets.json
-
 # IDE
 .idea/
 .vscode/
