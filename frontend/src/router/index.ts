@@ -82,8 +82,11 @@ const staticRoutes: RouteRecordRaw[] = [
   { path: '/design/page/:id(\\d+)/preview', component: () => import('@/views/design/page/Preview.vue'),
     meta: { title: 'Preview Page', permission: 'design:page:view' } },
   // 档案库文件独立 tab 预览（替代 el-drawer）；URL: /preview?key=...&name=...
+  // 注意：不挂 meta.permission —— per-archive view 由 Preview view 内 extractSlug() + hasPerm 校验。
+  // 否则 router 守卫会把没全局 documents:view 但有 documents:{slug}:view 的用户挡在 /403
+  // （与 /documents/:slug 设计一致）
   { path: '/preview', component: () => import('@/views/preview/Index.vue'),
-    meta: { title: 'Preview', permission: 'documents:view' } },
+    meta: { title: 'Preview' } },
   // 运行时门户页（登录后按角色命中）
   { path: '/portal/:code', component: () => import('@/views/portal/Index.vue'),
     meta: { title: 'Portal' } },

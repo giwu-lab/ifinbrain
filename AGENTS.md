@@ -283,32 +283,38 @@ self.MonacoEnvironment = {
 
 ### 10.2 档案库预览架构（@file-viewer）
 
-v1.4.x 起档案库预览从「if-else 分发（FilePreviewer / PdfViewer / mammoth / SheetJS / 自研 pdfWorker）」迁移到 **`@file-viewer/preset-office`**。
+v1.4.x 起档案库预览从「if-else 分发（FilePreviewer / PdfViewer / mammoth / SheetJS / 自研 pdfWorker）」迁移到 **`@file-viewer/preset-office` + 独立 tab 预览**。
 
 **链路**：
 
 ```
 documents/list/Index.vue
-   └─ <el-drawer 80%>
-       └─ <ProjectFileViewer :storageKey :filename>
-           ├─ fetch /api/files/raw?key=...&inline=true (Bearer JWT)
-           │   → FileController.raw() (per-archive view perm 校验)
-           ├─ ArrayBuffer → viewer.load({ file, name })
-           └─ @file-viewer/core + officeRenderers
-                 ├─ renderer-pdf          (PDF.js 5.4.624)
-                 ├─ renderer-word         (docx / doc / rtf / odt / odp)
-                 ├─ renderer-spreadsheet  (xlsx / csv / ods / ...)
-                 ├─ renderer-presentation (pptx / ppt)
-                 ├─ renderer-ofd          (ofd via jszip)
-                 └─ renderer-iwork / wordperfect / hangul (Apple / WPD / HWP)
+   └─ preview(row) → window.open(/preview?key=...&name=...) (新 tab)
+       └─ views/preview/Index.vue
+           ├─ extractSlug() + auth.hasPerm('documents:' + slug + ':view') (per-archive perm 校验)
+           │   ✗ → <el-empty preview.noPermission> + 返回档案库按钮
+           ├─ ✓ → <ProjectFileViewer :storageKey :filename>
+           │       ├─ fetch /api/files/raw?key=...&inline=true (Bearer JWT)
+           │       │   → FileController.raw() (per-archive view perm 深度防御)
+           │       ├─ ArrayBuffer → viewer.load({ buffer: ab, filename })
+           │       └─ @file-viewer/core + renderers:
+           │              preset-office  (pdf / word / spreadsheet / presentation / ofd / iwork / wpd / hwp)
+           │              renderer-image (jpg / png / gif / svg / tiff / avif / heic / ...)
+           │              renderer-text  (md + 48 种 code/text) + capability-text-tools (diff / bundle)
+           │              ↑ 异构数组以 `as any` 强转（handler 泛型不一致）
 ```
 
 **关键设计**：
 
+- **独立 tab 替代 drawer**：从 `documents/list/Index.vue` 改走 `window.open(router.resolve('/preview').href)`。新 tab 与原 tab 同源 → 共享 localStorage 的 JWT。`onClose` 直接 `window.close()`，无需 router 退出。
+- **路由不挂 `meta.permission`**：`/preview`（`router/index.ts`）故意不绑全局 `documents:view`。per-archive view 由 Preview view 内 `extractSlug()` + `auth.hasPerm('documents:' + slug + ':view')` 校验（与 `/documents/:slug` 路由同模式）。否则没全局 `documents:view` 但有 `documents:{slug}:view` 的用户（如 `demo` 角色）会被 router guard 弹 `/403`。
+- **非 documents/ 范围 key（如 invoice）→ 视为无权限**：`DOC_KEY_RE = /^documents\/([^/]+)(?:\/.*)?$/` 不匹配时直接 `hasViewPerm = false`。/preview 只为档案库设计；invoice 文件仍走 documents/list 老路径或 drawer 体验。
+- **失败 UX**：`el-empty` 显示 `preview.noPermission` 文案 + 顶部「返回档案库」按钮 → 跳 `/documents/{slug}` + 300ms 后 `window.close()` 当前 tab。
+- **perm 变更自愈**：`watch([storageKey, auth.user?.permissions], recheckPerm)` —— admin 后台改 perm 后新开 tab 自动重算（配合 router/index.ts 的 `refreshIfStale` 静默刷新 JWT）。
 - **对外契约保留**：`ProjectFileViewer` props (`storageKey` + `filename`) + emit (`download`) 与旧 `FilePreviewer` 完全一致；父组件切换 0 业务代码改动。
-- **Worker / WASM 静态路径**：vite plugin 的 `copyAssets:true` 把 PDF.js worker / DOCX worker / XLSX worker / WASM / cmap / fonts 落到 `frontend/public/vendor/`，**不走 `/@fs/` 路由**，彻底无 Vite `/@vite/client` 注入问题（之前 `pdfWorker.ts` 的 hack 已删除）。
+- **Worker / WASM 静态路径**：vite plugin 的 `copyAssets:true` 把 PDF.js worker / DOCX worker / XLSX worker / WASM / cmap / fonts 落到 `frontend/public/vendor/`（**gitignored**），不走 `/@fs/` 路由。
 - **dompurify 由 file-viewer core 内置**；本仓保留 `dompurify` 仅给设计器 portal 共享使用。
-- **`xlsx` 保留**：`data-mgmt/query/Detail.vue:760` SQL 结果导出仍需 `XLSX.writeFile`。不要看到老代码以为是预览链路就卸。
+- **`xlsx` 保留**：`data-mgmt/query/Detail.vue:760` SQL 结果导出仍需 `XLSX.writeFile`。
 - **退役文件**：`FilePreviewer.vue` / `PdfViewer.vue` / `pdfWorker.ts` / `fileType.ts` 全部删除；`workers.ts` 不再导出 `PDFJS_WORKER_URL`。
 
 **License attribution**：见 `frontend/LICENSE-NOTICE` + `frontend/LICENSE-APACHE-2.0`（Apache-2.0 §4d 要求保留 NOTICE 与 license 文本）。

@@ -11,6 +11,10 @@
         "valueJson": "{\"zh-CN\":\"取消\",\"en-US\":\"Cancel\"}"
       },
       {
+        "code": "close",
+        "valueJson": "{\"zh-CN\":\"关闭\",\"en-US\":\"Close\"}"
+      },
+      {
         "code": "confirmDelete",
         "valueJson": "{\"zh-CN\":\"确认删除\",\"en-US\":\"Confirm Delete\"}"
       },
@@ -1180,6 +1184,10 @@
       {
         "code": "iframeEmpty",
         "valueJson": "{\"zh-CN\":\"未设置 src\",\"en-US\":\"No src set\"}"
+      },
+      {
+        "code": "invalidId",
+        "valueJson": "{\"zh-CN\":\"无效的页面 ID（参数缺失或非数字），已返回列表页\",\"en-US\":\"Invalid page id (missing or non-numeric); redirected to list\"}"
       },
       {
         "code": "linksEmpty",
@@ -2581,6 +2589,19 @@
       {
         "code": "typeMenu",
         "valueJson": "{\"zh-CN\":\"菜单\",\"en-US\":\"Menu\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "preview",
+    "items": [
+      {
+        "code": "backToList",
+        "valueJson": "{\"zh-CN\":\"返回档案库\",\"en-US\":\"Back to library\"}"
+      },
+      {
+        "code": "noPermission",
+        "valueJson": "{\"zh-CN\":\"无法预览 - 该档案库未授权「查看」权限\",\"en-US\":\"Preview denied - no view permission on this archive\"}"
       }
     ]
   },

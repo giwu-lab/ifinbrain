@@ -29,6 +29,7 @@ export default {
     confirmTitle: '请确认',
     download: '下载',
     preview: '预览',
+    close: '关闭',
   },
 
   login: {
@@ -831,6 +832,11 @@ export default {
     placeholder: '请选择图标',
   },
 
+  preview: {
+    noPermission: '无法预览 - 该档案库未授权「查看」权限',
+    backToList: '返回档案库',
+  },
+
   permSelector: {
     placeholder: '选择权限（可输入自定义码）',
     typeMenu: '菜单',
@@ -880,6 +886,7 @@ export default {
     back: '返回',
     backToEdit: '返回编辑',
     backToList: '返回列表',
+    invalidId: '无效的页面 ID（参数缺失或非数字），已返回列表页',
     palette: '组件库',
     canvasEmpty: '画布为空，点击左侧组件添加到画布',
     unsavedHint: '有未保存的修改，确定离开？',

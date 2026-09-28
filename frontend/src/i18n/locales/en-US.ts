@@ -28,6 +28,7 @@ export default {
     confirmTitle: 'Please Confirm',
     download: 'Download',
     preview: 'Preview',
+    close: 'Close',
   },
 
   login: {
@@ -815,6 +816,11 @@ export default {
     placeholder: 'Choose an icon',
   },
 
+  preview: {
+    noPermission: 'Preview denied - no view permission on this archive',
+    backToList: 'Back to library',
+  },
+
   permSelector: {
     placeholder: 'Select permission (custom code allowed)',
     typeMenu: 'Menu',
@@ -864,6 +870,7 @@ export default {
     back: 'Back',
     backToEdit: 'Back to Edit',
     backToList: 'Back to List',
+    invalidId: 'Invalid page id (missing or non-numeric); redirected to list',
     palette: 'Palette',
     canvasEmpty: 'Canvas is empty. Click a component on the left to add it.',
     unsavedHint: 'You have unsaved changes. Leave anyway?',
