@@ -158,6 +158,7 @@ onBeforeUnmount(destroyViewer);
   flex: 1;
   min-height: 0;
   position: relative;
+  overflow: hidden;
 }
 .preview-error {
   margin: 32px;
@@ -166,5 +167,40 @@ onBeforeUnmount(destroyViewer);
   color: var(--color-danger, #f56c6c);
   border-radius: 4px;
   background: var(--color-bg, #fff);
+}
+
+/*
+ * 文本渲染器（@file-viewer/renderer-text）的内层 .code-area / .html-source-view /
+ * .markdown-body 都声明了 overflow:auto，但 height 是 auto → 滚动条不会激活。
+ * 根因：file-viewer core 注入的 .file-render 只设了 inline width/min-*
+ * （rendererMode:'replace' + styleIsolation:'scoped' 下不会包 .file-viewer-web-shell
+ * 那一层 flex column），下游 .code-viewer 等子元素拿不到高度约束。
+ *
+ * 修法：沿 viewer-host → file-render → code-viewer/html-viewer/markdown-viewer
+ * 三层都强制成 flex column，让 height 沿 flex 链传下去；最里层 .code-area 等
+ * 用 flex:1 占满剩余空间，自身的 overflow:auto 才会激活滚动条。
+ */
+.viewer-host :deep(.file-render) {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.viewer-host :deep(.code-viewer),
+.viewer-host :deep(.html-viewer),
+.viewer-host :deep(.markdown-viewer) {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.viewer-host :deep(.code-area) {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+.viewer-host :deep(.html-preview-frame),
+.viewer-host :deep(.html-source-view) {
+  flex: 1 1 0%;
+  min-height: 0;
 }
 </style>
