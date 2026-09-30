@@ -94,6 +94,40 @@ body { background: var(--color-bg); font-size: var(--font-size-base); -webkit-fo
 .gap-2 { gap: var(--space-2); }
 .gap-3 { gap: var(--space-3); }
 
+/* ============== 表格列辅助类 ============== */
+/* 数字列：等宽数字 + 紧凑字距 */
+.tabular { font-variant-numeric: tabular-nums; letter-spacing: 0; }
+/* 时间列：等宽数字 + mono 字体 */
+.mono-time {
+  font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+
+/* ============== el-descriptions 详情面板（紧凑化） ============== */
+/* 配合 <el-descriptions size="small" :column="2" label-class-name="extra-info-col"> 使用 */
+.el-descriptions.el-descriptions--small {
+  --el-descriptions-table-border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.el-descriptions.el-descriptions--small :deep(.el-descriptions__label) {
+  background: var(--color-bg);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  width: 110px;
+  padding-right: var(--space-4);
+}
+.el-descriptions.el-descriptions--small :deep(.el-descriptions__content) {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+.extra-info-col {
+  background: var(--color-bg) !important;
+  font-weight: 500;
+}
+
 .card-table {
   background: var(--color-bg-elev);
   padding: var(--space-5);

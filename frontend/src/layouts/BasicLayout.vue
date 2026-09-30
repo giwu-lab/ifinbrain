@@ -21,10 +21,20 @@
           <div class="brand-name">{{ t('layout.brand') }}</div>
           <div class="brand-sub">{{ t('layout.brandSub') }}</div>
         </div>
+        <el-button
+          v-if="!collapsed"
+          class="brand-toggle"
+          text
+          :title="t('layout.collapsedHint')"
+          @click="app.toggle()"
+        >
+          <el-icon :size="16"><Fold /></el-icon>
+        </el-button>
       </div>
 
       <el-menu
         :default-active="active"
+        :default-openeds="openedDirs"
         :collapse="collapsed"
         :collapse-transition="false"
         class="side-menu"
@@ -32,9 +42,10 @@
         @select="go"
       >
         <template v-for="m in auth.menus" :key="m.id">
+          <!-- DIR 是分组标签，不绑路由。点击只展开/收起；
+               子菜单项才负责跳转。`default-openeds` 会在子项路由命中时自动展开。 -->
           <el-sub-menu v-if="m.type === 'DIR'" :index="String(m.id)">
             <template #title>
-              <!-- DIR 不绑路由 —— 点击只展开/收起（el-sub-menu 默认行为），不跳转 -->
               <span class="dir-title">
                 <el-icon v-if="m.icon"><component :is="iconOf(m.icon)!" /></el-icon>
                 <template v-if="!collapsed"><span>{{ menuName(m) }}</span></template>
@@ -77,6 +88,39 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
+          <!-- 全屏切换（mfish 风格借鉴） -->
+          <el-tooltip :content="isFullscreen ? t('header.exitFullscreen') : t('header.fullscreen')" placement="bottom">
+            <el-button text class="header-icon-btn" @click="toggleFullscreen">
+              <el-icon><component :is="isFullscreen ? Aim : FullScreen" /></el-icon>
+            </el-button>
+          </el-tooltip>
+
+          <!-- 通知红点（占位 v3.1 接 API） -->
+          <el-tooltip :content="t('header.notifications')" placement="bottom">
+            <el-badge :is-dot="hasNotif" :hidden="!hasNotif" class="header-icon-btn-wrap">
+              <el-button text class="header-icon-btn" @click="onNotifClick">
+                <el-icon><Bell /></el-icon>
+              </el-button>
+            </el-badge>
+          </el-tooltip>
+
+          <!-- 帮助：快捷键速查 popover -->
+          <el-popover placement="bottom-end" :width="280" trigger="click">
+            <template #reference>
+              <el-button text class="header-icon-btn" :title="t('header.help')">
+                <el-icon><QuestionFilled /></el-icon>
+              </el-button>
+            </template>
+            <div class="help-popover">
+              <div class="help-title">{{ t('header.shortcuts') }}</div>
+              <ul class="help-list">
+                <li><kbd>Esc</kbd><span>{{ t('header.shortcutEsc') }}</span></li>
+                <li><kbd>F11</kbd><span>{{ t('header.shortcutFullscreen') }}</span></li>
+                <li><kbd>Ctrl</kbd>+<kbd>K</kbd><span>{{ t('header.shortcutSearch') }}</span></li>
+              </ul>
+            </div>
+          </el-popover>
+
           <el-dropdown trigger="click" @command="onLang">
             <span class="pill">
               <el-icon><Position /></el-icon>
@@ -106,10 +150,25 @@
 
       <!-- ===== 主内容 ===== -->
       <el-main class="main">
+        <!-- 顶部多标签页（借鉴 mfish-nocode-view；保留蓝紫主色 + 浅色风格） -->
+        <TabBar
+          v-if="tabStore.hasTabs"
+          @select="onTabSelect"
+          @close="onTabClose"
+          @close-others="onTabCloseOthers"
+          @close-all="onTabCloseAll"
+          @refresh="onTabRefresh"
+        />
+
         <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" :key="$route.fullPath" />
-          </transition>
+          <keep-alive>
+            <transition name="fade" mode="out-in">
+              <component
+                :is="Component"
+                :key="`${$route.path}#${tabStore.refreshKeys[$route.path] || 0}`"
+              />
+            </transition>
+          </keep-alive>
         </router-view>
       </el-main>
     </el-container>
@@ -117,25 +176,78 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Avatar, Expand, Fold, Position, CaretBottom } from '@element-plus/icons-vue';
+import { Avatar, Expand, Fold, Position, CaretBottom, FullScreen, Aim, Bell, QuestionFilled } from '@element-plus/icons-vue';
 import * as ElIcons from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
+import { useTabStore } from '@/stores/tab';
 import { setLocale } from '@/i18n';
+import TabBar from '@/components/layout/TabBar.vue';
 
 const { t, locale } = useI18n();
 const auth = useAuthStore();
 const app = useAppStore();
+const tabStore = useTabStore();
 const route = useRoute();
 const router = useRouter();
 
 const collapsed = computed(() => app.collapsed);
 const active = computed(() => route.path);
 const currentLangLabel = computed(() => (locale.value === 'en-US' ? 'English' : '中文'));
+
+/* ===== 顶栏工具栏：全屏 / 通知 / 帮助 ===== */
+const isFullscreen = ref(!!document.fullscreenElement);
+const hasNotif = ref(false);
+
+function onFsChange() {
+  isFullscreen.value = !!document.fullscreenElement;
+}
+
+async function toggleFullscreen() {
+  try {
+    const d = document as Document & {
+      exitFullscreen?: () => Promise<void>;
+      requestFullscreen?: () => Promise<void>;
+    };
+    if (document.fullscreenElement) {
+      await d.exitFullscreen?.();
+    } else {
+      await d.requestFullscreen?.();
+    }
+  } catch (e: any) {
+    ElMessage.warning(e?.message || 'Fullscreen not supported');
+  }
+}
+
+function onNotifClick() {
+  ElMessage.info(t('header.notifEmpty'));
+}
+
+onMounted(() => {
+  document.addEventListener('fullscreenchange', onFsChange);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('fullscreenchange', onFsChange);
+});
+
+/**
+ * 自动展开「当前路由命中子菜单」的 DIR。
+ * 例：在 /todo 时，任务清单 DIR (id=60) 自动展开，露出「任务管理」子项高亮 + 可点。
+ * DIR 自身仍不绑路由 —— 点击只展开/收起（el-sub-menu 默认行为）。
+ */
+const openedDirs = computed(() => {
+  const cur = route.path;
+  const ids: string[] = [];
+  for (const m of auth.menus) {
+    if (m.type !== 'DIR' || !m.children) continue;
+    if (m.children.some((c) => c.path === cur)) ids.push(String(m.id));
+  }
+  return ids;
+});
 
 function iconOf(name?: string) {
   if (!name) return ElIcons.Document;
@@ -190,6 +302,50 @@ async function handleCmd(cmd: string) {
     router.push('/login');
   }
 }
+
+/* ===== 多标签页 handlers ===== */
+
+function onTabSelect(id: string) {
+  const tab = tabStore.tabs.find((x) => x.id === id);
+  if (!tab) return;
+  if (route.path !== tab.id || route.fullPath !== tab.fullPath) {
+    router.push(tab.fullPath);
+  }
+  tabStore.setActive(id);
+}
+
+function onTabClose(id: string) {
+  const closing = tabStore.tabs.find((x) => x.id === id);
+  const wasActive = tabStore.activeId === id;
+  tabStore.closeTab(id);
+  // 关闭后若 active 变了，跳过去
+  if (wasActive) {
+    const nextId = tabStore.activeId;
+    const next = tabStore.tabs.find((x) => x.id === nextId);
+    if (next && route.fullPath !== next.fullPath) {
+      router.push(next.fullPath);
+    } else if (!next) {
+      router.push('/dashboard');
+    }
+  }
+}
+
+function onTabCloseOthers(id: string) {
+  const closing = tabStore.tabs.find((x) => x.id === id);
+  tabStore.closeOthers(id);
+  if (closing && route.fullPath !== closing.fullPath) {
+    router.push(closing.fullPath);
+  }
+}
+
+function onTabCloseAll() {
+  tabStore.closeAll();
+  router.push('/dashboard');
+}
+
+function onTabRefresh(id?: string) {
+  tabStore.refreshTab(id);
+}
 </script>
 
 <style scoped>
@@ -215,8 +371,21 @@ async function handleCmd(cmd: string) {
   white-space: nowrap;
   overflow: hidden;
   flex-shrink: 0;
+  justify-content: space-between;
 }
 .brand.collapsed { padding: 0; justify-content: center; }
+.brand-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.brand-toggle:hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
 .logo-mark {
   width: 38px; height: 38px;
   border-radius: 10px;
@@ -390,6 +559,29 @@ async function handleCmd(cmd: string) {
 .toggle-btn:hover { background: var(--color-bg); }
 .breadcrumb { font-size: 14px; }
 .header-right { display: flex; align-items: center; gap: 12px; }
+
+/* 顶栏图标按钮（全屏 / 通知 / 帮助）：中性灰，hover 主色描边 */
+.header-icon-btn,
+.header-icon-btn-wrap :deep(.el-button) {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-icon-btn:hover,
+.header-icon-btn-wrap :deep(.el-button):hover {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.header-icon-btn .el-icon,
+.header-icon-btn-wrap .el-icon { font-size: 16px; }
+.header-icon-btn-wrap { display: inline-flex; align-items: center; }
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -405,6 +597,35 @@ async function handleCmd(cmd: string) {
 }
 .pill:hover { background: var(--color-primary-soft); color: var(--color-primary); border-color: var(--color-primary-soft); }
 .pill .el-icon { font-size: 14px; }
+
+/* 帮助 popover：快捷键速查 */
+.help-popover { font-size: 13px; color: var(--color-text); }
+.help-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+.help-list { list-style: none; padding: 0; margin: 0; }
+.help-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  color: var(--color-text-secondary);
+}
+.help-list kbd {
+  display: inline-block;
+  min-width: 24px;
+  padding: 1px 6px;
+  font-family: 'SF Mono', Menlo, monospace;
+  font-size: 11px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--color-text);
+  text-align: center;
+}
 .user-chip {
   display: inline-flex;
   align-items: center;
