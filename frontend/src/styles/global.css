@@ -71,7 +71,92 @@
 /* ============== Reset ============== */
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; padding: 0; font-family: var(--font-family); color: var(--color-text); }
-body { background: var(--color-bg); font-size: var(--font-size-base); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+/*
+ * 全局禁用 body / html 横向滚动条（v1.5.1）
+ *
+ * 背景：用户报告"所有预览都有横向滚动条"，即使 ProjectFileViewer 内
+ * 7 层 overflow-x:hidden + el-overlay/.el-drawer 全局 hidden 都不够。
+ * 真根因不是抽屉内部 —— 是 body 被底层页面（档案库 el-table /
+ * 顶部 tab / 全局侧栏等）的某一列撑宽，body 出现横向滚动条；
+ * 视觉上"在抽屉底部"，其实是 window 底部。
+ *
+ * 解决：html, body 双层 overflow-x:hidden + min-width:0。
+ * - 任何祖先意外 overflow 都会被裁掉，不再显示横向滚动条
+ * - drawer / el-dialog 自己的 fixed 定位不受影响（fixed 元素看的是
+ *   viewport 而不是 body scrollWidth）
+ * - el-table 用自己的 .el-table__body-wrapper 内部滚动，不依赖 body
+ * - 用户仍可上下滚动；只是不能水平滚动 body 整体
+ */
+html, body {
+  overflow-x: hidden;
+  min-width: 0;
+}
+body {
+  background: var(--color-bg);
+  font-size: var(--font-size-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /*
+   * body 加 isolation: isolate —— 创建新的 stacking context，
+   * 让 el-dialog (z-index 2000) 永远只跟 body 内容排序，不再被任何父级
+   * (transform / filter / will-change / contain) 创建的子 stacking context 干扰。
+   *
+   * 这是 "fixed 弹窗 mask 不覆盖整个 viewport" 的根本防御。
+   */
+  isolation: isolate;
+}
+
+/*
+ * 避坑笔记 — el-dialog 弹窗外 mask 异常
+ *
+ * 历史现象（多次出现）：
+ *   el-dialog 打开时，弹窗本体显示正常，但弹窗下方有大片浅灰色，
+ *   视觉上弹窗"漂浮在浅背景上"，看起来像 bug。
+ *
+ * 根因（一次性说清）：
+ *   Element Plus 的 .el-overlay（弹窗 mask）默认用 var(--el-overlay-color-lighter)
+ *   作为 background-color —— 是浅灰半透明黑。
+ *   同时 layout-root / body / .main 都用 var(--color-bg) 浅灰作背景色。
+ *   当弹窗打开时，mask 浅灰半透明 + 页面浅灰叠加，结果仍是浅灰，
+ *   弹窗视觉上无法"压住"页面，导致下方出现"异样灰色"。
+ *
+ * 解决方案（全局一次到位，避坑永远）：
+ *   1. body { isolation: isolate } 防止任何父级 stacking context 干扰 fixed 弹窗
+ *   2. .el-overlay 强制 100vw / 100vh + 深色背景 + backdrop-filter 模糊，
+ *      让弹窗打开时整个 viewport 明显"被遮罩"，弹窗视觉上明显"浮起"。
+ *
+ * 之前几次错误的"治标"尝试（不要再做）：
+ *   - 调 el-dialog width / 列宽（无关）
+ *   - 给 .page-container 加 min-height（无关）
+ *   - 给 el-dialog 加 align-center（.el-overlay-dialog 已 display: flex，无关）
+ *   - 给 el-dialog 加 max-height（无关）
+ *   - 改 dialog width=640→720（无关）
+ *   - 改 flow-detail-dialog custom-class（无关）
+ *   那些全是弹窗本体或 page 容器的问题，不是弹窗 mask 的问题。
+ */
+.el-overlay {
+  /*
+   * 三重加固 — 弹窗 mask 必须"压住"整个 viewport
+   *
+   * 1) width / height: 100vw / 100vh 强制撑满 viewport
+   *    （element-plus 只给 top:0;bottom:0;left:0;right:0;width:auto → 在某些浏览器会 shrink-to-fit）
+   * 2) z-index: 9999 高于所有 page-internal sticky/fixed 元素
+   *    （element-plus 默认 2000 但如果同 stacking context 内有更高 z-index 会被覆盖）
+   * 3) background-color + backdrop-filter 让 mask 在视觉上明显"压住"页面
+   */
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(15, 23, 42, 0.55) !important;   /* slate-900 55% alpha */
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 9999 !important;
+}
+/* 也覆盖 .v-modal（element-plus 老版本/子组件用） */
+.v-modal {
+  background: rgba(15, 23, 42, 0.55) !important;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
 
 /* ============== 工具类 ============== */
 .page-container { padding: var(--space-6); }
@@ -97,11 +182,16 @@ body { background: var(--color-bg); font-size: var(--font-size-base); -webkit-fo
 /* ============== 表格列辅助类 ============== */
 /* 数字列：等宽数字 + 紧凑字距 */
 .tabular { font-variant-numeric: tabular-nums; letter-spacing: 0; }
-/* 时间列：等宽数字 + mono 字体 */
+/*
+ * 时间列：mono 字体 + 等宽数字
+ * - 字号与表格 cell 默认一致（var(--font-size-sm) = 13px），不再用差异化字号制造视觉反差
+ * - 颜色保留 var(--color-text-secondary)（#6b7281 灰），让时间列在表格中视觉上「次要」
+ * - 字体保留 mono + tabular-nums，让日期数字宽度一致对齐
+ */
 .mono-time {
   font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--color-text-secondary);
 }
 

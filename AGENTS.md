@@ -224,6 +224,23 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 
 那些全是弹窗**本体**或 page 容器的问题，不是 mask 问题。真正的修复点是 `.el-overlay` 的背景。
 
+### 7.5 body 横向滚动条抑制（v1.5.1）
+
+**现象**：预览抽屉打开时，window 底部出现横向滚动条。
+
+**根因**：项目任何页面的某个元素（档案库 el-table 多列总宽 1100px、顶部 tab 溢出、侧栏 fixed 宽度等）都可能把 `body.scrollWidth` 推到 viewport 宽度之外 → body 出横滚条。视觉上"在抽屉底部"，**但其实是 body / window 级别**，不在抽屉内部。
+
+**修复**：在 `styles/global.css` 加 `html, body { overflow-x: hidden; min-width: 0 }`，全局抑制 body 横向滚动条：
+
+- 任何祖先意外 overflow 都会被裁掉，body 不再出现横滚条
+- drawer / dialog 是 `position: fixed` 不看 body scrollWidth，不受影响
+- el-table 内部 `.el-table__body-wrapper` 仍可独立横向滚动（不动）
+- 用户仍可上下滚动 body；只是不能水平滚动 body 整体
+
+**为什么不做更精细的 table 收缩**：项目里 30+ 列表页各有不同 el-table 配置，逐个收缩成本高且易遗漏。`body { overflow-x: hidden }` 一行防御 30 个表。
+
+**与 §7.4 .el-overlay 的协作**：.el-overlay 自己 `width:100vw !important` 不会溢出，但 drawer 内容若超宽会让 .el-overlay 出横滚条（用户实际感受是"抽屉里有横滚条"）。`§10.2` 的 7 层 overflow-x:hidden + `body { overflow-x: hidden }` 双重防御保证——window / overlay / drawer / body 4 个层级都不可能出横滚条。
+
 **i18n 命名空间**：`stylePanel.*`（35 keys），2 处同步：zh-CN.ts / en-US.ts（直接改 ts 即可，Vite HMR 立刻生效）。
 
 **新增色/动效**：预设色板在 `StylePanel.vue` 的 `PRIMARY_PRESETS / HEADER_PRESETS / MENU_PRESETS`；新增 transition 模板在 `styles/animations.css` 加 `.sp-{name}-enter/leave-*` 三条规则，然后在 `types.ts` `AnimationType` 联合加成员 + `StylePanelAnimation.vue` 的 `options` 数组加项。
