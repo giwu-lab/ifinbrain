@@ -1,0 +1,91 @@
+/* ============================================================
+ *  Theme Tokens —— ifinbrain 主题变量
+ *  - 默认亮色；[data-theme="dark"] 切换暗色覆盖
+ *  - 主题色（primary / header / menu）由 stores/theme.ts 运行时写入
+ *    --color-primary / --header-bg / --sidebar-bg-actual
+ * ========================================================== */
+
+:root,
+:root[data-theme="light"] {
+  /* 色板：基础 */
+  --color-primary:        #2563eb;
+  --color-primary-hover:  #1d4ed8;
+  --color-primary-soft:   rgba(37, 99, 235, 0.10);
+  --color-primary-softer: rgba(37, 99, 235, 0.04);
+  --color-success:        #10b981;
+  --color-success-soft:   rgba(16, 185, 129, 0.10);
+  --color-warning:        #f59e0b;
+  --color-warning-soft:   rgba(245, 158, 11, 0.12);
+  --color-danger:         #ef4444;
+  --color-danger-soft:    rgba(239, 68, 68, 0.10);
+  --color-info:           #6366f1;
+  --color-info-soft:      rgba(99, 102, 241, 0.10);
+
+  /* 中性色 */
+  --color-bg:             #f5f7fb;
+  --color-bg-elev:        #ffffff;
+  --color-border:         #e5e7eb;
+  --color-border-soft:    #f1f3f7;
+  --color-text:           #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted:     #9ca3af;
+  --color-text-sidebar:   #1f2937;
+  --color-text-on-dark:   rgba(255, 255, 255, 0.92);
+  --color-text-on-dark-muted: rgba(255, 255, 255, 0.55);
+
+  /* 侧边栏深色 */
+  --sidebar-bg:           #0f172a;
+  --sidebar-bg-active:    #1e293b;
+  --sidebar-border:       rgba(255, 255, 255, 0.06);
+
+  /* 顶栏 / 菜单 — 由 theme store 运行时覆写为用户自定义色 */
+  --header-bg:            #ffffff;
+  --sidebar-bg-actual:    #ffffff;
+
+  /* Element Plus 派生 */
+  --el-color-primary: #2563eb;
+}
+
+/* ============================================================
+ *  暗色模式
+ *  - 不复写 --color-primary 等主题色；只对中性 / 背景 / 文本 token 做暗化
+ *  - dark badge/fixed 列见 global.css 末尾的 dark 适配
+ * ========================================================== */
+:root[data-theme="dark"] {
+  --color-bg:             #0b1220;
+  --color-bg-elev:        #111827;
+  --color-border:         #1f2937;
+  --color-border-soft:    #1a2333;
+  --color-text:           #e5e7eb;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted:     #6b7280;
+  --color-text-sidebar:   #e5e7eb;
+
+  --color-primary-soft:   rgba(99, 102, 241, 0.20);
+  --color-primary-softer: rgba(99, 102, 241, 0.08);
+  --color-success-soft:   rgba(16, 185, 129, 0.18);
+  --color-warning-soft:   rgba(245, 158, 11, 0.20);
+  --color-danger-soft:    rgba(239, 68, 68, 0.18);
+  --color-info-soft:      rgba(99, 102, 241, 0.20);
+
+  /* 默认暗色下主题主色更亮一档（Element Plus 暗色模板用 #409eff） */
+  --el-color-primary: #6366f1;
+
+  /* Element Plus 暗色背景 */
+  --el-bg-color: #111827;
+  --el-bg-color-page: #0b1220;
+  --el-bg-color-overlay: #1f2937;
+  --el-text-color-primary: #e5e7eb;
+  --el-text-color-regular: #e5e7eb;
+  --el-text-color-secondary: #9ca3af;
+  --el-text-color-placeholder: #6b7280;
+  --el-border-color: #1f2937;
+  --el-border-color-light: #1a2333;
+  --el-border-color-lighter: #1a2333;
+  --el-border-color-extra-light: #111827;
+  --el-fill-color: #1f2937;
+  --el-fill-color-light: #1a2333;
+  --el-fill-color-lighter: #111827;
+  --el-fill-color-blank: #111827;
+  --el-mask-color: rgba(0, 0, 0, 0.7);
+}

@@ -3,7 +3,7 @@
 # 用法： scripts/dev.sh {start|stop|restart|status|logs|logs-be|logs-fc}
 #
 # 行为：
-#   start   - 后端 (mvn spring-boot:run) + 前端 (npm run dev) 后台启动，日志到 logs/
+#  scripts/dev.sh start   - 后端 (mvn spring-boot:run) + 前端 (npm run dev) 后台启动，日志到 logs/
 #   stop    - 通过 pid 文件停止两端，必要时 pkill 兜底
 #   restart - stop + start
 #   status  - 显示两个进程 pid + 端口监听 + 健康检查

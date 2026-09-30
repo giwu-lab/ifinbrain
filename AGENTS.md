@@ -98,6 +98,28 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 - 权限：`auth.hasPerm('xxx')`，不要自己写 enum
 - i18n：`useI18n()` + `t('xxx')`，不要写硬编码中文
 
+### 6.1 顶部多标签页（借鉴 mfish-nocode-view）
+
+每个登录页签到一个 tab；保留蓝紫主色，**不引入** mfish 的橙红 / 黑色 sidebar / 按钮 `→` / pill 状态。
+
+| 概念 | 文件 | 说明 |
+|---|---|---|
+| Store | `frontend/src/stores/tab.ts` | Pinia store；actions `openTab/closeTab/closeOthers/closeAll/refreshTab/setActive/reset`；sessionStorage key `ifinbrain.tabs.v1` |
+| Tab 条 | `frontend/src/components/layout/TabBar.vue` | 滚动 tab + 关闭按钮 + 右键菜单触发器；激活项用 `--color-primary` 蓝紫描边 + 顶部 2px 蓝紫高亮线 |
+| 右键菜单 | `frontend/src/components/layout/TabContextMenu.vue` | 刷新当前 / 关闭当前 / 关闭其它 / 关闭所有 |
+| 路由联动 | `frontend/src/router/index.ts` `afterEach` | 调 `tabStore.openTab(to)`；白名单内的 path 不入 tab |
+| 嵌入位置 | `BasicLayout.vue` `<el-main>` 上方 | `<TabBar>` 仅在 `hasTabs` 时渲染 |
+| 缓存 | `BasicLayout.vue` `<router-view>` | `<keep-alive>` 包裹 `<component>`；`:key` 用 `${path}#${refreshCounter}` 保证同 path 不同 query 合并到同一缓存槽，refresh 时强制重建 |
+| 持久化 | sessionStorage | 刷新保留；登出 / 跨设备丢失 |
+
+**白名单**（不入 tab）：`/login`、`/403`、`/404`、`/preview/*`、`/preview`
+
+**affix（不可关闭）**：仅 `/dashboard`。`stores/tab.ts` 的 `openTab` 用 `route.path === '/dashboard'` 判定。
+
+**登出清理**：`auth.clear()` 末尾调 `useTabStore().reset()`，防止上一用户 tab 痕迹残留。
+
+**新增页面无需任何改动**：路由跳转自动登记 tab；只有当该页面需要 `defineOptions({ name: 'Unique' })` 才需补（暂时未启用，因为 `:key` 已保证缓存槽唯一）。
+
 ---
 
 ## 7. 设计原则
@@ -108,6 +130,7 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 - **数字序 `01/02/03` 仅用于真正的有序步骤**，不当装饰
 - **不写** `→` 加在按钮后；**不写** ALL-CAPS eyebrow label；**不写** gradient wash
 - 弹窗 `label-width="100px"`（label 长的页面如 parser 用 160px）
+- **借鉴边界**：项目借鉴 mfish-nocode-view 的「多标签页 / 顶栏紧凑工具栏 / 沉浸式登录」结构优势；**不引入** 橙红主色、黑色 sidebar、按钮 `→`、ALL-CAPS 副标、SaaS-card 套娃、pill 状态标签
 
 ### 7.1 页面骨架（所有管理类页面统一）
 
@@ -151,6 +174,39 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 ```
 
 `overflow: hidden` 会让 th sticky 只在该容器内有效，**不要加**。
+
+### 7.3 主题系统（界面风格抽屉）
+
+顶栏右侧「调色板」按钮打开右侧抽屉「界面风格」，分两个 tab：
+- **主题动画**：4 种布局 / 3 色板 / 6 种动画 / 进度条 / loading
+- **界面设置**：亮·暗·跟随系统 / 6 个显示项开关
+
+| 概念 | 文件 | 说明 |
+|---|---|---|
+| Store | `frontend/src/stores/theme.ts` | Pinia setup-store；schema `ThemeSettings`；localStorage 缓存 + DB `sys_user_preference` 双向同步；500ms 节流 PUT |
+| 后端 | `backend/.../preference/{entity,repository,service,controller,dto}` | `GET /api/preference` / `PUT /api/preference` / `DELETE /api/preference` |
+| DB | `migration-{dev,prod}/V39__add_user_preference.sql` | `(user_id PK FK CASCADE, theme_json TEXT, updated_at SMESTAMP)` |
+| 抽屉 | `components/layout/StylePanel.vue` | 右侧 `el-drawer` + 两 tab + 重置确认 |
+| 4 布局 | `layouts/SidebarLayout.vue` / `TopNavLayout.vue` / `HeaderSidebarLayout.vue` / `FloatingSidebarLayout.vue` | `BasicLayout` 是壳，`<component :is="layoutComp">` 按 store 切换 |
+| 3 色板 | `components/layout/StylePanelColorPicker.vue` | 颜色 picker + 透明度滑块 + 12 色预设 |
+| 6 动画 | `components/layout/StylePanelAnimation.vue` + `styles/animations.css` | fade/slide/zoom/fade-slide/flip/scale；CSS class 前缀 `sp-{type}` |
+| 主题 token | `styles/theme.css` | `:root[data-theme="light"\|"dark"]` 双 token 集 |
+| 元素面板 | `main.ts` 中加载 `element-plus/theme-chalk/dark/css-vars.css` | Element Plus 暗色由 `.dark` 类切换（`AppRoot.vue` 内同步） |
+
+**默认 = 项目现状**：蓝紫主色 `#2563eb` / 白顶栏 / 白侧栏 / 亮色 / fade 动画 / 进度条开 / loading 开。
+
+**借鉴边界**（强制）：抽屉借鉴 mfish 结构，但**不引入**：
+- 橙红主色（默认仍是 ifinbrain 蓝紫）
+- 黑色 sidebar（默认仍是浅色）
+- 按钮 `→` / ALL-CAPS eyebrow / SaaS-card 套娃 / pill 状态
+
+**i18n 命名空间**：`stylePanel.*`（35 keys），5 处同步：zh-CN.ts / en-US.ts / defaults.json（自动生成）/ CACHE_KEY bump（v66→v67）/ DB sync。
+
+**新增色/动效**：预设色板在 `StylePanel.vue` 的 `PRIMARY_PRESETS / HEADER_PRESETS / MENU_PRESETS`；新增 transition 模板在 `styles/animations.css` 加 `.sp-{name}-enter/leave-*` 三条规则，然后在 `types.ts` `AnimationType` 联合加成员 + `StylePanelAnimation.vue` 的 `options` 数组加项。
+
+**新增主题存储字段**：在 `ThemeSettings` 加字段 → 默认值放 `DEFAULT_SETTINGS` → 主题/动画生效逻辑在 `applyToRoot()` 里同步 → i18n 同步 + CACHE_KEY bump。
+
+**`@PrePersist/@PreUpdate` 维护 updated_at**：前端 store 在登录后 `theme.hydrate()` 拉 DB 偏好合并；登出 / reset 时调 `DELETE /api/preference`。
 
 ---
 
@@ -245,6 +301,37 @@ async function onCmd(cmd: string, row: T) {
 - ❌ 操作列里直接放文字删除按钮
 - ❌ `<el-popconfirm>` 做删除确认
 - ❌ 删除按钮和其他危险操作混在图标里
+
+### 8.3 列对齐 / 时间等宽（M4 借鉴）
+
+| 列类型 | `align` | 内部 class |
+|---|---|---|
+| 数字（金额 / 计数 / ID）| `right` | `tabular` |
+| 状态（tag / switch）| `center` | — |
+| 操作 | `center` fixed=`right` | — |
+| 时间（`yyyy-MM-dd HH:mm:ss`）| 默认（左）| `mono-time` |
+| 文本（名称 / 描述 / 文件名）| 默认（左）| — |
+
+**全局样式**（`styles/global.css` 已锁定）：
+```css
+.tabular   { font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.mono-time { font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+             font-variant-numeric: tabular-nums; font-size: 12.5px;
+             color: var(--color-text-secondary); }
+```
+
+### 8.4 详情面板 `el-descriptions`（M5 借鉴）
+
+只读详情（vs 编辑表单）使用：
+
+```vue
+<el-descriptions :column="2" size="small" label-class-name="extra-info-col">
+  <el-descriptions-item label="名称">{{ row.name }}</el-descriptions-item>
+  ...
+</el-descriptions>
+```
+
+`size="small"` + `label-class-name="extra-info-col"` 让 label 加底色（`var(--color-bg)`），值用等宽数字（已在 `global.css` 全局锁定）。
 
 ---
 

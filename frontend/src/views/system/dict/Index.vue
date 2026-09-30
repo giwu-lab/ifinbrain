@@ -131,7 +131,7 @@
               <template #default="{ row }">{{ row.parentId || '—' }}</template>
             </el-table-column>
             <el-table-column :label="t('dict.colSort')" prop="sort" width="80" align="right" />
-            <el-table-column :label="t('dict.colStatus')" width="80">
+            <el-table-column :label="t('dict.colStatus')" width="80" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small" effect="light">
                   {{ row.status === 1 ? t('common.enabled') : t('common.disabled') }}

@@ -137,14 +137,9 @@ public class DocumentService {
                     "档案已存在（同一目录内已有相同内容的档案）: " + dup.get().getName());
         }
         String key = uniqueKey(prefix, orig);
-        try (InputStream in = Files.newInputStream(tmp)) {
-            storage.current().put(key, in, size, mime);
-        } catch (Exception ex) {
-            throw new BizException(500, "保存到存储失败");
-        } finally {
-            try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
-        }
-
+        // 两阶段 + 补偿（V35）：DB 行先建为 PENDING_UPLOAD(2)，落 storage 失败时整条回滚。
+        // 关键：DB 行先建让事务内的任何异常都能覆盖掉 row + 临时文件；若 storage.put
+        // 后才建 DB 行，存储侧文件就回不去了。
         DocumentRecord rec = DocumentRecord.builder()
                 .categoryId(categoryId)
                 .name(orig)
@@ -156,8 +151,22 @@ public class DocumentService {
                 .mimeType(mime)
                 .uploaderId(perm.currentUserId())
                 .uploaderName(perm.currentUsername())
-                .status((short) 1)
+                .status((short) 2)              // PENDING_UPLOAD
                 .build();
+        rec = documentRepo.save(rec);
+
+        try (InputStream in = Files.newInputStream(tmp)) {
+            storage.current().put(key, in, size, mime);
+        } catch (Exception ex) {
+            // 补偿：DB 行被事务回滚（@Transactional）→ 自动消失；临时文件清理。
+            // 抛 BizException 让前端感知错误。
+            try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
+            throw new BizException(500, "保存到存储失败");
+        }
+        try { Files.deleteIfExists(tmp); } catch (Exception ignored) {}
+
+        // 阶段 2 成功 → 升级为 READY(1)
+        rec.setStatus((short) 1);
         rec = documentRepo.save(rec);
 
         log.info("[documents] uploaded id={} cat={} path={} key={} size={} sha={}",
@@ -263,12 +272,30 @@ public class DocumentService {
                 .orElseThrow(() -> new BizException(404, "档案不存在"));
         requireLibraryPerm(rec.getCategoryId(), "delete");
 
-        // 先删 storage（失败不回滚 DB；记 warn 让用户感知）
+        // 已是 MISSING(4)：storage 本就缺，直接 DB 删，不再尝试 storage
+        if (rec.getStatus() != null && rec.getStatus() == 4) {
+            documentRepo.delete(rec);
+            log.info("[documents] deleted (missing) id={} key={}", id, rec.getStorageKey());
+            return;
+        }
+
+        // 两阶段 + 补偿（V35）：
+        // 阶段 1：标 PENDING_DELETE(3)，让 list 接口仍可见（事务内），同时拦下并发删
+        // 阶段 2：删 storage；失败 → 回滚 status=1 + 抛 BizException
+        // 阶段 3：DB 真正 delete
+        rec.setStatus((short) 3);
+        rec = documentRepo.save(rec);
+
         try {
             storage.current().delete(rec.getStorageKey());
         } catch (Exception ex) {
-            log.warn("[documents] storage delete failed for key={}: {}", rec.getStorageKey(), ex.getMessage());
+            // 补偿：回滚 status=1，让用户感知失败并可重试
+            rec.setStatus((short) 1);
+            documentRepo.save(rec);
+            log.warn("[documents] storage delete failed for id={} key={}: {}", id, rec.getStorageKey(), ex.getMessage());
+            throw new BizException(500, "删除存储失败：" + ex.getMessage());
         }
+
         documentRepo.delete(rec);
         log.info("[documents] deleted id={} key={}", id, rec.getStorageKey());
     }

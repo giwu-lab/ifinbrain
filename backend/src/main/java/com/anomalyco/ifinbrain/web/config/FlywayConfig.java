@@ -20,8 +20,8 @@ import java.util.List;
  * 启动期跑 Flyway 迁移 —— 必须早于 JPA EntityManagerFactory 初始化。
  *
  * 旧实现：把 migrate() 放在 @Bean flyway() 工厂方法里，但 Spring 创建 bean 是 lazy 的，
- *   没人请求 Flyway bean 时迁移不跑。结果是 sys_portal_block 等新表从未被建立。
- * 新实现：直接在 FlywayRunner.afterPropertiesSet()（@PostConstruct）里跑迁移，
+ *   没人请求 Flyway bean 时迁移不跑。结果是新版本中加的表从未被建立。
+ * 新实现：直接在 FlywayConfig.migrate()（@PostConstruct）里跑迁移，
  *   并将 DataSource 注入到本 bean 触发早期初始化。
  */
 @Slf4j
@@ -54,6 +54,9 @@ public class FlywayConfig {
                 .locations(effective.toArray(new String[0]))
                 .baselineOnMigrate(true)
                 .cleanDisabled(true)
+                // 关闭 placeholder 替换：FlowJson 注释里有 ${...} 表达式（如 ${days > 3}），
+                // 不能被 Flyway 当成 SQL placeholder 替换。
+                .placeholderReplacement(false)
                 .load();
         // Allow checksum fixes after V2 edits without manual repair step.
         flyway.repair();

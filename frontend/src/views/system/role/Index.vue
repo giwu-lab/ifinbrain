@@ -96,7 +96,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.status')" width="100">
+        <el-table-column :label="t('common.status')" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="(row as RoleItem).status === 1 ? 'success' : 'info'" size="small" effect="light">
               {{ (row as RoleItem).status === 1 ? t('common.enabled') : t('common.disabled') }}

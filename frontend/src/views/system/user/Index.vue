@@ -55,7 +55,7 @@
             <span v-if="!(row as UserItem).roleNames?.length" class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.status')" width="100">
+        <el-table-column :label="t('common.status')" width="100" align="center">
           <template #default="{ row }">
             <el-tag
               :type="(row as UserItem).status === 1 ? 'success' : 'info'"
@@ -68,7 +68,7 @@
         </el-table-column>
         <el-table-column :label="t('system.colLastLogin')" width="180" prop="lastLoginAt">
           <template #default="{ row }">
-            <span v-if="(row as UserItem).lastLoginAt" class="text-secondary">{{ (row as UserItem).lastLoginAt }}</span>
+            <span v-if="(row as UserItem).lastLoginAt" class="mono-time">{{ (row as UserItem).lastLoginAt }}</span>
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>

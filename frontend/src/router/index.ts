@@ -2,6 +2,8 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import nprogress from 'nprogress';
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
+import { useTabStore } from '@/stores/tab';
+import { useThemeStore } from '@/stores/theme';
 import type { MenuNode } from '@/types';
 
 nprogress.configure({ showSpinner: false });
@@ -72,24 +74,39 @@ const staticRoutes: RouteRecordRaw[] = [
   // 一键生成的查询列表页（不走 sys_menu 静态 path 匹配，因为 path 里是动态 menuId）
   { path: '/data-mgmt/query-page/:menuId(\\d+)', component: () => import('@/views/data-mgmt/query-page/Index.vue'),
     meta: { title: 'Query Page', permission: 'data:query:view' } },
-  // 页面设计器（不走 sys_menu；列表/编辑/预览路径动态）
-  { path: '/design/page', component: () => import('@/views/design/page/Index.vue'),
-    meta: { title: 'Page Designer', permission: 'design:page:view' } },
-  { path: '/design/page/new', component: () => import('@/views/design/page/Index.vue'),
-    meta: { title: 'New Portal Page', permission: 'design:page:update' } },
-  { path: '/design/page/:id(\\d+)/edit', component: () => import('@/views/design/page/Editor.vue'),
-    meta: { title: 'Edit Page', permission: 'design:page:update' } },
-  { path: '/design/page/:id(\\d+)/preview', component: () => import('@/views/design/page/Preview.vue'),
-    meta: { title: 'Preview Page', permission: 'design:page:view' } },
   // 档案库文件独立 tab 预览（替代 el-drawer）；URL: /preview?key=...&name=...
   // 注意：不挂 meta.permission —— per-archive view 由 Preview view 内 extractSlug() + hasPerm 校验。
   // 否则 router 守卫会把没全局 documents:view 但有 documents:{slug}:view 的用户挡在 /403
   // （与 /documents/:slug 设计一致）
   { path: '/preview', component: () => import('@/views/preview/Index.vue'),
     meta: { title: 'Preview' } },
-  // 运行时门户页（登录后按角色命中）
-  { path: '/portal/:code', component: () => import('@/views/portal/Index.vue'),
-    meta: { title: 'Portal' } },
+  // 流程设计器（不走 sys_menu；list/new/edit/preview 路径动态）
+  { path: '/design/flow', component: () => import('@/views/design/flow/Index.vue'),
+    meta: { title: 'Flow Designer', permission: 'design:flow:view' } },
+  { path: '/design/flow/new', component: () => import('@/views/design/flow/Designer.vue'),
+    meta: { title: 'New Flow', permission: 'design:flow:create' } },
+  { path: '/design/flow/:id(\\d+)/edit', component: () => import('@/views/design/flow/Designer.vue'),
+    props: true,
+    meta: { title: 'Edit Flow', permission: 'design:flow:update' } },
+  { path: '/design/flow/:id(\\d+)/preview', component: () => import('@/views/design/flow/Preview.vue'),
+    props: true,
+    meta: { title: 'Preview Flow', permission: 'design:flow:view' } },
+  // 流程运行时（待办 / 我发起的 / 发起流程）
+  { path: '/design/flow-runtime', component: () => import('@/views/design/flow/Workflow.vue'),
+    meta: { title: 'Flow Runtime', permission: 'design:flow:deploy' } },
+  // 表单设计器（不走 sys_menu，list/new/edit/preview 路径动态）
+  // meta.component 指到 design/form/Index：tab 标签走 menu.design.form.Index（i18n 可翻译）；
+  // 4 条路由共用一个 component key —— tab 名相同，由 URL 后缀区分，与 /documents/:slug 模式一致。
+  { path: '/design/form', component: () => import('@/views/design/form/Index.vue'),
+    meta: { title: 'Form Designer', permission: 'design:form:view', name: 'Form Designer', component: 'design/form/Index', path: '/design/form' } },
+  { path: '/design/form/new', component: () => import('@/views/design/form/Designer.vue'),
+    meta: { title: 'New Form', permission: 'design:form:create', name: 'New Form', component: 'design/form/Index', path: '/design/form/new' } },
+  { path: '/design/form/:id(\\d+)/edit', component: () => import('@/views/design/form/Designer.vue'),
+    props: true,
+    meta: { title: 'Edit Form', permission: 'design:form:update', name: 'Edit Form', component: 'design/form/Index', path: '/design/form/:id/edit' } },
+  { path: '/design/form/:id(\\d+)/preview', component: () => import('@/views/design/form/Preview.vue'),
+    props: true,
+    meta: { title: 'Preview Form', permission: 'design:form:view', name: 'Preview Form', component: 'design/form/Index', path: '/design/form/:id/preview' } },
 // 档案管理 → 档案库管理（不走 sys_menu，由静态路由接管；与 /documents/:slug 一致）
   // 老路径 /documents/category 重定向到 /documents/archive（兼容老书签）
   { path: '/documents/category', redirect: '/documents/archive' },
@@ -120,8 +137,9 @@ const builtInViews: Record<string, () => Promise<unknown>> = {
   'data-mgmt/query-page/Index':  () => import('@/views/data-mgmt/query-page/Index.vue'),
   'documents/archive/Index':     () => import('@/views/documents/archive/Index.vue'),
   'documents/list/Index':        () => import('@/views/documents/list/Index.vue'),
-  'design/page/Index':           () => import('@/views/design/page/Index.vue'),
-  'design/flow/Index':           () => import('@/views/design/flow/Index.vue')
+  'design/flow/Index':           () => import('@/views/design/flow/Index.vue'),
+  'design/form/Index':           () => import('@/views/design/form/Index.vue'),
+  'todo/task/Index':             () => import('@/views/todo/task/Index.vue'),
 };
 
 function buildRoutesFromMenus(menus: MenuNode[]): RouteRecordRaw[] {
@@ -139,6 +157,12 @@ function buildRoutesFromMenus(menus: MenuNode[]): RouteRecordRaw[] {
         continue;
       }
       const firstChildPath = (m.children || [])[0]?.path || dirPath;
+      // DIR 路径与首个 child 路径相同（典型：单子菜单 DIR），挂 redirect 会自指向；
+      // 直接让 MENU 子项接管该路径即可（与 /documents 同模式）。
+      if (firstChildPath === dirPath) {
+        routes.push(...buildRoutesFromMenus(m.children || []));
+        continue;
+      }
       // DIR 本身：只挂个 redirect，让访问 /invoice 时跳到第一个子项
       routes.push({
         path: dirPath,
@@ -159,9 +183,8 @@ function buildRoutesFromMenus(menus: MenuNode[]): RouteRecordRaw[] {
       if (compKey === 'documents/list/Index') continue;
       // 档案管理 → 档案库：静态路由 `/documents/archive` 接管，跳过精确路径注册避免双路由冲突
       if (compKey === 'documents/archive/Index') continue;
-      // 页面设计器：精确菜单 path=/design/page 已由下方静态路由接管（new/edit/preview 走参数路由）
-      // 注：list/new 都用同一组件 Index.vue；菜单只挂 /design/page，/new 由前端跳转
-      if (compKey === 'design/page/Index') continue;
+      // 表单设计器：精确菜单 path=/design/form 已由下方静态路由接管（new/edit/preview 走参数路由）
+      if (compKey === 'design/form/Index') continue;
       const component = builtInViews[compKey] || (() => import('@/views/error/404.vue'));
       routes.push({
         path: m.path,
@@ -200,7 +223,8 @@ export async function setupDynamicRoutes(menus: MenuNode[]) {
 }
 
 router.beforeEach(async (to, _from, next) => {
-  nprogress.start();
+  // 进度条：受 theme store 控制
+  try { useThemeStore().settings.enableProgress && nprogress.start(); } catch { nprogress.start(); }
   const auth = useAuthStore();
   if (to.meta.public) return next();
   if (!auth.isLogged) {
@@ -230,6 +254,15 @@ router.beforeEach(async (to, _from, next) => {
   next();
 });
 
-router.afterEach(() => nprogress.done());
+router.afterEach((to) => {
+  nprogress.done();
+  // 同步多标签页：登录后所有跳转都登记
+  // ignore 列表（/login /403 /404 /preview）在 tabStore.openTab 内部判断
+  try {
+    useTabStore().openTab(to);
+  } catch {
+    /* 路由初始化阶段 store 还没注入，忽略 */
+  }
+});
 
 export default router;

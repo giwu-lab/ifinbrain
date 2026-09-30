@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { authApi } from '@/api/auth';
 import type { UserInfo } from '@/types';
+import { useTabStore } from '@/stores/tab';
 
 interface AuthState {
   token: string;
@@ -28,6 +29,11 @@ export const useAuthStore = defineStore('auth', {
       this.user = data.user;
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
+      // 登录后从 DB 拉一次主题偏好 —— 失败时静默回退到 localStorage 缓存
+      try {
+        const { useThemeStore } = await import('@/stores/theme');
+        await useThemeStore().hydrate();
+      } catch { /* 离线模式：保留上次缓存 */ }
     },
     async fetchMe() {
       const info = await authApi.me();
@@ -57,6 +63,9 @@ export const useAuthStore = defineStore('auth', {
       this.user = null;
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      // 清掉多标签页：登出后不允许保留上一用户的 tab 痕迹
+      // tabStore 不依赖 auth，不会形成循环
+      try { useTabStore().reset(); } catch { /* store 还未注入，忽略 */ }
     },
     hasPerm(code: string): boolean {
       return this.permissions.includes(code);

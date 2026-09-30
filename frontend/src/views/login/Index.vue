@@ -1,10 +1,7 @@
 <template>
   <div class="login-page">
-    <!-- 背景层：渐变 + 装饰光斑 -->
+    <!-- 背景层：渐变 + 等距几何（CSS 自绘，不引版权插画） -->
     <div class="bg-deco">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-      <div class="blob blob-3"></div>
       <svg class="grid" viewBox="0 0 100 100" preserveAspectRatio="none">
         <defs>
           <pattern id="grid" width="6" height="6" patternUnits="userSpaceOnUse">
@@ -13,6 +10,35 @@
         </defs>
         <rect width="100" height="100" fill="url(#grid)" />
       </svg>
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+
+      <!-- 等距几何：立方体 / 八面体 / 六边形，CSS 3D -->
+      <div class="iso-layer" aria-hidden="true">
+        <div class="iso-cube cube-1"><span></span><span></span><span></span></div>
+        <div class="iso-cube cube-2"><span></span><span></span><span></span></div>
+        <div class="iso-cube cube-3"><span></span><span></span><span></span></div>
+        <div class="iso-hex hex-1"></div>
+        <div class="iso-hex hex-2"></div>
+      </div>
+    </div>
+
+    <!-- 右上角语言切换 -->
+    <div class="lang-switch">
+      <el-dropdown trigger="click" @command="onLang">
+        <span class="lang-chip">
+          <el-icon><Position /></el-icon>
+          <span>{{ currentLangLabel }}</span>
+          <el-icon><CaretBottom /></el-icon>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="zh-CN">中文</el-dropdown-item>
+            <el-dropdown-item command="en-US">English</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
 
     <div class="login-wrap">
@@ -28,16 +54,15 @@
         <h1 class="brand-title">{{ t('login.title') }}</h1>
         <p class="brand-desc">{{ t('login.brandDesc') }}</p>
         <ul class="brand-features">
-          <li><span class="dot"></span>批量上传 PDF/XML 发票</li>
-          <li><span class="dot"></span>本地磁盘 / S3 兼容存储一键切换</li>
-          <li><span class="dot"></span>基于 RBAC 的细粒度权限管理</li>
+          <li><span class="dot"></span>{{ t('login.featureOcr') }}</li>
+          <li><span class="dot"></span>{{ t('login.featureStorage') }}</li>
+          <li><span class="dot"></span>{{ t('login.featureRbac') }}</li>
         </ul>
       </div>
 
       <!-- 右侧：登录卡片 -->
       <el-card class="login-card fade-in-up" shadow="never">
         <h2 class="title">{{ t('login.subtitle') }}</h2>
-        <p class="muted subtitle">使用账号密码登录</p>
 
         <el-form
           :model="form"
@@ -77,10 +102,16 @@
           </el-button>
         </el-form>
 
-        <div class="hint">
-          <el-icon><InfoFilled /></el-icon>
-          <span>默认账号 <code>admin / Admin@123</code>，首次登录后请修改</span>
-        </div>
+        <el-alert
+          type="info"
+          :closable="false"
+          class="hint-alert"
+          show-icon
+        >
+          <template #title>
+            <span class="hint">{{ t('login.defaultHint', { code: 'admin / Admin@123' }) }}</span>
+          </template>
+        </el-alert>
       </el-card>
     </div>
   </div>
@@ -91,11 +122,12 @@ import { ref, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { InfoFilled } from '@element-plus/icons-vue';
+import { Position, CaretBottom } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
+import { setLocale } from '@/i18n';
 import { setupDynamicRoutes } from '@/router';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
@@ -107,6 +139,13 @@ const rules = computed<FormRules>(() => ({
   username: [{ required: true, message: t('common.required') }],
   password: [{ required: true, message: t('common.required') }]
 }));
+
+const currentLangLabel = computed(() => (locale.value === 'en-US' ? 'English' : '中文'));
+
+function onLang(cmd: string) {
+  if (cmd !== 'zh-CN' && cmd !== 'en-US') return;
+  setLocale(cmd);
+}
 
 async function submit() {
   if (!formRef.value) return;
@@ -159,6 +198,72 @@ async function submit() {
 .blob-1 { width: 380px; height: 380px; background: #3b82f6; top: -120px; left: -120px; }
 .blob-2 { width: 460px; height: 460px; background: #8b5cf6; bottom: -180px; right: -160px; }
 .blob-3 { width: 220px; height: 220px; background: #06b6d4; top: 40%; left: 45%; opacity: 0.25; }
+
+/* 等距几何层：立方体 + 六边形，纯 CSS */
+.iso-layer { position: absolute; inset: 0; }
+
+.iso-cube {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  transform-style: preserve-3d;
+  transform: rotateX(-25deg) rotateY(45deg);
+  opacity: 0.18;
+}
+.iso-cube span {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  background: rgba(99, 102, 241, 0.10);
+}
+.iso-cube span:nth-child(1) { transform: translateZ(50px); }
+.iso-cube span:nth-child(2) { transform: rotateY(180deg) translateZ(50px); background: rgba(59, 130, 246, 0.10); }
+.iso-cube span:nth-child(3) { transform: rotateY(90deg) translateZ(50px); background: rgba(139, 92, 246, 0.10); }
+
+.cube-1 { top: 18%; left: 18%; transform: rotateX(-25deg) rotateY(45deg) scale(1.0); }
+.cube-2 { top: 62%; left: 8%;  transform: rotateX(-20deg) rotateY(35deg) scale(0.7); opacity: 0.14; }
+.cube-3 { top: 70%; right: 14%; transform: rotateX(-30deg) rotateY(55deg) scale(1.2); opacity: 0.12; }
+
+.iso-hex {
+  position: absolute;
+  width: 120px;
+  height: 104px;
+  opacity: 0.16;
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.20), rgba(99, 102, 241, 0.20));
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+.hex-1 { top: 24%; right: 22%; transform: rotate(8deg); }
+.hex-2 { bottom: 18%; right: 8%; transform: rotate(-12deg) scale(0.6); opacity: 0.10; }
+
+/* 右上角语言切换 */
+.lang-switch {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  z-index: 2;
+}
+.lang-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  backdrop-filter: blur(8px);
+}
+.lang-chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.30);
+  color: white;
+}
+.lang-chip .el-icon { font-size: 13px; }
+.lang-chip .el-icon:last-child { font-size: 11px; opacity: 0.7; }
 
 /* 主容器：两栏 */
 .login-wrap {
@@ -227,27 +332,22 @@ async function submit() {
   box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18);
 }
 
-/* 右：登录卡片 */
+/* 右：登录卡片（紧凑化） */
 .login-card {
-  width: 420px;
+  width: 400px;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(16px);
-  border-radius: 20px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.35);
+  box-shadow: var(--shadow-lg);
   padding: 8px 8px;
 }
 .title {
-  margin: 0 0 4px;
-  font-size: 24px;
+  margin: 0 0 24px;
+  font-size: 22px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text);
   letter-spacing: -0.01em;
-}
-.subtitle {
-  margin: 0 0 28px;
-  font-size: 14px;
-  color: #6b7280;
 }
 .login-form :deep(.el-form-item__label) {
   font-weight: 500;
@@ -269,28 +369,31 @@ async function submit() {
 .submit-btn:hover {
   background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
 }
-.hint {
+.hint-alert {
   margin-top: 18px;
-  padding: 10px 12px;
-  background: #f3f4f6;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+.hint-alert :deep(.el-alert__title) {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
+}
+.hint-alert :deep(.el-alert__icon) {
+  color: var(--color-primary);
 }
 .hint code {
   background: white;
   padding: 1px 6px;
   border-radius: 4px;
   font-family: 'SF Mono', Menlo, monospace;
-  color: #2563eb;
+  color: var(--color-primary);
 }
 
 /* 窄屏：品牌区隐藏 */
 @media (max-width: 768px) {
   .brand-pane { display: none; }
   .login-wrap { justify-content: center; }
+  .lang-switch { right: 16px; top: 16px; }
 }
 </style>

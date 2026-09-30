@@ -57,7 +57,7 @@
         </div>
 
         <!-- draggable divider -->
-        <div class="qe-divider" @mousedown.prevent="startDrag" title="拖拽调整高度">
+        <div class="qe-divider" @mousedown.prevent="startDrag" :title="t('dataMgmt.qyDetailResizeHint')">
           <span class="qe-divider-grip" />
         </div>
 

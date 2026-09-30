@@ -226,6 +226,20 @@ public class ArchiveLibraryService {
                     "档案库「" + e.getName() + "」下仍有 " + count + " 个档案，请先处理后再删除");
         }
 
+        // 两阶段 + 补偿（V35）：先清 storage，再清 DB。
+        // 之前顺序：libraryRepo.delete → menuRepo.delete → unbindAndDeleteLibraryPerms →
+        //   storage.deletePrefix（最后一步）。一旦 storage 那步失败，整个档案库的文件
+        //   都成孤儿，但 DB 已经清干净 → 没有 reconcile 可借助的入口。
+        // 新顺序：storage.deletePrefix 先做；失败抛 BizException，DB 完整保留可重试。
+        // 优点：DB 永远与 storage 至少「DB 一侧干净」；storage 残留可由 L2 reconcile 兜底。
+        try {
+            storage.current().deletePrefix("documents/" + e.getSlug());
+        } catch (Exception ex) {
+            log.warn("[documents] storage deletePrefix failed for slug={}: {}", e.getSlug(), ex.getMessage());
+            throw new BizException(500,
+                    "清理存储失败：" + ex.getMessage() + " —— 数据库侧尚未清理，可重试");
+        }
+
         // 删档案库 + 同步删对应 sys_menu 行
         libraryRepo.delete(e);
         String targetPath = "/documents/" + e.getSlug();
@@ -243,9 +257,6 @@ public class ArchiveLibraryService {
         // 不能保留 —— perm.name 字段含被删档案库名，留着会污染角色列表（admin 仍显示「拥有销售部/工程部」等孤儿授权）。
         // ensureLibraryPerms() 用 existsByCode 做幂等检查，slug 将来被复用时会自动重建。
         unbindAndDeleteLibraryPerms(e.getSlug());
-
-        // 清理 storage 上对应的档案库目录（非空时跳过；S3 上为 no-op）
-        storage.current().deletePrefix("documents/" + e.getSlug());
 
         log.info("[documents] deleted archive library id={} slug={}", id, e.getSlug());
     }

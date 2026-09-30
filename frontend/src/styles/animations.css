@@ -1,0 +1,96 @@
+/* ============================================================
+ *  路由切换动画（6 种）
+ * 由 <Transition :name="store.animationType"> 触发
+ *
+ * - BasicLayout 在 data-anim="none" 时跳过 transition 包一层
+ * - 6 种 keyframes 互不冲突；前缀均带 sp- 防止污染
+ * ========================================================== */
+
+/* 1) fade —— 当前默认 */
+.sp-fade-enter-active, .sp-fade-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.sp-fade-enter-from { opacity: 0; transform: translateY(8px); }
+.sp-fade-leave-to   { opacity: 0; transform: translateY(-8px); }
+
+/* 2) slide —— 水平滑动 */
+.sp-slide-enter-active, .sp-slide-leave-active {
+  transition: transform 0.28s ease, opacity 0.28s ease;
+}
+.sp-slide-enter-from { transform: translateX(24px); opacity: 0; }
+.sp-slide-leave-to   { transform: translateX(-24px); opacity: 0; }
+
+/* 3) zoom —— 居中缩放 */
+.sp-zoom-enter-active, .sp-zoom-leave-active {
+  transition: transform 0.24s ease, opacity 0.24s ease;
+}
+.sp-zoom-enter-from { transform: scale(0.92); opacity: 0; }
+.sp-zoom-leave-to   { transform: scale(1.06); opacity: 0; }
+
+/* 4) fade-slide —— 复合（淡入 + 水平滑） */
+.sp-fade-slide-enter-active, .sp-fade-slide-leave-active {
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
+}
+.sp-fade-slide-enter-from { transform: translateY(12px) translateX(8px); opacity: 0; }
+.sp-fade-slide-leave-to   { transform: translateY(-8px) translateX(-8px); opacity: 0; }
+
+/* 5) flip —— 3D Y 轴翻转 */
+.sp-flip-enter-active, .sp-flip-leave-active {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  perspective: 1200px;
+}
+.sp-flip-enter-from { transform: rotateY(-90deg); opacity: 0; }
+.sp-flip-leave-to   { transform: rotateY(90deg); opacity: 0; }
+
+/* 6) scale —— 大缩放（比 zoom 更明显） */
+.sp-scale-enter-active, .sp-scale-leave-active {
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.24s ease;
+}
+.sp-scale-enter-from { transform: scale(0.7); opacity: 0; }
+.sp-scale-leave-to   { transform: scale(1.15); opacity: 0; }
+
+/* ============================================================
+ *  nprogress 着色：跟随当前 primary
+ *  - [data-progress="false"] 直接隐藏
+ * ========================================================== */
+#nprogress .bar {
+  background: var(--color-primary) !important;
+  height: 3px;
+}
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--color-primary), 0 0 5px var(--color-primary) !important;
+}
+:root[data-progress="false"] #nprogress { display: none !important; }
+
+/* ============================================================
+ *  全局切换 loading（在 main.vue 内用 v-if 控制）
+ * ========================================================== */
+.sp-page-loading {
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  animation: sp-loading-fade 0.18s ease;
+}
+@keyframes sp-loading-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.sp-page-loading .sp-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--color-primary-soft);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: sp-loading-spin 0.7s linear infinite;
+}
+@keyframes sp-loading-spin {
+  to { transform: rotate(360deg); }
+}

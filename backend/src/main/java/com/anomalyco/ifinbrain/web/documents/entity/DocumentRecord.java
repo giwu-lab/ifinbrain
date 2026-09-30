@@ -54,7 +54,17 @@ public class DocumentRecord {
     @Column(length = 255)
     private String remark;
 
-    /** 0 = 已删除；1 = 正常。 */
+    /**
+     * 文档生命周期状态。两阶段 + 补偿一致性协议（V35）：
+     * <ul>
+     *   <li>1 = READY（旧称 ACTIVE，正常显示 / 预览 / 下载）</li>
+     *   <li>2 = PENDING_UPLOAD（upload 阶段 1：DB 行已建，storage.put 未完成）</li>
+     *   <li>3 = PENDING_DELETE（delete 阶段 1：DB 标待删，storage.delete 未完成）</li>
+     *   <li>4 = MISSING（DB 有但 storage 找不到；reconcile 标记；列表可见但 FileController 拒绝）</li>
+     * </ul>
+     * 部分唯一索引 {@code idx_doc_storage_key_active} 只约束 status != 4，
+     * 让 PENDING_UPLOAD 与 READY 之间也能维持 unique（防并发上传同名覆盖）。
+     */
     @Column(nullable = false)
     private Short status;
 
