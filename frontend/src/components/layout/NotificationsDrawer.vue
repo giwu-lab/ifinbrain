@@ -225,7 +225,7 @@ function goFlowRuntime() {
 
 function goTodo() {
   emit('update:modelValue', false);
-  router.push('/todo/task');
+  router.push('/todo');
 }
 
 function formatDate(s: string) { return formatDateTime(s); }
