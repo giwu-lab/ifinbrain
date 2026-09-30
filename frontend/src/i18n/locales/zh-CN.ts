@@ -906,11 +906,6 @@ export default {
     placeholder: '请选择图标',
   },
 
-  preview: {
-    noPermission: '无法预览 - 该档案库未授权「查看」权限',
-    backToList: '返回档案库',
-  },
-
   permSelector: {
     placeholder: '选择权限（可输入自定义码）',
     typeMenu: '菜单',
@@ -951,7 +946,7 @@ export default {
 
     // 流程设计（Phase 3 —— 正式版）
     flowTitle: '流程设计',
-    flowDesc: '基于 Vue Flow + dagre 的 BPMN 设计器；节点可选挂表单；与 mfish 100% 兼容',
+    flowDesc: '基于 Vue Flow + dagre 的 BPMN 设计器；节点可选挂表单',
     flowCreate: '新建流程',
     flowEdit: '编辑设计',
     flowPreview: '预览',

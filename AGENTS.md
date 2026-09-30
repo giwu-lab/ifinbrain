@@ -25,13 +25,14 @@
 |---|---|---|
 | 1 | `frontend/src/i18n/locales/zh-CN.ts` | 手工添加中文文案 |
 | 2 | `frontend/src/i18n/locales/en-US.ts` | 手工添加英文文案 |
-| 3 | `backend/src/main/resources/i18n/defaults.json` | **`node frontend/scripts/i18n-export.mjs` 自动生成**，不要手改 |
-| 4 | `frontend/src/stores/i18n.ts` | bump `CACHE_KEY`（v45 → v46 → ...），让前端丢弃旧缓存 |
-| 5 | DB `sys_i18n_message` 表 | admin 登录后调 `POST /api/system/i18n/sync-defaults` |
+
+i18n **单一数据源 = TS 文件**：运行时不再从 `sys_i18n_message` 表拉覆盖；新增文案只动这两个文件即可。
 
 **菜单 key 命名**：`<menu>.<path>.<component>`。`BasicLayout.menuName()` 把 component 里的 `/` 替换为 `.`，得到 `menu.data-mgmt.datasource.Index`（保留大小写含 `-`）；而 page 内 i18n 用 camelCase `menu.dataMgmt.datasource.Index`。**两组都给 key 才能覆盖所有路径**。
 
-**检查方式**：`grep "t('namespace.x')"` 用到的 key 在 `defaults.json` 里 100% 存在；不允许 fallback 到 literal key。
+**相同语义统一文案**：项目内同一概念在多个 i18n 命名空间出现时（如顶级 DIR 在 `menu.X._` 与 `system.permModule.X` 都出现），**以 `menu.X._` 为权威**——所有其他命名空间贴齐，避免「侧边栏写『发票管理』、权限列写『发票』」之类的歧义。改值时一并改两处（含 zh/en 两套）。例外：辅助 permModule（无顶级 DIR 对应的，如 `parser` / `ocr` / `setting` / `file`）保持各自独立短名。
+
+**检查方式**：`grep "t('namespace.x')"` 用到的 key 在两个 TS 文件里 100% 存在；不允许 fallback 到 literal key。
 
 ---
 
@@ -200,11 +201,34 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 - 黑色 sidebar（默认仍是浅色）
 - 按钮 `→` / ALL-CAPS eyebrow / SaaS-card 套娃 / pill 状态
 
-**i18n 命名空间**：`stylePanel.*`（35 keys），5 处同步：zh-CN.ts / en-US.ts / defaults.json（自动生成）/ CACHE_KEY bump（v66→v67）/ DB sync。
+### 7.4 弹窗 mask 视觉异常（避坑笔记）
+
+**现象**：`el-dialog` 打开时弹窗本体正常，但弹窗下方有大片浅灰色，看起来弹窗"漂浮在浅背景上"，用户感知为 bug。
+
+**根因**：Element Plus 的 `.el-overlay` 默认用 `var(--el-overlay-color-lighter)` 作为 mask 背景（浅灰半透明黑）；项目 layout-root / body / `.main` 同时用 `var(--color-bg)` 浅灰作背景色。mask 浅灰半透明 + 页面浅灰叠加，结果仍是浅灰 → 弹窗无法在视觉上"压住"页面。
+
+**解决方案**（已全局修复，写在 `frontend/src/styles/global.css`）：
+```css
+.el-overlay {
+  background-color: rgba(15, 23, 42, 0.55) !important;   /* slate-900 55% alpha */
+  backdrop-filter: blur(2px);
+}
+```
+
+**避坑**：下次再看到「弹窗打开时下方有大片灰色」，**不要**去改：
+- ❌ el-dialog width / 列宽（无关）
+- ❌ .page-container 加 min-height（无关）
+- ❌ el-dialog 加 align-center（.el-overlay-dialog 已 flex，无关）
+- ❌ el-dialog 加 max-height（无关）
+- ❌ 改 dialog width（无关）
+
+那些全是弹窗**本体**或 page 容器的问题，不是 mask 问题。真正的修复点是 `.el-overlay` 的背景。
+
+**i18n 命名空间**：`stylePanel.*`（35 keys），2 处同步：zh-CN.ts / en-US.ts（直接改 ts 即可，Vite HMR 立刻生效）。
 
 **新增色/动效**：预设色板在 `StylePanel.vue` 的 `PRIMARY_PRESETS / HEADER_PRESETS / MENU_PRESETS`；新增 transition 模板在 `styles/animations.css` 加 `.sp-{name}-enter/leave-*` 三条规则，然后在 `types.ts` `AnimationType` 联合加成员 + `StylePanelAnimation.vue` 的 `options` 数组加项。
 
-**新增主题存储字段**：在 `ThemeSettings` 加字段 → 默认值放 `DEFAULT_SETTINGS` → 主题/动画生效逻辑在 `applyToRoot()` 里同步 → i18n 同步 + CACHE_KEY bump。
+**新增主题存储字段**：在 `ThemeSettings` 加字段 → 默认值放 `DEFAULT_SETTINGS` → 主题/动画生效逻辑在 `applyToRoot()` 里同步 → i18n 同步 2 个 ts 文件即可。
 
 **`@PrePersist/@PreUpdate` 维护 updated_at**：前端 store 在登录后 `theme.hydrate()` 拉 DB 偏好合并；登出 / reset 时调 `DELETE /api/preference`。
 
@@ -312,11 +336,13 @@ async function onCmd(cmd: string, row: T) {
 | 时间（`yyyy-MM-dd HH:mm:ss`）| 默认（左）| `mono-time` |
 | 文本（名称 / 描述 / 文件名）| 默认（左）| — |
 
+**`mono-time` 设计意图**：仅保留 **等宽数字字体 + tabular-nums** 特性（让日期列数字宽度一致对齐，避免「9 比 8 宽」）。字号与表格 cell 默认一致（13px），颜色保留 `--color-text-secondary`（#6b7281 灰），让时间列在表格中视觉上「次要」。
+
 **全局样式**（`styles/global.css` 已锁定）：
 ```css
 .tabular   { font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .mono-time { font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
-             font-variant-numeric: tabular-nums; font-size: 12.5px;
+             font-variant-numeric: tabular-nums; font-size: 13px;
              color: var(--color-text-secondary); }
 ```
 
@@ -333,19 +359,35 @@ async function onCmd(cmd: string, row: T) {
 
 `size="small"` + `label-class-name="extra-info-col"` 让 label 加底色（`var(--color-bg)`），值用等宽数字（已在 `global.css` 全局锁定）。
 
+### 8.5 角色管理权限列归类（按顶级 DIR）
+
+`views/system/role/Index.vue` 的 `permissionCodes` 列展示按 **sys_menu 顶级 DIR** 归类，不再按 perm code 第一段（`moduleOf`）归类。
+
+- **工具**：`utils/permission.ts: groupByTopMenu(perms, menus)` —— 输入 `sys_menu.flat` 列表，输出按 `sort` 排序的 `TopMenuGroup[]` + orphan bucket（`id=0`）
+- **归类算法**：
+  1. 抽 `type='DIR' && parent_id=0` 顶级菜单，按 `sort` 升序
+  2. 每个 DIR 的 module 前缀集合 = DIR 自带 `permission` 的 `moduleOf` ∪ `TOP_DIR_MODULE_HINTS[t.id]`（兜底：Invoice=invoice / System=system+ocr+setting+file）∪ 子菜单 permission 自动归集
+  3. 每个 perm 按 `moduleOf(code)` 命中首个 hints 非空的 DIR
+  4. 未命中 → orphan bucket（`id=0`，`moduleKey='_'`）
+- **行标题**：复用 `t(\`system.permModule.${group.moduleKey}\`, group.name)`（已收录所有顶级 DIR 的 moduleKey 映射）
+- **行内渲染**：
+  - 普通 DIR / orphan：前 4 个 verb `<el-tag>` + `+N` 截断标记（沿用 `+N` 圆角 tag 风格）
+  - Documents DIR：全局 perm 单独子行 + 档案库按 slug 拆子行（沿用 `archivePermGroups`）
+- **orphan 行标题**：`t('system.permOther', '其他权限')` —— 用于发现历史遗留 perm
+- **scope**：仅改 `role/Index.vue` 列表列；编辑对话框的 `groupedPermissions` 仍走 `groupByModule`（sectioned checkbox UI 高度自适应）；`PermissionSelect` 组件不动
+- **fallback**：`menuApi.flat()` 失败（无 `system:menu:list` perm）→ 静默 `menus.value = []` → `groupByTopMenu` 返回单 orphan bucket，UI 退化为「其他权限」单行展示
+
 ---
 
-## 9. 资源文件同步（i18n + 资源）
+## 9. 资源文件同步
 
-Spring Boot 运行时从 `backend/target/classes/` 读资源，不读 `src/main/resources/`。`mvn spring-boot:run` 不会自动复制 `i18n/defaults.json`。**改了 i18n 文案后必须**：
+Spring Boot 运行时从 `backend/target/classes/` 读资源，不读 `src/main/resources/`。新增静态资源后记得跑：
 
 ```bash
-cp backend/src/main/resources/i18n/defaults.json backend/target/classes/i18n/defaults.json
-# 或一次性 process-resources：
 cd backend && mvn -q process-resources
 ```
 
-否则 `POST /api/system/i18n/sync-defaults` 会读到旧版 defaults.json，后端日志显示 "inserted/updated" 数偏少。
+i18n 现已统一收口到前端 TS 文件（zh-CN.ts / en-US.ts），无 `defaults.json` 同步步骤——改文案 = 改 ts → 重启前端 dev server / Vite HMR 即生效。
 
 ---
 
@@ -368,20 +410,18 @@ self.MonacoEnvironment = {
 
 **限制**：当前项目 dev-only（无 prod build 配置）。
 
-### 10.2 档案库预览架构（@file-viewer）
+### 10.2 档案库预览架构（@file-viewer + el-drawer）
 
-v1.4.x 起档案库预览从「if-else 分发（FilePreviewer / PdfViewer / mammoth / SheetJS / 自研 pdfWorker）」迁移到 **`@file-viewer/preset-office` + 独立 tab 预览**。
+v1.4.x 起档案库预览从「if-else 分发（FilePreviewer / PdfViewer / mammoth / SheetJS / 自研 pdfWorker）」迁移到 **`@file-viewer/preset-office`**，UI 用 `el-drawer 80% rtl`（v1.5.1 把 f2e4e69 那一版的「独立 tab 预览」还原）。
 
 **链路**：
 
 ```
 documents/list/Index.vue
-   └─ preview(row) → window.open(/preview?key=...&name=...) (新 tab)
-       └─ views/preview/Index.vue
-           ├─ extractSlug() + auth.hasPerm('documents:' + slug + ':view') (per-archive perm 校验)
-           │   ✗ → <el-empty preview.noPermission> + 返回档案库按钮
-           ├─ ✓ → <ProjectFileViewer :storageKey :filename>
-           │       ├─ fetch /api/files/raw?key=...&inline=true (Bearer JWT)
+   └─ 表格行「👁 预览」按钮 → previewVisible=true
+       └─ <el-drawer size="80%" direction="rtl" :destroy-on-close="true">
+ └─ <ProjectFileViewer :storageKey :filename @download="onPreviewDownload">
+ ├─ fetch /api/files/raw?key=...&inline=true (Bearer JWT)
            │       │   → FileController.raw() (per-archive view perm 深度防御)
            │       ├─ ArrayBuffer → viewer.load({ buffer: ab, filename })
            │       └─ @file-viewer/core + renderers:
@@ -393,16 +433,17 @@ documents/list/Index.vue
 
 **关键设计**：
 
-- **独立 tab 替代 drawer**：从 `documents/list/Index.vue` 改走 `window.open(router.resolve('/preview').href)`。新 tab 与原 tab 同源 → 共享 localStorage 的 JWT。`onClose` 直接 `window.close()`，无需 router 退出。
-- **路由不挂 `meta.permission`**：`/preview`（`router/index.ts`）故意不绑全局 `documents:view`。per-archive view 由 Preview view 内 `extractSlug()` + `auth.hasPerm('documents:' + slug + ':view')` 校验（与 `/documents/:slug` 路由同模式）。否则没全局 `documents:view` 但有 `documents:{slug}:view` 的用户（如 `demo` 角色）会被 router guard 弹 `/403`。
-- **非 documents/ 范围 key（如 invoice）→ 视为无权限**：`DOC_KEY_RE = /^documents\/([^/]+)(?:\/.*)?$/` 不匹配时直接 `hasViewPerm = false`。/preview 只为档案库设计；invoice 文件仍走 documents/list 老路径或 drawer 体验。
-- **失败 UX**：`el-empty` 显示 `preview.noPermission` 文案 + 顶部「返回档案库」按钮 → 跳 `/documents/{slug}` + 300ms 后 `window.close()` 当前 tab。
-- **perm 变更自愈**：`watch([storageKey, auth.user?.permissions], recheckPerm)` —— admin 后台改 perm 后新开 tab 自动重算（配合 router/index.ts 的 `refreshIfStale` 静默刷新 JWT）。
-- **对外契约保留**：`ProjectFileViewer` props (`storageKey` + `filename`) + emit (`download`) 与旧 `FilePreviewer` 完全一致；父组件切换 0 业务代码改动。
+- **drawer 80% rtl + `:destroy-on-close="true"`**：从 v1.4.0 沿用至今。`destroy-on-close` 是必要的 —— 不开则切换文件 viewer 不会重置，旧 ArrayBuffer 引用无法释放。关闭 drawer → 下次开新文件 viewer 完全重建。
+- **per-archive view perm 双重防御**：1) 列表行「预览」按钮 `auth.hasPerm('documents:'+slug+':view')` 守入口；2) `FileController.raw()` 后端二次校验。无需 router guard（drawer 永远在 list 上下文）。
+- **preview() 函数极简**：仅设 3 个 ref（`previewKey / previewTitle / previewVisible`），组件树用 `v-if="previewKey"` 保证 viewer 只在打开后挂载，关闭后立即卸载。
+- **下载按钮透传**：`ProjectFileViewer` 内 toolbar 的「下载原文件」按钮 emit('download') → 父组件 `onPreviewDownload()` → 复用 `download()` 函数（带 JWT refresh 重试，与表格行下载一致）。
+- **PDF 默认配置**：`pdf.initialViewState.scale = 1.5`（不调 fitToWidth，用户可手动点 toolbar）；`theme: 'light'` 强制亮色，不随 OS `prefers-color-scheme` 切换（设计统一性）。
+- **6+ 格式渲染**：`@file-viewer/preset-office`（pdf/word/excel/ppt/ofd/iwork/wpd/hwp）+ `@file-viewer/renderer-image`（jpg/png/gif/svg/tiff/avif/heic/...）+ `@file-viewer/renderer-text`（md + 48 种 code/text）+ `@file-viewer/capability-text-tools`（patch diff / git bundle 解析）。
+- **对外契约稳定**：`ProjectFileViewer` props (`storageKey` + `filename`) + emit (`download`) 自 v1.4.0 起未变；父组件切换 0 业务代码改动。
 - **Worker / WASM 静态路径**：vite plugin 的 `copyAssets:true` 把 PDF.js worker / DOCX worker / XLSX worker / WASM / cmap / fonts 落到 `frontend/public/vendor/`（**gitignored**），不走 `/@fs/` 路由。
 - **dompurify 由 file-viewer core 内置**；本仓保留 `dompurify` 仅给设计器 portal 共享使用。
 - **`xlsx` 保留**：`data-mgmt/query/Detail.vue:760` SQL 结果导出仍需 `XLSX.writeFile`。
-- **退役文件**：`FilePreviewer.vue` / `PdfViewer.vue` / `pdfWorker.ts` / `fileType.ts` 全部删除；`workers.ts` 不再导出 `PDFJS_WORKER_URL`。
+- **退役文件**：`FilePreviewer.vue` / `PdfViewer.vue` / `pdfWorker.ts` / `fileType.ts` / `views/preview/Index.vue` 全部删除；`workers.ts` 不再导出 `PDFJS_WORKER_URL`；`/preview` 路由条目已删除。
 
 **License attribution**：见 `frontend/LICENSE-NOTICE` + `frontend/LICENSE-APACHE-2.0`（Apache-2.0 §4d 要求保留 NOTICE 与 license 文本）。
 
@@ -419,7 +460,6 @@ documents/list/Index.vue
 ## 11. 不要做的事
 
 - 不要直接 `git commit` / `git push`（除非用户明确要求）
-- 不要在 `i18n/defaults.json` 里手改文案（永远走 `i18n-export.mjs` 自动生成）
 - 不要写 `*Impl.java` 后缀的 Service
 - 不要在迁移里写方言特定语法（保持 SQLite/PG 兼容）
 - 不要把硬编码中文 / 英文放进 Vue 模板的 `<template>` 文本节点

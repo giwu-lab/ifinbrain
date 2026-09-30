@@ -887,11 +887,6 @@ header: {
     placeholder: 'Choose an icon',
   },
 
-  preview: {
-    noPermission: 'Preview denied - no view permission on this archive',
-    backToList: 'Back to library',
-  },
-
   permSelector: {
     placeholder: 'Select permission (custom code allowed)',
     typeMenu: 'Menu',

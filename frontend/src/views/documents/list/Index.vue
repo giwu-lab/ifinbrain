@@ -217,7 +217,21 @@
       </template>
     </el-dialog>
 
-    <!-- 预览：改为打开新 tab（/preview?key=...&name=...）；drawer 已退役 -->
+    <!-- 预览 drawer（多格式预览由 ProjectFileViewer 走 @file-viewer/preset-office） -->
+    <el-drawer
+      v-model="previewVisible"
+      :title="previewTitle"
+      size="80%"
+      direction="rtl"
+      :destroy-on-close="true"
+    >
+      <ProjectFileViewer
+        v-if="previewKey"
+        :storage-key="previewKey"
+        :filename="previewTitle"
+        @download="onPreviewDownload"
+      />
+    </el-drawer>
   </div>
 </template>
 
@@ -232,7 +246,7 @@ import * as ElIcons from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { archiveApi, documentApi, fileRawUrl, type ArchiveLibrary, type DocumentItem, type FolderItem, type BrowseResult } from '@/api/document';
-// 注：ProjectFileViewer 不在此页直接引用 —— 预览改为打开 /preview 新 tab。
+import ProjectFileViewer from '@/components/ProjectFileViewer.vue';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -277,8 +291,9 @@ const folderRules: FormRules = {
   ],
 };
 
-// 注：旧 previewVisible / previewKey / previewTitle 已退役 —— 预览改为打开
-// 路由 /preview?key=...&name=... 新 tab，由 views/preview/Index.vue 渲染。
+const previewVisible = ref(false);
+const previewKey = ref('');     // 当前预览文件的 storageKey（替代原 previewUrl）
+const previewTitle = ref('');
 
 const uploadUrl = computed(() => {
   const cid = category.value?.id ?? '';
@@ -474,11 +489,14 @@ async function onCommand(cmd: string, row: DocumentItem) {
 }
 
 function preview(row: DocumentItem) {
-  const target = router.resolve({
-    path: '/preview',
-    query: { key: row.storageKey, name: row.originalFilename || row.name },
-  });
-  window.open(target.href, '_blank', 'noopener,noreferrer');
+  previewKey.value = row.storageKey;
+  previewTitle.value = row.name;
+  previewVisible.value = true;
+}
+
+/** ProjectFileViewer 内"下载原文件"按钮：复用同一 download() 逻辑 */
+function onPreviewDownload(row: { storageKey: string; name: string }) {
+  download({ storageKey: row.storageKey, originalFilename: row.name, name: row.name } as DocumentItem);
 }
 
 async function download(row: DocumentItem) {

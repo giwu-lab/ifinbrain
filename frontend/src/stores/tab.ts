@@ -4,7 +4,7 @@ import type { RouteLocationNormalized } from 'vue-router';
 const STORAGE_KEY = 'ifinbrain.tabs.v2';
 
 /** 不入 tab 标签条的路径前缀（单次访问页 / 鉴权页） */
-const IGNORED_PREFIXES = ['/login', '/403', '/404', '/preview'];
+const IGNORED_PREFIXES = ['/login', '/403', '/404'];
 
 export interface Tab {
   /** 唯一 id：path 去 query。同一 path 不同 query 合并到同一 tab */

@@ -74,26 +74,20 @@ const staticRoutes: RouteRecordRaw[] = [
   // 一键生成的查询列表页（不走 sys_menu 静态 path 匹配，因为 path 里是动态 menuId）
   { path: '/data-mgmt/query-page/:menuId(\\d+)', component: () => import('@/views/data-mgmt/query-page/Index.vue'),
     meta: { title: 'Query Page', permission: 'data:query:view' } },
-  // 档案库文件独立 tab 预览（替代 el-drawer）；URL: /preview?key=...&name=...
-  // 注意：不挂 meta.permission —— per-archive view 由 Preview view 内 extractSlug() + hasPerm 校验。
-  // 否则 router 守卫会把没全局 documents:view 但有 documents:{slug}:view 的用户挡在 /403
-  // （与 /documents/:slug 设计一致）
-  { path: '/preview', component: () => import('@/views/preview/Index.vue'),
-    meta: { title: 'Preview' } },
   // 流程设计器（不走 sys_menu；list/new/edit/preview 路径动态）
   { path: '/design/flow', component: () => import('@/views/design/flow/Index.vue'),
-    meta: { title: 'Flow Designer', permission: 'design:flow:view' } },
+    meta: { title: 'Flow Designer', permission: 'design:flow:view', name: 'Flow Designer', component: 'design/flow/Index', path: '/design/flow' } },
   { path: '/design/flow/new', component: () => import('@/views/design/flow/Designer.vue'),
-    meta: { title: 'New Flow', permission: 'design:flow:create' } },
+    meta: { title: 'New Flow', permission: 'design:flow:create', name: 'New Flow', component: 'design/flow/Index', path: '/design/flow/new' } },
   { path: '/design/flow/:id(\\d+)/edit', component: () => import('@/views/design/flow/Designer.vue'),
     props: true,
-    meta: { title: 'Edit Flow', permission: 'design:flow:update' } },
+    meta: { title: 'Edit Flow', permission: 'design:flow:update', name: 'Edit Flow', component: 'design/flow/Index', path: '/design/flow/:id/edit' } },
   { path: '/design/flow/:id(\\d+)/preview', component: () => import('@/views/design/flow/Preview.vue'),
     props: true,
-    meta: { title: 'Preview Flow', permission: 'design:flow:view' } },
+    meta: { title: 'Preview Flow', permission: 'design:flow:view', name: 'Preview Flow', component: 'design/flow/Index', path: '/design/flow/:id/preview' } },
   // 流程运行时（待办 / 我发起的 / 发起流程）
   { path: '/design/flow-runtime', component: () => import('@/views/design/flow/Workflow.vue'),
-    meta: { title: 'Flow Runtime', permission: 'design:flow:deploy' } },
+    meta: { title: 'Flow Runtime', permission: 'design:flow:deploy', name: 'Flow Runtime', component: 'design/flow-runtime/Index', path: '/design/flow-runtime' } },
   // 表单设计器（不走 sys_menu，list/new/edit/preview 路径动态）
   // meta.component 指到 design/form/Index：tab 标签走 menu.design.form.Index（i18n 可翻译）；
   // 4 条路由共用一个 component key —— tab 名相同，由 URL 后缀区分，与 /documents/:slug 模式一致。
@@ -257,7 +251,7 @@ router.beforeEach(async (to, _from, next) => {
 router.afterEach((to) => {
   nprogress.done();
   // 同步多标签页：登录后所有跳转都登记
-  // ignore 列表（/login /403 /404 /preview）在 tabStore.openTab 内部判断
+  // ignore 列表（/login /403 /404）在 tabStore.openTab 内部判断
   try {
     useTabStore().openTab(to);
   } catch {
