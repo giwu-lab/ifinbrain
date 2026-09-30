@@ -139,6 +139,32 @@ async function destroyViewer() {
   }
 }
 
+// dev-only: body 横向越界元素探测（v1.5.1 v6）
+// 抽屉打开后 ~1.5s 采样 body.scrollWidth vs clientWidth，
+// 列出所有越过右视口边缘的元素到 DevTools Console。
+// 用户打开任意 PDF 预览 → 看 Console 输出 → 把日志贴给我定位根因。
+onMounted(() => {
+  if (!import.meta.env.DEV) return;
+  setTimeout(() => {
+    const sw = document.body.scrollWidth;
+    const cw = document.body.clientWidth;
+    if (sw > cw + 1) {
+      console.warn(
+        '[preview-debug] body horizontal overflow detected:',
+        `scrollWidth=${sw} clientWidth=${cw} viewport=${window.innerWidth}`
+      );
+      document.querySelectorAll('*').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.right > window.innerWidth + 1) {
+          console.warn(
+            `  → <${el.tagName.toLowerCase()}.${(el.className || '').toString().slice(0, 80)}> right=${r.right.toFixed(0)}px`
+          );
+        }
+      });
+    }
+  }, 1500);
+});
+
 function onDownload() {
   emit('download', { storageKey: props.storageKey, name: props.filename });
 }

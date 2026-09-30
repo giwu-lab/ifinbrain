@@ -241,6 +241,12 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 
 **与 §7.4 .el-overlay 的协作**：.el-overlay 自己 `width:100vw !important` 不会溢出，但 drawer 内容若超宽会让 .el-overlay 出横滚条（用户实际感受是"抽屉里有横滚条"）。`§10.2` 的 7 层 overflow-x:hidden + `body { overflow-x: hidden }` 双重防御保证——window / overlay / drawer / body 4 个层级都不可能出横滚条。
 
+**v1.5.1 v6 升级**：body 规则从 `overflow-x: hidden` 升级到 `overflow-x: clip !important`（CSS Overflow Level 3）：
+- `clip` 比 `hidden` 更彻底：内容被裁剪且**完全不显示 scrollbar**，不创建新的 formatting context
+- 兼容 Chrome 90+ / Firefox 81+ / Safari 16+
+- 某些浏览器即便 overflow 是 `clip` 也会画默认 scrollbar，所以加 `::-webkit-scrollbar:horizontal { display: none !important }` 兜底
+- 配合 §10.2 v6 引入的 JS 探测（dev only），打开 DevTools Console 可看到所有越界元素，根因定位直接
+
 **i18n 命名空间**：`stylePanel.*`（35 keys），2 处同步：zh-CN.ts / en-US.ts（直接改 ts 即可，Vite HMR 立刻生效）。
 
 **新增色/动效**：预设色板在 `StylePanel.vue` 的 `PRIMARY_PRESETS / HEADER_PRESETS / MENU_PRESETS`；新增 transition 模板在 `styles/animations.css` 加 `.sp-{name}-enter/leave-*` 三条规则，然后在 `types.ts` `AnimationType` 联合加成员 + `StylePanelAnimation.vue` 的 `options` 数组加项。

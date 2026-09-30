@@ -88,9 +88,24 @@ html, body, #app { height: 100%; margin: 0; padding: 0; font-family: var(--font-
  * - 用户仍可上下滚动；只是不能水平滚动 body 整体
  */
 html, body {
-  overflow-x: hidden;
+  overflow-x: clip !important;       /* clip > hidden: 不创建 scroll container，浏览器不显示横滚条 */
+  overflow-y: auto;
   min-width: 0;
 }
+/*
+ * Element Plus z-index —— 弹层（el-select / el-cascader / el-date-picker / el-popover / el-tooltip）
+ * 必须永远高于 §7.4 的 .el-overlay mask（9999）。默认 --el-index-top:1000 → 弹层 1001 被盖住，
+ * 表现为 dialog 内 el-select 下拉"开了但空白"。
+ * 提升 --el-index-top 到 10000，弹层（10001）稳在 overlay 之上；不影响其它 stacking。
+ */
+:root {
+  --el-index-top: 10000;
+  --el-index-popper: 10100;
+}
+html, body { max-width: 100vw; }
+/* webkit 兜底：某些浏览器即便 overflow 是 clip 也会画默认 scrollbar */
+html::-webkit-scrollbar:horizontal { display: none !important; }
+body::-webkit-scrollbar:horizontal { display: none !important; }
 body {
   background: var(--color-bg);
   font-size: var(--font-size-base);
