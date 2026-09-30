@@ -96,6 +96,9 @@
 
   <!-- 右侧"界面风格"设置抽屉 -->
   <StylePanel v-model="styleOpen" />
+
+  <!-- 通知中心抽屉 -->
+  <NotificationsDrawer v-model="notifOpen" />
 </template>
 
 <script setup lang="ts">
@@ -114,6 +117,7 @@ import { useThemeStore, type LayoutType } from '@/stores/theme';
 import { setLocale } from '@/i18n';
 import TabBar from '@/components/layout/TabBar.vue';
 import StylePanel from '@/components/layout/StylePanel.vue';
+import NotificationsDrawer from '@/components/layout/NotificationsDrawer.vue';
 
 import SidebarLayout from '@/layouts/SidebarLayout.vue';
 import TopNavLayout from '@/layouts/TopNavLayout.vue';
@@ -130,6 +134,7 @@ const router = useRouter();
 
 const s = computed(() => theme.settings);
 const styleOpen = ref(false);
+const notifOpen = ref(false);
 const currentLangLabel = computed(() => (locale.value === 'en-US' ? 'English' : '中文'));
 
 /** 按 layout 切换 component is */
@@ -148,6 +153,7 @@ const animName = computed(() => `sp-${s.value.animationType}`);
 
 /* ===== 顶栏：全屏 / 通知 / 帮助 ===== */
 const isFullscreen = ref(!!document.fullscreenElement);
+/** 通知红点：登录后查一次 flow + todo 待办数，任一 > 0 即显示 */
 const hasNotif = ref(false);
 
 function onFsChange() { isFullscreen.value = !!document.fullscreenElement; }
@@ -172,7 +178,29 @@ async function toggleFullscreen() {
   }
 }
 
-function onNotifClick() { ElMessage.info(t('header.notifEmpty')); }
+function onNotifClick() {
+  notifOpen.value = true;
+  /* 抽屉关闭时刷新一次未读数（用户可能在抽屉里处理了任务） */
+}
+
+/** 拉一次待办计数，决定 badge 红点 */
+async function loadNotifBadge() {
+  if (!auth.isLogged) { hasNotif.value = false; return; }
+  let any = false;
+  try {
+    const { todoApi } = await import('@/api/todo');
+    const n = await todoApi.count();
+    if (n > 0) any = true;
+  } catch { /* 忽略权限/网络错误 */ }
+  if (!any) {
+    try {
+      const { flowTaskApi } = await import('@/api/flowTask');
+      const n = await flowTaskApi.pendingCount();
+      if (n > 0) any = true;
+    } catch { /* 同上 */ }
+  }
+  hasNotif.value = any;
+}
 
 /* ===== 路由 transition：只在 data-anim != "none" 时启用 =====
  * animate CSS 写在 styles/animations.css，name = `sp-{animType}` */
@@ -186,6 +214,13 @@ onMounted(async () => {
   if (auth.isLogged && !theme.loaded) {
     await theme.hydrate();
   }
+  /* 拉一次未读计数，决定 bell 红点 */
+  await loadNotifBadge();
+});
+
+/** 抽屉关闭时刷新未读数（用户可能处理了任务） */
+watch(notifOpen, (open) => {
+  if (!open) loadNotifBadge();
 });
 
 onBeforeUnmount(() => {
