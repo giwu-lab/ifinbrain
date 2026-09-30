@@ -154,14 +154,21 @@ function onFsChange() { isFullscreen.value = !!document.fullscreenElement; }
 
 async function toggleFullscreen() {
   try {
-    const d = document as Document & {
-      exitFullscreen?: () => Promise<void>;
-      requestFullscreen?: () => Promise<void>;
-    };
-    if (document.fullscreenElement) await d.exitFullscreen?.();
-    else await d.requestFullscreen?.();
+    if (document.fullscreenElement) {
+      await document.exitFullscreen?.();
+    } else {
+      // requestFullscreen() 是 Element 接口方法，不是 Document 接口方法。
+      // 原代码通过 `as Document & { requestFullscreen?: ... }` 假装 document 有该方法，
+      // 运行时实际为 undefined，?.() 静默返回 undefined —— 表现为「点击无效果」。
+      // 正确做法：调 documentElement（真正的 Element）。
+      await document.documentElement.requestFullscreen?.();
+    }
   } catch (e: any) {
-    ElMessage.warning(e?.message || 'Fullscreen not supported');
+    const raw = e?.message || '';
+    const msg = /permission|denied|iframe|element[- ]request/i.test(raw)
+      ? '当前页面无法进入全屏（可能为嵌入页面 / 浏览器权限受限）'
+      : (raw || '当前浏览器不支持全屏');
+    ElMessage.warning(msg);
   }
 }
 
