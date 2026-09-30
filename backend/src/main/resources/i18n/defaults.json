@@ -3417,6 +3417,151 @@
     ]
   },
   {
+    "namespace": "stylePanel",
+    "items": [
+      {
+        "code": "animation",
+        "valueJson": "{\"zh-CN\":\"动画\",\"en-US\":\"Animation\"}"
+      },
+      {
+        "code": "animFade",
+        "valueJson": "{\"zh-CN\":\"淡入淡出\",\"en-US\":\"Fade\"}"
+      },
+      {
+        "code": "animFadeSlide",
+        "valueJson": "{\"zh-CN\":\"渐变滑动\",\"en-US\":\"Fade Slide\"}"
+      },
+      {
+        "code": "animFlip",
+        "valueJson": "{\"zh-CN\":\"翻转\",\"en-US\":\"Flip\"}"
+      },
+      {
+        "code": "animScale",
+        "valueJson": "{\"zh-CN\":\"弹缩\",\"en-US\":\"Scale\"}"
+      },
+      {
+        "code": "animSlide",
+        "valueJson": "{\"zh-CN\":\"滑动\",\"en-US\":\"Slide\"}"
+      },
+      {
+        "code": "animZoom",
+        "valueJson": "{\"zh-CN\":\"缩放\",\"en-US\":\"Zoom\"}"
+      },
+      {
+        "code": "colorOpacity",
+        "valueJson": "{\"zh-CN\":\"透明度\",\"en-US\":\"Opacity\"}"
+      },
+      {
+        "code": "enableAnimation",
+        "valueJson": "{\"zh-CN\":\"切换动画\",\"en-US\":\"Route animation\"}"
+      },
+      {
+        "code": "enableLoading",
+        "valueJson": "{\"zh-CN\":\"切换 loading\",\"en-US\":\"Switch loading\"}"
+      },
+      {
+        "code": "headerTheme",
+        "valueJson": "{\"zh-CN\":\"顶栏主题\",\"en-US\":\"Header Theme\"}"
+      },
+      {
+        "code": "interface",
+        "valueJson": "{\"zh-CN\":\"界面\",\"en-US\":\"Interface\"}"
+      },
+      {
+        "code": "layout",
+        "valueJson": "{\"zh-CN\":\"界面布局\",\"en-US\":\"Layout\"}"
+      },
+      {
+        "code": "layoutFloatingSidebar",
+        "valueJson": "{\"zh-CN\":\"悬浮侧边栏\",\"en-US\":\"Floating Sidebar\"}"
+      },
+      {
+        "code": "layoutHeaderSidebar",
+        "valueJson": "{\"zh-CN\":\"头部 + 横向菜单\",\"en-US\":\"Header + Horizontal Menu\"}"
+      },
+      {
+        "code": "layoutSidebar",
+        "valueJson": "{\"zh-CN\":\"侧边 + 内容\",\"en-US\":\"Sidebar + Content\"}"
+      },
+      {
+        "code": "layoutTopnav",
+        "valueJson": "{\"zh-CN\":\"顶部菜单 + 内容\",\"en-US\":\"Top Nav + Content\"}"
+      },
+      {
+        "code": "menuTheme",
+        "valueJson": "{\"zh-CN\":\"菜单主题\",\"en-US\":\"Menu Theme\"}"
+      },
+      {
+        "code": "modeAuto",
+        "valueJson": "{\"zh-CN\":\"跟随系统\",\"en-US\":\"Auto\"}"
+      },
+      {
+        "code": "modeDark",
+        "valueJson": "{\"zh-CN\":\"暗色\",\"en-US\":\"Dark\"}"
+      },
+      {
+        "code": "modeLight",
+        "valueJson": "{\"zh-CN\":\"亮色\",\"en-US\":\"Light\"}"
+      },
+      {
+        "code": "optBreadcrumb",
+        "valueJson": "{\"zh-CN\":\"面包屑\",\"en-US\":\"Breadcrumb\"}"
+      },
+      {
+        "code": "optCollapse",
+        "valueJson": "{\"zh-CN\":\"菜单手风琴\",\"en-US\":\"Collapse menu\"}"
+      },
+      {
+        "code": "optFixedHeader",
+        "valueJson": "{\"zh-CN\":\"固定 Header\",\"en-US\":\"Fixed header\"}"
+      },
+      {
+        "code": "optFullscreen",
+        "valueJson": "{\"zh-CN\":\"全屏按钮\",\"en-US\":\"Fullscreen button\"}"
+      },
+      {
+        "code": "optLogo",
+        "valueJson": "{\"zh-CN\":\"显示 Logo\",\"en-US\":\"Show logo\"}"
+      },
+      {
+        "code": "optTabs",
+        "valueJson": "{\"zh-CN\":\"多标签页\",\"en-US\":\"Multi tabs\"}"
+      },
+      {
+        "code": "progressBar",
+        "valueJson": "{\"zh-CN\":\"顶部进度条\",\"en-US\":\"Top progress bar\"}"
+      },
+      {
+        "code": "reset",
+        "valueJson": "{\"zh-CN\":\"重置\",\"en-US\":\"Reset\"}"
+      },
+      {
+        "code": "resetConfirm",
+        "valueJson": "{\"zh-CN\":\"重置后界面风格将回到默认设置，是否继续？\",\"en-US\":\"Reset all style settings to defaults?\"}"
+      },
+      {
+        "code": "systemTheme",
+        "valueJson": "{\"zh-CN\":\"系统主题\",\"en-US\":\"System Theme\"}"
+      },
+      {
+        "code": "tabTheme",
+        "valueJson": "{\"zh-CN\":\"主题动画\",\"en-US\":\"Theme & Animation\"}"
+      },
+      {
+        "code": "tabUi",
+        "valueJson": "{\"zh-CN\":\"界面设置\",\"en-US\":\"Interface\"}"
+      },
+      {
+        "code": "themeMode",
+        "valueJson": "{\"zh-CN\":\"主题模式\",\"en-US\":\"Theme mode\"}"
+      },
+      {
+        "code": "title",
+        "valueJson": "{\"zh-CN\":\"界面风格\",\"en-US\":\"Style\"}"
+      }
+    ]
+  },
+  {
     "namespace": "system",
     "items": [
       {

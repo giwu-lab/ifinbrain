@@ -6,7 +6,7 @@
 
     <div class="sp-row">
       <span class="sp-label">{{ t('stylePanel.enableAnimation') }}</span>
-      <el-switch :model-value="enableAnimation" @update:model-value="(v) => $emit('update:enableAnimation', v)" />
+      <el-switch :model-value="enableAnimation" @update:model-value="(v: any) => emit('update:enableAnimation', v as boolean)" />
     </div>
 
     <div v-if="enableAnimation" class="sp-anim-grid">
@@ -29,12 +29,12 @@
 
     <div class="sp-row">
       <span class="sp-label">{{ t('stylePanel.progressBar') }}</span>
-      <el-switch :model-value="enableProgress" @update:model-value="(v) => $emit('update:enableProgress', v)" />
+      <el-switch :model-value="enableProgress" @update:model-value="(v: any) => emit('update:enableProgress', v as boolean)" />
     </div>
 
     <div class="sp-row">
       <span class="sp-label">{{ t('stylePanel.enableLoading') }}</span>
-      <el-switch :model-value="enableLoading" @update:model-value="(v) => $emit('update:enableLoading', v)" />
+      <el-switch :model-value="enableLoading" @update:model-value="(v: any) => emit('update:enableLoading', v as boolean)" />
     </div>
   </section>
 </template>
@@ -50,7 +50,7 @@ defineProps<{
   enableLoading: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'update:enableAnimation', v: boolean): void;
   (e: 'update:animationType', v: AnimationType): void;
   (e: 'update:enableProgress', v: boolean): void;

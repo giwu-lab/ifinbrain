@@ -3,6 +3,7 @@ import nprogress from 'nprogress';
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
 import { useTabStore } from '@/stores/tab';
+import { useThemeStore } from '@/stores/theme';
 import type { MenuNode } from '@/types';
 
 nprogress.configure({ showSpinner: false });
@@ -222,7 +223,8 @@ export async function setupDynamicRoutes(menus: MenuNode[]) {
 }
 
 router.beforeEach(async (to, _from, next) => {
-  nprogress.start();
+  // 进度条：受 theme store 控制
+  try { useThemeStore().settings.enableProgress && nprogress.start(); } catch { nprogress.start(); }
   const auth = useAuthStore();
   if (to.meta.public) return next();
   if (!auth.isLogged) {

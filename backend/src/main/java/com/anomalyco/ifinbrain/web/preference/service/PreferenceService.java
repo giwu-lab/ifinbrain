@@ -5,12 +5,12 @@ import com.anomalyco.ifinbrain.web.preference.dto.UserPreferenceDto;
 import com.anomalyco.ifinbrain.web.preference.entity.SysUserPreference;
 import com.anomalyco.ifinbrain.web.preference.repository.SysUserPreferenceRepository;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Service @RequiredArgsConstructor @Slf4j
 public class PreferenceService {
@@ -40,7 +40,7 @@ public class PreferenceService {
         }
         try {
             mapper.readTree(themeJson);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new BizException(400, "themeJson is not valid JSON: " + e.getOriginalMessage());
         }
         SysUserPreference e = repo.findById(uid)

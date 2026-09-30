@@ -85,6 +85,53 @@ export default {
     closeAll: '关闭所有',
   },
 
+  stylePanel: {
+    title: '界面风格',
+    tabTheme: '主题动画',
+    tabUi: '界面设置',
+
+    // 4 种布局
+    layout: '界面布局',
+    layoutSidebar: '侧边 + 内容',
+    layoutTopnav: '顶部菜单 + 内容',
+    layoutHeaderSidebar: '头部 + 横向菜单',
+    layoutFloatingSidebar: '悬浮侧边栏',
+
+    // 3 个色板
+    systemTheme: '系统主题',
+    headerTheme: '顶栏主题',
+    menuTheme: '菜单主题',
+    colorOpacity: '透明度',
+
+    // 动画
+    animation: '动画',
+    enableAnimation: '切换动画',
+    animFade: '淡入淡出',
+    animSlide: '滑动',
+    animZoom: '缩放',
+    animFadeSlide: '渐变滑动',
+    animFlip: '翻转',
+    animScale: '弹缩',
+    progressBar: '顶部进度条',
+    enableLoading: '切换 loading',
+
+    // 界面设置
+    themeMode: '主题模式',
+    modeLight: '亮色',
+    modeDark: '暗色',
+    modeAuto: '跟随系统',
+    interface: '界面',
+    optCollapse: '菜单手风琴',
+    optFixedHeader: '固定 Header',
+    optBreadcrumb: '面包屑',
+    optTabs: '多标签页',
+    optLogo: '显示 Logo',
+    optFullscreen: '全屏按钮',
+
+    reset: '重置',
+    resetConfirm: '重置后界面风格将回到默认设置，是否继续？',
+  },
+
   menu: {
     // 嵌套结构（vue-i18n v11 把 . 当路径分隔符，DIR 的 key 只能是对象）
     // 'menu.invoice._' 这种下划线前缀是约定，对应 DIR 自身的名称（"_" = self）

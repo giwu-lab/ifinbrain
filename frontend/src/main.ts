@@ -3,29 +3,45 @@ import { createPinia } from 'pinia';
 import ElementPlus from 'element-plus';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import 'element-plus/dist/index.css';
+import 'element-plus/theme-chalk/dark/css-vars.css';
 import 'nprogress/nprogress.css';
 import AppRoot from './AppRoot.vue';
 import router from './router';
 import { i18n, getElementPlusLocale } from './i18n';
 import './styles/global.css';
+import './styles/theme.css';
+import './styles/animations.css';
 
 /**
  * el-table 操作列 fixed-right 单元格遮罩
  * element-plus 给 fixed 列 cell 写 inline style="background: inherit"，
  * 父级 current-row / hover 是半透明 rgba，inherit 后透底。
  * 解法：监听 cell 的 style 属性变化，立刻强制覆盖回不透明色。
+ *
+ * 颜色随主题模式切换：读 :root 的 --color-bg-elev / --color-bg / --color-primary-soft，
+ * 主题切换后下一次 hover 即可生效（无需监听 mode 变更）。
  */
-const BG_BODY = '#ffffff';
-const BG_HEADER = '#f5f7fb';
-const HOVER_BG = 'rgba(37, 99, 235, 0.10)';
+function readToken(name: string, fallback: string): string {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+function themeColors() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    body: readToken('--color-bg-elev', isDark ? '#111827' : '#ffffff'),
+    header: readToken('--color-bg', isDark ? '#0b1220' : '#f5f7fb'),
+    hover: readToken('--color-primary-soft', isDark ? 'rgba(99,102,241,0.20)' : 'rgba(37,99,235,0.10)'),
+  };
+}
 
 function paintFixedCells(box: HTMLElement) {
-  box.style.setProperty('background', BG_BODY, 'important');
+  const c = themeColors();
+  box.style.setProperty('background', c.body, 'important');
   box.querySelectorAll<HTMLElement>('tr').forEach((tr) => {
     const isHeader = tr.closest('thead') !== null;
     const isHover = tr.matches(':hover');
-    let bg = isHeader ? BG_HEADER : BG_BODY;
-    if (!isHeader && isHover) bg = HOVER_BG;
+    let bg = isHeader ? c.header : c.body;
+    if (!isHeader && isHover) bg = c.hover;
     tr.querySelectorAll<HTMLElement>('td.el-table-fixed-column--right, th.el-table-fixed-column--right').forEach((cell) => {
       cell.style.setProperty('background', bg, 'important');
     });
@@ -49,8 +65,9 @@ const mo = new MutationObserver((muts) => {
       const isHeader = cell.tagName === 'TH';
       const tr = cell.closest('tr');
       const isHover = tr?.matches(':hover') ?? false;
-      let bg = isHeader ? BG_HEADER : BG_BODY;
-      if (!isHeader && isHover) bg = HOVER_BG;
+      const c = themeColors();
+      let bg = isHeader ? c.header : c.body;
+      if (!isHeader && isHover) bg = c.hover;
       cell.style.setProperty('background', bg, 'important');
     } else if (m.type === 'childList') {
       // 表格行数变化 / 重新渲染：重跑 paint
@@ -90,6 +107,11 @@ app.use(ElementPlus, { locale: getElementPlusLocale() });
 // 未登录时跳过，store.load() 内部安全降级（HTTP 401/403 不影响其他页面）。
 import { useDictStore } from './stores/dict';
 import { useI18nStore } from './stores/i18n';
+import { useThemeStore } from './stores/theme';
+
+const themeStore = useThemeStore();
+themeStore.applyInitial();
+
 const dictStore = useDictStore();
 const i18nStore = useI18nStore();
 const token = localStorage.getItem('accessToken');

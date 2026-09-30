@@ -29,6 +29,11 @@ export const useAuthStore = defineStore('auth', {
       this.user = data.user;
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
+      // 登录后从 DB 拉一次主题偏好 —— 失败时静默回退到 localStorage 缓存
+      try {
+        const { useThemeStore } = await import('@/stores/theme');
+        await useThemeStore().hydrate();
+      } catch { /* 离线模式：保留上次缓存 */ }
     },
     async fetchMe() {
       const info = await authApi.me();

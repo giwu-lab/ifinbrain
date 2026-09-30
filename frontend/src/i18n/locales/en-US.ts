@@ -84,6 +84,49 @@ login: {
     closeAll: 'Close all',
   },
 
+  stylePanel: {
+    title: 'Style',
+    tabTheme: 'Theme & Animation',
+    tabUi: 'Interface',
+
+    layout: 'Layout',
+    layoutSidebar: 'Sidebar + Content',
+    layoutTopnav: 'Top Nav + Content',
+    layoutHeaderSidebar: 'Header + Horizontal Menu',
+    layoutFloatingSidebar: 'Floating Sidebar',
+
+    systemTheme: 'System Theme',
+    headerTheme: 'Header Theme',
+    menuTheme: 'Menu Theme',
+    colorOpacity: 'Opacity',
+
+    animation: 'Animation',
+    enableAnimation: 'Route animation',
+    animFade: 'Fade',
+    animSlide: 'Slide',
+    animZoom: 'Zoom',
+    animFadeSlide: 'Fade Slide',
+    animFlip: 'Flip',
+    animScale: 'Scale',
+    progressBar: 'Top progress bar',
+    enableLoading: 'Switch loading',
+
+    themeMode: 'Theme mode',
+    modeLight: 'Light',
+    modeDark: 'Dark',
+    modeAuto: 'Auto',
+    interface: 'Interface',
+    optCollapse: 'Collapse menu',
+    optFixedHeader: 'Fixed header',
+    optBreadcrumb: 'Breadcrumb',
+    optTabs: 'Multi tabs',
+    optLogo: 'Show logo',
+    optFullscreen: 'Fullscreen button',
+
+    reset: 'Reset',
+    resetConfirm: 'Reset all style settings to defaults?',
+  },
+
   menu: {
     // 全部用嵌套结构（vue-i18n v11 把 . 当路径分隔符）
     dashboard: { _: 'Dashboard', Index: 'Dashboard' },

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
 import { preferenceApi } from '@/api/preference';
 
 /* ============================================================
@@ -77,14 +78,10 @@ function saveToStorage(s: ThemeSettings) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
 }
 
-function clearStorage() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
-}
-
 /* ============================================================
- * 把 ThemeSettings 同步到 :root 的 CSS 变量
+ * 把 ThemeSettings 同步到 :root 的 CSS 变量 + data 属性
  *
- *  覆盖的关键变量：
+ * 覆盖的关键变量：
  *   - --color-primary / --color-primary-hover / --color-primary-soft
  *   - --el-color-primary / --el-color-primary-light-3 ...
  *   - --color-bg / --color-bg-elev / --color-border / --color-text ...
@@ -97,13 +94,11 @@ function applyToRoot(s: ThemeSettings) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
 
-  // 主色 + 衍生
   root.style.setProperty('--color-primary', s.primaryColor);
   root.style.setProperty('--color-primary-hover', darken(s.primaryColor, 0.12));
   root.style.setProperty('--color-primary-soft', withAlpha(s.primaryColor, (s.primaryOpacity / 100) * 0.10));
   root.style.setProperty('--color-primary-softer', withAlpha(s.primaryColor, (s.primaryOpacity / 100) * 0.04));
 
-  // Element Plus 主题主色
   root.style.setProperty('--el-color-primary', s.primaryColor);
   root.style.setProperty('--el-color-primary-light-3', s.primaryColor);
   root.style.setProperty('--el-color-primary-light-5', withAlpha(s.primaryColor, 0.4));
@@ -112,17 +107,14 @@ function applyToRoot(s: ThemeSettings) {
   root.style.setProperty('--el-color-primary-light-9', withAlpha(s.primaryColor, 0.06));
   root.style.setProperty('--el-color-primary-dark-2', darken(s.primaryColor, 0.15));
 
-  // 顶栏 / 菜单色
   const headerBg = withAlpha(s.headerColor, s.headerOpacity / 100);
   const menuBg = withAlpha(s.menuColor, s.menuOpacity / 100);
   root.style.setProperty('--header-bg', headerBg);
   root.style.setProperty('--sidebar-bg-actual', menuBg);
 
-  // 主题模式
   const effective = effectiveMode(s);
   root.setAttribute('data-theme', effective);
 
-  // 动画 class
   root.setAttribute('data-anim', s.enableAnimation ? s.animationType : 'none');
   root.setAttribute('data-layout', s.layout);
   root.setAttribute('data-progress', String(s.enableProgress));
@@ -159,7 +151,6 @@ function darken(c: string, amount: number): string {
   return `rgba(${Math.round(r * k)}, ${Math.round(g * k)}, ${Math.round(b * k)}, ${a})`;
 }
 
-/** auto 模式读 prefers-color-scheme */
 function effectiveMode(s: ThemeSettings): 'light' | 'dark' {
   if (s.mode !== 'auto') return s.mode;
   if (typeof window === 'undefined') return 'light';
@@ -167,88 +158,77 @@ function effectiveMode(s: ThemeSettings): 'light' | 'dark' {
 }
 
 /* ============================================================
- * Store
+ * Store — Pinia setup 写法：state/action 类型天然正确
  * ========================================================== */
-export const useThemeStore = defineStore('theme', {
-  state: (): { settings: ThemeSettings; loaded: boolean } => ({
-    settings: loadFromStorage(),
-    loaded: false,
-  }),
+export const useThemeStore = defineStore('theme', () => {
+  const settings = ref<ThemeSettings>(loadFromStorage());
+  const loaded = ref(false);
 
-  getters: {
-    mode: (s): 'light' | 'dark' => effectiveMode(s.settings),
-  },
+  const mode = computed<'light' | 'dark'>(() => effectiveMode(settings.value));
 
-  actions: {
-    /** 启动时调用：apply localStorage 缓存，触发 UI 立刻反映。 */
-    applyInitial() {
-      applyToRoot(this.settings);
-      this.installSystemThemeListener();
-    },
+  let _mq: MediaQueryList | null = null;
+  let _mqHandler: ((e: MediaQueryListEvent) => void) | null = null;
+  let _syncTimer: ReturnType<typeof setTimeout> | null = null;
 
-    /** 登录成功时调用：DB 偏好 > localStorage > default（合并）。 */
-    async hydrate() {
-      try {
-        const pref = await preferenceApi.get();
-        if (pref?.themeJson) {
-          const parsed = JSON.parse(pref.themeJson);
-          this.settings = { ...cloneDefault(), ...this.settings, ...parsed };
-          saveToStorage(this.settings);
-        }
-      } catch {
-        /* 未登录或 403 —— 保持 localStorage 状态 */
-      } finally {
-        applyToRoot(this.settings);
-        this.installSystemThemeListener();
-        this.loaded = true;
+  function applyInitial() {
+    applyToRoot(settings.value);
+    installSystemThemeListener();
+  }
+
+  async function hydrate() {
+    try {
+      const pref = await preferenceApi.get();
+      if (pref?.themeJson) {
+        const parsed = JSON.parse(pref.themeJson);
+        settings.value = { ...cloneDefault(), ...settings.value, ...parsed };
+        saveToStorage(settings.value);
       }
-    },
+    } catch {
+      /* 未登录或 403 —— 保持 localStorage 状态 */
+    } finally {
+      applyToRoot(settings.value);
+      installSystemThemeListener();
+      loaded.value = true;
+    }
+  }
 
-    /** 任意 settings 修改入口：本地立即应用 + 写 localStorage + 节流同步 DB */
-    async update(patch: Partial<ThemeSettings>) {
-      this.settings = { ...this.settings, ...patch };
-      saveToStorage(this.settings);
-      applyToRoot(this.settings);
-      this.scheduleSync();
-    },
+  async function update(patch: Partial<ThemeSettings>) {
+    settings.value = { ...settings.value, ...patch };
+    saveToStorage(settings.value);
+    applyToRoot(settings.value);
+    scheduleSync();
+  }
 
-    /** 重置：default 落到 localStorage + DB */
-    async reset() {
-      this.settings = cloneDefault();
-      saveToStorage(this.settings);
-      applyToRoot(this.settings);
-      try { await preferenceApi.reset(); } catch { /* ignore */ }
-    },
+  async function reset() {
+    settings.value = cloneDefault();
+    saveToStorage(settings.value);
+    applyToRoot(settings.value);
+    try { await preferenceApi.reset(); } catch { /* ignore */ }
+  }
 
-    /** 节流（debounce）写 DB：500ms 内连续变更只发一次 PUT */
-    scheduleSync() {
-      if (this._syncTimer) clearTimeout(this._syncTimer);
-      this._syncTimer = setTimeout(() => {
-        try {
-          preferenceApi.update(JSON.stringify(this.settings));
-        } catch { /* ignore — 离线模式不打扰用户 */ }
-      }, 500);
-    },
+  function scheduleSync() {
+    if (_syncTimer) clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(() => {
+      try {
+        preferenceApi.update(JSON.stringify(settings.value));
+      } catch { /* 离线模式不打扰用户 */ }
+    }, 500);
+  }
 
-    installSystemThemeListener() {
-      if (typeof window === 'undefined') return;
-      if (this._mq) return; // 已挂
-      const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
-      if (!mq) return;
-      const handler = () => {
-        if (this.settings.mode === 'auto') {
-          applyToRoot(this.settings);
-        }
-      };
-      mq.addEventListener?.('change', handler);
-      this._mq = mq;
-      this._mqHandler = handler;
-    },
+  function installSystemThemeListener() {
+    if (typeof window === 'undefined') return;
+    if (_mq) return;
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mq) return;
+    const handler = () => {
+      if (settings.value.mode === 'auto') applyToRoot(settings.value);
+    };
+    mq.addEventListener?.('change', handler);
+    _mq = mq;
+    _mqHandler = handler;
+  }
 
-    _mq: null as MediaQueryList | null,
-    _mqHandler: null as ((e: MediaQueryListEvent) => void) | null,
-    _syncTimer: null as ReturnType<typeof setTimeout> | null,
-  } as any,
+  return { settings, loaded, mode, applyInitial, hydrate, update, reset };
 });
 
 /* 给 settings.json 做向后兼容的迁移钩子（schema 演进时调用） */

@@ -5,7 +5,7 @@ import i18nInstance, { SUPPORTED_LOCALES } from '@/i18n';
 import zhCN from '@/i18n/locales/zh-CN';
 import enUS from '@/i18n/locales/en-US';
 
-const CACHE_KEY = 'ifinbrain.i18n-cache.v66';
+const CACHE_KEY = 'ifinbrain.i18n-cache.v67';
 const CACHE_TTL = 5 * 60 * 1000;
 
 interface CachedMessages {
