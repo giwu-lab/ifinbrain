@@ -137,7 +137,11 @@
             <el-tag effect="plain" size="small">{{ row.invoiceType || '—' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column column-key="issueDate" :label="t('invoice.colIssueDate')" prop="issueDate" :width="widthOf('issueDate', 120)" />
+        <el-table-column column-key="issueDate" :label="t('invoice.colIssueDate')" prop="issueDate" :width="widthOf('issueDate', 120)">
+          <template #default="{ row }">
+            <span class="mono-time">{{ row.issueDate || '—' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column column-key="sellerName" :label="t('invoice.colSeller')" prop="sellerName" :width="widthOf('sellerName', 180)" :min-width="120">
           <template #default="{ row }">
             <CellText v-if="row.sellerName" :text="row.sellerName" />
@@ -200,12 +204,12 @@
         </el-table-column>
         <el-table-column column-key="verificationDate" :label="t('invoice.colVerificationDate')" prop="verificationDate" :width="widthOf('verificationDate', 120)">
           <template #default="{ row }">
-            <span class="text-secondary">{{ (row as InvoiceGroupItem).verificationDate || '—' }}</span>
+            <span class="mono-time">{{ (row as InvoiceGroupItem).verificationDate || '—' }}</span>
           </template>
         </el-table-column>
         <el-table-column column-key="createdAt" :label="t('system.colCreatedAt')" prop="createdAt" :width="widthOf('createdAt', 120)">
           <template #default="{ row }">
-            <span class="text-secondary">{{ ((row.createdAt as unknown as string) || '').slice(0, 10) }}</span>
+            <span class="mono-time">{{ ((row.createdAt as unknown as string) || '').slice(0, 10) }}</span>
           </template>
         </el-table-column>
         <el-table-column column-key="actions" :label="t('common.actions')" :width="widthOf('actions', 120)" align="center" fixed="right">

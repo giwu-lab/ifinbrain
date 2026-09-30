@@ -81,7 +81,7 @@
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.status')" width="100">
+        <el-table-column :label="t('common.status')" width="100" align="center">
           <template #default="{ row }">
             <el-switch
               :model-value="(row as MenuItem).status === 1"

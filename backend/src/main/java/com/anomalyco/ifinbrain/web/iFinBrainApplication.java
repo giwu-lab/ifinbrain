@@ -20,7 +20,11 @@ import java.util.TimeZone;
     "com.anomalyco.ifinbrain.web.repository",
     "com.anomalyco.ifinbrain.web.datamgmt.repository",
     "com.anomalyco.ifinbrain.web.documents.repository",
-    "com.anomalyco.ifinbrain.web.design.portal.repository"
+    "com.anomalyco.ifinbrain.web.design.form.repository",
+    "com.anomalyco.ifinbrain.web.design.flow.repository",
+    "com.anomalyco.ifinbrain.web.preference.repository",
+    "com.anomalyco.ifinbrain.web.storage.repository",
+    "com.anomalyco.ifinbrain.web.todo.repository"
 })
 @ConfigurationPropertiesScan(basePackages = "com.anomalyco.ifinbrain.web.config")
 public class iFinBrainApplication {

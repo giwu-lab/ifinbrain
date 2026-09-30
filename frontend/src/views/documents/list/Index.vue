@@ -36,7 +36,7 @@
         :show-file-list="false"
       >
         <el-icon class="upload-icon"><UploadFilled /></el-icon>
-        <div class="upload-title">{{ t('documents.dropHere', { default: '将文件拖到此处，或点击选择' }) }}</div>
+        <div class="upload-title">{{ t('documents.dropHere') }}</div>
         <div class="upload-hint">{{ t('documents.uploadTip') }}</div>
       </el-upload>
     </div>
@@ -91,7 +91,7 @@
             </template>
           </template>
         </el-table-column>
-        <el-table-column v-if="rows.length > 0" :label="t('documents.colSize')" width="100" align="right">
+        <el-table-column v-if="rows.length > 0" :label="t('documents.colSize')" width="120" align="right">
           <template #default="{ row }">
             <template v-if="(row as any).__kind === 'file'">
               <span class="num">{{ formatBytes((row as DocumentItem).sizeBytes) }}</span>
@@ -105,10 +105,10 @@
             </template>
           </template>
         </el-table-column>
-        <el-table-column v-if="rows.length > 0" :label="t('documents.colUploadedAt')" width="170">
+        <el-table-column v-if="rows.length > 0" :label="t('documents.colUploadedAt')" width="200">
           <template #default="{ row }">
             <template v-if="(row as any).__kind === 'file'">
-              <span class="muted">{{ (row as DocumentItem).createdAt }}</span>
+              <span class="mono-time">{{ (row as DocumentItem).createdAt }}</span>
             </template>
           </template>
         </el-table-column>

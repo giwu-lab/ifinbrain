@@ -13,3 +13,5 @@ spring:
       hibernate:
         format_sql: false
         show_sql: false
+  flyway:
+    enabled: true                          # 现有业务 sys_* 表由 Flyway 管理（SQLite）

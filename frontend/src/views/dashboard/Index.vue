@@ -61,6 +61,9 @@
       </el-col>
     </el-row>
 
+    <!-- 我的任务 widget（任务清单） -->
+    <TodoWidget />
+
     <!-- 快捷入口 -->
     <el-card class="shortcut-card" shadow="never">
       <template #header>
@@ -101,6 +104,7 @@ import {
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { settingApi } from '@/api/setting';
+import TodoWidget from './components/TodoWidget.vue';
 
 const { t } = useI18n();
 const router = useRouter();

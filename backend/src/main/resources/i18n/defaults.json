@@ -23,6 +23,10 @@
         "valueJson": "{\"zh-CN\":\"请确认\",\"en-US\":\"Please Confirm\"}"
       },
       {
+        "code": "create",
+        "valueJson": "{\"zh-CN\":\"新建\",\"en-US\":\"New\"}"
+      },
+      {
         "code": "created",
         "valueJson": "{\"zh-CN\":\"创建成功\",\"en-US\":\"Created\"}"
       },
@@ -35,16 +39,32 @@
         "valueJson": "{\"zh-CN\":\"删除成功\",\"en-US\":\"Deleted\"}"
       },
       {
+        "code": "deleteSuccess",
+        "valueJson": "{\"zh-CN\":\"删除成功\",\"en-US\":\"Deleted\"}"
+      },
+      {
         "code": "disabled",
         "valueJson": "{\"zh-CN\":\"禁用\",\"en-US\":\"Disabled\"}"
+      },
+      {
+        "code": "down",
+        "valueJson": "{\"zh-CN\":\"下移\",\"en-US\":\"Move down\"}"
       },
       {
         "code": "download",
         "valueJson": "{\"zh-CN\":\"下载\",\"en-US\":\"Download\"}"
       },
       {
+        "code": "duplicate",
+        "valueJson": "{\"zh-CN\":\"复制\",\"en-US\":\"Duplicate\"}"
+      },
+      {
         "code": "edit",
         "valueJson": "{\"zh-CN\":\"编辑\",\"en-US\":\"Edit\"}"
+      },
+      {
+        "code": "empty",
+        "valueJson": "{\"zh-CN\":\"暂无数据\",\"en-US\":\"No data\"}"
       },
       {
         "code": "enabled",
@@ -57,6 +77,10 @@
       {
         "code": "langSwitchedZh",
         "valueJson": "{\"zh-CN\":\"已切换到中文\",\"en-US\":\"Switched to Chinese\"}"
+      },
+      {
+        "code": "loading",
+        "valueJson": "{\"zh-CN\":\"加载中…\",\"en-US\":\"Loading…\"}"
       },
       {
         "code": "logout",
@@ -91,12 +115,32 @@
         "valueJson": "{\"zh-CN\":\"保存\",\"en-US\":\"Save\"}"
       },
       {
+        "code": "saved",
+        "valueJson": "{\"zh-CN\":\"已保存\",\"en-US\":\"Saved\"}"
+      },
+      {
+        "code": "saveSuccess",
+        "valueJson": "{\"zh-CN\":\"保存成功\",\"en-US\":\"Saved\"}"
+      },
+      {
         "code": "search",
         "valueJson": "{\"zh-CN\":\"搜索\",\"en-US\":\"Search\"}"
       },
       {
         "code": "status",
         "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
+      },
+      {
+        "code": "submit",
+        "valueJson": "{\"zh-CN\":\"提交\",\"en-US\":\"Submit\"}"
+      },
+      {
+        "code": "unsaved",
+        "valueJson": "{\"zh-CN\":\"有未保存的修改\",\"en-US\":\"Unsaved changes\"}"
+      },
+      {
+        "code": "up",
+        "valueJson": "{\"zh-CN\":\"上移\",\"en-US\":\"Move up\"}"
       },
       {
         "code": "updated",
@@ -561,10 +605,6 @@
         "valueJson": "{\"zh-CN\":\"已取消\",\"en-US\":\"Inactive\"}"
       },
       {
-        "code": "qpTitle",
-        "valueJson": "{\"zh-CN\":\"查询页面\",\"en-US\":\"\"}"
-      },
-      {
         "code": "qpTruncated",
         "valueJson": "{\"zh-CN\":\"已截断至 {limit}\",\"en-US\":\"truncated to {limit}\"}"
       },
@@ -719,6 +759,10 @@
       {
         "code": "qyDetailRemoveTitle",
         "valueJson": "{\"zh-CN\":\"删除参数\",\"en-US\":\"Remove parameter\"}"
+      },
+      {
+        "code": "qyDetailResizeHint",
+        "valueJson": "{\"zh-CN\":\"拖拽调整高度\",\"en-US\":\"Drag to resize\"}"
       },
       {
         "code": "qyDetailRun",
@@ -1066,224 +1110,396 @@
     "namespace": "design",
     "items": [
       {
-        "code": "back",
-        "valueJson": "{\"zh-CN\":\"返回\",\"en-US\":\"Back\"}"
+        "code": "flowApproveComment",
+        "valueJson": "{\"zh-CN\":\"审批意见\",\"en-US\":\"\"}"
       },
       {
-        "code": "backToEdit",
-        "valueJson": "{\"zh-CN\":\"返回编辑\",\"en-US\":\"Back to Edit\"}"
+        "code": "flowApproved",
+        "valueJson": "{\"zh-CN\":\"已通过\",\"en-US\":\"\"}"
       },
       {
-        "code": "backToList",
-        "valueJson": "{\"zh-CN\":\"返回列表\",\"en-US\":\"Back to List\"}"
+        "code": "flowApproveOk",
+        "valueJson": "{\"zh-CN\":\"通过\",\"en-US\":\"\"}"
       },
       {
-        "code": "canvasEmpty",
-        "valueJson": "{\"zh-CN\":\"画布为空，点击左侧组件添加到画布\",\"en-US\":\"Canvas is empty. Click a component on the left to add it.\"}"
+        "code": "flowApproveTitle",
+        "valueJson": "{\"zh-CN\":\"审批通过\",\"en-US\":\"\"}"
       },
       {
-        "code": "cat.chart",
-        "valueJson": "{\"zh-CN\":\"图表\",\"en-US\":\"Chart\"}"
+        "code": "flowBack",
+        "valueJson": "{\"zh-CN\":\"返回列表\",\"en-US\":\"\"}"
       },
       {
-        "code": "cat.layout",
-        "valueJson": "{\"zh-CN\":\"布局\",\"en-US\":\"Layout\"}"
+        "code": "flowCodeNameRequired",
+        "valueJson": "{\"zh-CN\":\"code 与 name 都必须填写\",\"en-US\":\"\"}"
       },
       {
-        "code": "cat.media",
-        "valueJson": "{\"zh-CN\":\"媒体\",\"en-US\":\"Media\"}"
+        "code": "flowColAction",
+        "valueJson": "{\"zh-CN\":\"动作\",\"en-US\":\"\"}"
       },
       {
-        "code": "cat.stat",
-        "valueJson": "{\"zh-CN\":\"数字\",\"en-US\":\"Stat\"}"
+        "code": "flowColBusinessKey",
+        "valueJson": "{\"zh-CN\":\"业务 Key\",\"en-US\":\"\"}"
       },
       {
-        "code": "cat.table",
-        "valueJson": "{\"zh-CN\":\"表格\",\"en-US\":\"Table\"}"
+        "code": "flowColCode",
+        "valueJson": "{\"zh-CN\":\"代码\",\"en-US\":\"\"}"
       },
       {
-        "code": "chartNoData",
-        "valueJson": "{\"zh-CN\":\"暂无数据，请在属性面板填入 data\",\"en-US\":\"No data — fill in \\\"data\\\" in the property panel\"}"
+        "code": "flowColComment",
+        "valueJson": "{\"zh-CN\":\"意见\",\"en-US\":\"\"}"
       },
       {
-        "code": "colCode",
-        "valueJson": "{\"zh-CN\":\"代码\",\"en-US\":\"Code\"}"
+        "code": "flowColCreatedAt",
+        "valueJson": "{\"zh-CN\":\"创建时间\",\"en-US\":\"\"}"
       },
       {
-        "code": "colDescription",
-        "valueJson": "{\"zh-CN\":\"说明\",\"en-US\":\"Description\"}"
+        "code": "flowColCurrent",
+        "valueJson": "{\"zh-CN\":\"当前节点\",\"en-US\":\"\"}"
       },
       {
-        "code": "colRoles",
-        "valueJson": "{\"zh-CN\":\"绑定角色\",\"en-US\":\"Bound Roles\"}"
+        "code": "flowColDescription",
+        "valueJson": "{\"zh-CN\":\"说明\",\"en-US\":\"\"}"
       },
       {
-        "code": "colUpdatedAt",
-        "valueJson": "{\"zh-CN\":\"更新时间\",\"en-US\":\"Updated\"}"
+        "code": "flowColEdges",
+        "valueJson": "{\"zh-CN\":\"连线数\",\"en-US\":\"\"}"
       },
       {
-        "code": "copied",
-        "valueJson": "{\"zh-CN\":\"已复制到剪贴板\",\"en-US\":\"Copied to clipboard\"}"
+        "code": "flowColFinishedAt",
+        "valueJson": "{\"zh-CN\":\"完成时间\",\"en-US\":\"\"}"
       },
       {
-        "code": "copyJson",
-        "valueJson": "{\"zh-CN\":\"复制 JSON\",\"en-US\":\"Copy JSON\"}"
+        "code": "flowColFlow",
+        "valueJson": "{\"zh-CN\":\"流程\",\"en-US\":\"\"}"
       },
       {
-        "code": "createPage",
-        "valueJson": "{\"zh-CN\":\"新建门户页\",\"en-US\":\"New Portal Page\"}"
+        "code": "flowColName",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"\"}"
       },
       {
-        "code": "dataTableHint",
-        "valueJson": "{\"zh-CN\":\"数据表占位（queryId={id}）\",\"en-US\":\"Data table placeholder (queryId={id})\"}"
+        "code": "flowColNode",
+        "valueJson": "{\"zh-CN\":\"当前节点\",\"en-US\":\"\"}"
       },
       {
-        "code": "deleteConfirm",
-        "valueJson": "{\"zh-CN\":\"确认删除门户页「{name}」？\",\"en-US\":\"Delete portal page \\\"{name}\\\"?\"}"
+        "code": "flowColNodes",
+        "valueJson": "{\"zh-CN\":\"节点数\",\"en-US\":\"\"}"
       },
       {
-        "code": "duplicate",
-        "valueJson": "{\"zh-CN\":\"复制\",\"en-US\":\"Duplicate\"}"
+        "code": "flowColOperator",
+        "valueJson": "{\"zh-CN\":\"操作人\",\"en-US\":\"\"}"
       },
       {
-        "code": "editDesign",
-        "valueJson": "{\"zh-CN\":\"编辑设计\",\"en-US\":\"Edit Design\"}"
+        "code": "flowColStartedAt",
+        "valueJson": "{\"zh-CN\":\"发起时间\",\"en-US\":\"\"}"
       },
       {
-        "code": "emptyAction",
-        "valueJson": "{\"zh-CN\":\"新建门户页\",\"en-US\":\"New Portal Page\"}"
+        "code": "flowColStartedBy",
+        "valueJson": "{\"zh-CN\":\"发起人\",\"en-US\":\"\"}"
       },
       {
-        "code": "emptyDesc",
-        "valueJson": "{\"zh-CN\":\"创建一个门户页开始设计你的首页 / 角色门户。\",\"en-US\":\"Create a portal page to design your home / role-based landing page.\"}"
+        "code": "flowColState",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"\"}"
       },
       {
-        "code": "emptyTitle",
-        "valueJson": "{\"zh-CN\":\"还没有门户页\",\"en-US\":\"No portal pages yet\"}"
+        "code": "flowColStatus",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowColUpdatedAt",
+        "valueJson": "{\"zh-CN\":\"更新时间\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowColVersion",
+        "valueJson": "{\"zh-CN\":\"版本\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowCreate",
+        "valueJson": "{\"zh-CN\":\"新建流程\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowDefaultFormLabel",
+        "valueJson": "{\"zh-CN\":\"默认表单\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowDefaultFormPh",
+        "valueJson": "{\"zh-CN\":\"（可选）所有审批节点共用的表单\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowDeleteConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除流程「{name}」？\",\"en-US\":\"\"}"
       },
       {
         "code": "flowDesc",
-        "valueJson": "{\"zh-CN\":\"用户 / 菜单 / 角色 CRUD 操作的审批流程设计器\",\"en-US\":\"Approval workflow designer for user / menu / role CRUD operations\"}"
+        "valueJson": "{\"zh-CN\":\"基于 Vue Flow + dagre 的 BPMN 设计器；节点可选挂表单；与 mfish 100% 兼容\",\"en-US\":\"Flowchart editor (placeholder)\"}"
+      },
+      {
+        "code": "flowDetailPartial",
+        "valueJson": "{\"zh-CN\":\"无法加载完整历史\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowDetailTitle",
+        "valueJson": "{\"zh-CN\":\"流程详情\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowEdit",
+        "valueJson": "{\"zh-CN\":\"编辑设计\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowEmpty",
+        "valueJson": "{\"zh-CN\":\"还没有流程\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowHistoryTitle",
+        "valueJson": "{\"zh-CN\":\"审批历史\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowPhCode",
+        "valueJson": "{\"zh-CN\":\"kebab-case 标识（如 leave-request）\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowPhDescription",
+        "valueJson": "{\"zh-CN\":\"业务说明（可选）\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowPhName",
+        "valueJson": "{\"zh-CN\":\"流程显示名\",\"en-US\":\"\"}"
       },
       {
         "code": "flowPlaceholderDesc",
-        "valueJson": "{\"zh-CN\":\"审批节点、迁移条件、审批人 / 角色、与现有 user / menu / menu 写操作联动 —— 将在后续版本引入。本期仅保留菜单与权限位。\",\"en-US\":\"Approval nodes, transition conditions, assignees / roles, and integration with existing user / menu / role write services — to be introduced in a later release. This Phase A only reserves the menu slot and permissions.\"}"
+        "valueJson": "{\"zh-CN\":\"\",\"en-US\":\"Placeholder page — drag-and-drop nodes and flow orchestration will land later\"}"
       },
       {
         "code": "flowPlaceholderTitle",
-        "valueJson": "{\"zh-CN\":\"后期计划\",\"en-US\":\"Planned for Later\"}"
+        "valueJson": "{\"zh-CN\":\"\",\"en-US\":\"Flow Designer is coming soon\"}"
       },
       {
         "code": "flowPlannedLater",
-        "valueJson": "{\"zh-CN\":\"计划在后续迭代上线\",\"en-US\":\"Scheduled for a later iteration\"}"
+        "valueJson": "{\"zh-CN\":\"\",\"en-US\":\"Coming in a future release\"}"
+      },
+      {
+        "code": "flowPreview",
+        "valueJson": "{\"zh-CN\":\"预览\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowPublish",
+        "valueJson": "{\"zh-CN\":\"发布\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowPublished",
+        "valueJson": "{\"zh-CN\":\"已发布\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowRejected",
+        "valueJson": "{\"zh-CN\":\"已拒绝\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowRejectOk",
+        "valueJson": "{\"zh-CN\":\"拒绝\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowRejectTitle",
+        "valueJson": "{\"zh-CN\":\"审批拒绝\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowRtDesc",
+        "valueJson": "{\"zh-CN\":\"处理审批待办、查看我发起的流程、发起新流程\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowRtTitle",
+        "valueJson": "{\"zh-CN\":\"流程运行\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStartBusinessKeyPh",
+        "valueJson": "{\"zh-CN\":\"业务主键（如订单号 / 请假单 ID）\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStartPickFlow",
+        "valueJson": "{\"zh-CN\":\"选择已发布的流程\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStartSubmit",
+        "valueJson": "{\"zh-CN\":\"发起流程\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStartSuccess",
+        "valueJson": "{\"zh-CN\":\"流程已发起（实例 #{id}）\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStartVariables",
+        "valueJson": "{\"zh-CN\":\"流程变量（JSON）\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStartVariablesHint",
+        "valueJson": "{\"zh-CN\":\"变量可在审批节点的条件（SpEL）中引用，如 ${vars.days > 3}\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStartVariablesPh",
+        "valueJson": "{\"zh-CN\":\"{\\\"days\\\": 5, \\\"amount\\\": 12000}\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStateApproved",
+        "valueJson": "{\"zh-CN\":\"已通过\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStateCanceled",
+        "valueJson": "{\"zh-CN\":\"已取消\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStateRejected",
+        "valueJson": "{\"zh-CN\":\"已拒绝\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowStateRunning",
+        "valueJson": "{\"zh-CN\":\"进行中\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowTabApplied",
+        "valueJson": "{\"zh-CN\":\"我发起的\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowTabPending",
+        "valueJson": "{\"zh-CN\":\"待办\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "flowTabStart",
+        "valueJson": "{\"zh-CN\":\"发起流程\",\"en-US\":\"\"}"
       },
       {
         "code": "flowTitle",
         "valueJson": "{\"zh-CN\":\"流程设计\",\"en-US\":\"Flow Designer\"}"
       },
       {
-        "code": "iframeEmpty",
-        "valueJson": "{\"zh-CN\":\"未设置 src\",\"en-US\":\"No src set\"}"
+        "code": "flowUnpublish",
+        "valueJson": "{\"zh-CN\":\"取消发布\",\"en-US\":\"\"}"
       },
       {
-        "code": "invalidId",
-        "valueJson": "{\"zh-CN\":\"无效的页面 ID（参数缺失或非数字），已返回列表页\",\"en-US\":\"Invalid page id (missing or non-numeric); redirected to list\"}"
+        "code": "flowUnpublished",
+        "valueJson": "{\"zh-CN\":\"已取消发布\",\"en-US\":\"\"}"
       },
       {
-        "code": "linksEmpty",
-        "valueJson": "{\"zh-CN\":\"未配置链接\",\"en-US\":\"No links configured\"}"
+        "code": "flowUnsavedHint",
+        "valueJson": "{\"zh-CN\":\"有未保存的修改，确定离开？\",\"en-US\":\"\"}"
       },
       {
-        "code": "noBinding",
-        "valueJson": "{\"zh-CN\":\"未绑定任何角色\",\"en-US\":\"No roles bound\"}"
+        "code": "formBack",
+        "valueJson": "{\"zh-CN\":\"返回列表\",\"en-US\":\"Back to List\"}"
       },
       {
-        "code": "pageDesc",
-        "valueJson": "{\"zh-CN\":\"可视化拖拽门户首页：组件库 + 画布 + 属性面板 + 角色绑定\",\"en-US\":\"Visual drag-and-drop portal page builder: component palette + canvas + property panel + role binding\"}"
+        "code": "formCodeNameRequired",
+        "valueJson": "{\"zh-CN\":\"code 与 name 都必须填写\",\"en-US\":\"code and name are required\"}"
       },
       {
-        "code": "pageFeat1",
-        "valueJson": "{\"zh-CN\":\"从组件库拖入卡片到画布，自由网格 + 可调大小\",\"en-US\":\"Drag blocks from the palette onto a free-grid canvas with resize support\"}"
+        "code": "formColCode",
+        "valueJson": "{\"zh-CN\":\"代码\",\"en-US\":\"Code\"}"
       },
       {
-        "code": "pageFeat2",
-        "valueJson": "{\"zh-CN\":\"属性面板由组件 config_schema 自动生成\",\"en-US\":\"Property panel auto-generated from each block config_schema\"}"
+        "code": "formColDescription",
+        "valueJson": "{\"zh-CN\":\"说明\",\"en-US\":\"Description\"}"
       },
       {
-        "code": "pageFeat3",
-        "valueJson": "{\"zh-CN\":\"layout_schema JSON 落库，运行时按 JSON 动态渲染\",\"en-US\":\"layout_schema JSON persisted; runtime renders dynamically from JSON\"}"
+        "code": "formColFields",
+        "valueJson": "{\"zh-CN\":\"字段数\",\"en-US\":\"Fields\"}"
       },
       {
-        "code": "pageFeat4",
-        "valueJson": "{\"zh-CN\":\"按角色绑定：不同登录身份看到不同的门户首页\",\"en-US\":\"Per-role binding: each login identity sees their own portal page\"}"
+        "code": "formColName",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
       },
       {
-        "code": "pagePlaceholderDesc",
-        "valueJson": "{\"zh-CN\":\"页面设计器将于下个阶段上线，包含以下能力：\",\"en-US\":\"The page designer will ship in the next phase, with the following capabilities:\"}"
+        "code": "formColStatus",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
       },
       {
-        "code": "pagePlaceholderTitle",
-        "valueJson": "{\"zh-CN\":\"建设中\",\"en-US\":\"Under Construction\"}"
+        "code": "formColUpdatedAt",
+        "valueJson": "{\"zh-CN\":\"更新时间\",\"en-US\":\"Updated\"}"
       },
       {
-        "code": "pageTitle",
-        "valueJson": "{\"zh-CN\":\"页面设计\",\"en-US\":\"Page Designer\"}"
+        "code": "formCreate",
+        "valueJson": "{\"zh-CN\":\"新建表单\",\"en-US\":\"New Form\"}"
       },
       {
-        "code": "palette",
-        "valueJson": "{\"zh-CN\":\"组件库\",\"en-US\":\"Palette\"}"
+        "code": "formDeleteConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除表单「{name}」？\",\"en-US\":\"Delete form \\\"{name}\\\"?\"}"
       },
       {
-        "code": "phCode",
-        "valueJson": "{\"zh-CN\":\"kebab-case 标识（如 home-default）\",\"en-US\":\"kebab-case identifier (e.g. home-default)\"}"
+        "code": "formDesc",
+        "valueJson": "{\"zh-CN\":\"拖入字段生成表单 schema，供业务页与流程审批节点挂载\",\"en-US\":\"Drag fields to build a form schema for business pages and approval nodes\"}"
       },
       {
-        "code": "portalNoBinding",
-        "valueJson": "{\"zh-CN\":\"未命中门户页\",\"en-US\":\"No Portal Page\"}"
+        "code": "formEdit",
+        "valueJson": "{\"zh-CN\":\"编辑表单\",\"en-US\":\"Edit Form\"}"
       },
       {
-        "code": "portalNoBindingDesc",
-        "valueJson": "{\"zh-CN\":\"当前账号未绑定任何已发布的门户页。\",\"en-US\":\"Your account is not bound to any published portal page.\"}"
+        "code": "formEmpty",
+        "valueJson": "{\"zh-CN\":\"还没有表单\",\"en-US\":\"No forms yet\"}"
       },
       {
-        "code": "preview",
+        "code": "formFieldLabel.code",
+        "valueJson": "{\"zh-CN\":\"代码\",\"en-US\":\"Code\"}"
+      },
+      {
+        "code": "formFieldLabel.description",
+        "valueJson": "{\"zh-CN\":\"说明\",\"en-US\":\"Description\"}"
+      },
+      {
+        "code": "formFieldLabel.name",
+        "valueJson": "{\"zh-CN\":\"名称\",\"en-US\":\"Name\"}"
+      },
+      {
+        "code": "formPhCode",
+        "valueJson": "{\"zh-CN\":\"kebab-case 标识（如 leave-request）\",\"en-US\":\"kebab-case identifier (e.g. leave-request)\"}"
+      },
+      {
+        "code": "formPhDescription",
+        "valueJson": "{\"zh-CN\":\"业务说明（可选）\",\"en-US\":\"Description (optional)\"}"
+      },
+      {
+        "code": "formPhName",
+        "valueJson": "{\"zh-CN\":\"表单显示名\",\"en-US\":\"Form display name\"}"
+      },
+      {
+        "code": "formPreview",
         "valueJson": "{\"zh-CN\":\"预览\",\"en-US\":\"Preview\"}"
       },
       {
-        "code": "previewDesc",
-        "valueJson": "{\"zh-CN\":\"只读预览 —— 实际门户运行时按角色绑定命中。\",\"en-US\":\"Read-only preview. Actual portal page is resolved by role binding at runtime.\"}"
+        "code": "formPreviewData",
+        "valueJson": "{\"zh-CN\":\"表单数据预览\",\"en-US\":\"Form data preview\"}"
       },
       {
-        "code": "propPanelEmpty",
-        "valueJson": "{\"zh-CN\":\"选中画布上的组件以编辑属性\",\"en-US\":\"Select a block on the canvas to edit its properties.\"}"
+        "code": "formPreviewLive",
+        "valueJson": "{\"zh-CN\":\"运行时预览\",\"en-US\":\"Live Preview\"}"
       },
       {
-        "code": "propPanelTitle",
-        "valueJson": "{\"zh-CN\":\"属性\",\"en-US\":\"Properties\"}"
-      },
-      {
-        "code": "publish",
+        "code": "formPublish",
         "valueJson": "{\"zh-CN\":\"发布\",\"en-US\":\"Publish\"}"
       },
       {
-        "code": "published",
+        "code": "formPublished",
         "valueJson": "{\"zh-CN\":\"已发布\",\"en-US\":\"Published\"}"
       },
       {
-        "code": "removeBlock",
-        "valueJson": "{\"zh-CN\":\"移除此块\",\"en-US\":\"Remove this block\"}"
+        "code": "formSaveFirst",
+        "valueJson": "{\"zh-CN\":\"请先保存表单后再预览\",\"en-US\":\"Please save the form before previewing\"}"
       },
       {
-        "code": "unpublish",
+        "code": "formTitle",
+        "valueJson": "{\"zh-CN\":\"表单设计\",\"en-US\":\"Form Designer\"}"
+      },
+      {
+        "code": "formUnpublish",
         "valueJson": "{\"zh-CN\":\"取消发布\",\"en-US\":\"Unpublish\"}"
       },
       {
-        "code": "unpublished",
+        "code": "formUnpublished",
         "valueJson": "{\"zh-CN\":\"已取消发布\",\"en-US\":\"Unpublished\"}"
       },
       {
-        "code": "unsavedHint",
+        "code": "formUnsavedHint",
         "valueJson": "{\"zh-CN\":\"有未保存的修改，确定离开？\",\"en-US\":\"You have unsaved changes. Leave anyway?\"}"
+      },
+      {
+        "code": "formUntitled",
+        "valueJson": "{\"zh-CN\":\"未命名表单\",\"en-US\":\"Untitled form\"}"
       }
     ]
   },
@@ -1764,6 +1980,10 @@
         "valueJson": "{\"zh-CN\":\"档案库「{name}」下仍有 {count} 个档案，请先处理后再删除\",\"en-US\":\"Archive library \\\"{name}\\\" still has {count} file(s). Remove them first.\"}"
       },
       {
+        "code": "deleteCategoryConfirm",
+        "valueJson": "{\"zh-CN\":\"确认删除档案库「{name}」？\",\"en-US\":\"Delete archive library \\\"{name}\\\"?\"}"
+      },
+      {
         "code": "deleteConfirm",
         "valueJson": "{\"zh-CN\":\"确认删除档案「{name}」？删除后将从存储一并清除，无法恢复。\",\"en-US\":\"Delete file \\\"{name}\\\"? Storage file will be removed too. Cannot be undone.\"}"
       },
@@ -1778,6 +1998,10 @@
       {
         "code": "download",
         "valueJson": "{\"zh-CN\":\"下载\",\"en-US\":\"Download\"}"
+      },
+      {
+        "code": "dropHere",
+        "valueJson": "{\"zh-CN\":\"将文件拖到此处，或点击选择文件\",\"en-US\":\"Drop files here, or click to select files\"}"
       },
       {
         "code": "editArchive",
@@ -1987,6 +2211,569 @@
       {
         "code": "notFound",
         "valueJson": "{\"zh-CN\":\"页面不存在\",\"en-US\":\"Page not found.\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "flowDesigner",
+    "items": [
+      {
+        "code": "approval.and",
+        "valueJson": "{\"zh-CN\":\"会签\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "approval.or",
+        "valueJson": "{\"zh-CN\":\"或签\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "approval.percent",
+        "valueJson": "{\"zh-CN\":\"按比例（{n}%）\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "approval.percentShort",
+        "valueJson": "{\"zh-CN\":\"比例\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "autoLayout",
+        "valueJson": "{\"zh-CN\":\"自动布局 (dagre)\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "canvasEmpty",
+        "valueJson": "{\"zh-CN\":\"\",\"en-US\":\"Drag a node from the left palette to begin\"}"
+      },
+      {
+        "code": "config.edgeTitle",
+        "valueJson": "{\"zh-CN\":\"连线条件\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "config.empty",
+        "valueJson": "{\"zh-CN\":\"选中节点或连线以编辑属性\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "config.nodeTitle",
+        "valueJson": "{\"zh-CN\":\"节点配置\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "edge.condition",
+        "valueJson": "{\"zh-CN\":\"条件\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "edge.conditionHint",
+        "valueJson": "{\"zh-CN\":\"空=无条件；approved/rejected=系统常量；${...}=SpEL\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "edge.conditionPh",
+        "valueJson": "{\"zh-CN\":\"如 approved / rejected / ${amount > 1000}\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "edge.preset.approved",
+        "valueJson": "{\"zh-CN\":\"通过\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "edge.preset.rejected",
+        "valueJson": "{\"zh-CN\":\"拒绝\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "edge.preset.spel",
+        "valueJson": "{\"zh-CN\":\"SpEL 表达式\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "edge.source",
+        "valueJson": "{\"zh-CN\":\"源节点\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "edge.target",
+        "valueJson": "{\"zh-CN\":\"目标节点\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "jsonCopy",
+        "valueJson": "{\"zh-CN\":\"复制\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "jsonTitle",
+        "valueJson": "{\"zh-CN\":\"当前 FlowJson\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "layoutDone",
+        "valueJson": "{\"zh-CN\":\"已重新布局\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "mode.design",
+        "valueJson": "{\"zh-CN\":\"设计\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "mode.json",
+        "valueJson": "{\"zh-CN\":\"JSON\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "mode.preview",
+        "valueJson": "{\"zh-CN\":\"预览\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.addBranch",
+        "valueJson": "{\"zh-CN\":\"添加分支\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.approval",
+        "valueJson": "{\"zh-CN\":\"审批节点\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.approvalType",
+        "valueJson": "{\"zh-CN\":\"审批模式\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.assignees",
+        "valueJson": "{\"zh-CN\":\"审批人\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.branchCondition",
+        "valueJson": "{\"zh-CN\":\"条件 (SpEL)\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.branches",
+        "valueJson": "{\"zh-CN\":\"条件分支\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.branchHint",
+        "valueJson": "{\"zh-CN\":\"条件示例：${amount > 10000}；留空=默认分支\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.branchLabel",
+        "valueJson": "{\"zh-CN\":\"标签\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.completionPercent",
+        "valueJson": "{\"zh-CN\":\"完成百分比\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.condition",
+        "valueJson": "{\"zh-CN\":\"条件分支\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.end",
+        "valueJson": "{\"zh-CN\":\"结束\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.formCode",
+        "valueJson": "{\"zh-CN\":\"挂表单\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.formCodePh",
+        "valueJson": "{\"zh-CN\":\"选择本节点要渲染的表单\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.label",
+        "valueJson": "{\"zh-CN\":\"节点标签\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.labelPh",
+        "valueJson": "{\"zh-CN\":\"如「直属主管」\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.orgPh",
+        "valueJson": "{\"zh-CN\":\"选择审批组织\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.rolePh",
+        "valueJson": "{\"zh-CN\":\"选择审批角色\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.start",
+        "valueJson": "{\"zh-CN\":\"开始\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.tabOrgs",
+        "valueJson": "{\"zh-CN\":\"组织\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.tabRoles",
+        "valueJson": "{\"zh-CN\":\"角色\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.tabUsers",
+        "valueJson": "{\"zh-CN\":\"用户\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "node.userPh",
+        "valueJson": "{\"zh-CN\":\"选择审批用户\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "palette",
+        "valueJson": "{\"zh-CN\":\"节点面板\",\"en-US\":\"Node Palette\"}"
+      },
+      {
+        "code": "paletteHint",
+        "valueJson": "{\"zh-CN\":\"点击添加节点；START/END 仅能各 1 个\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "propsEmpty",
+        "valueJson": "{\"zh-CN\":\"\",\"en-US\":\"Select a node on the canvas to edit its properties\"}"
+      },
+      {
+        "code": "redo",
+        "valueJson": "{\"zh-CN\":\"重做 (Ctrl+Shift+Z)\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "undo",
+        "valueJson": "{\"zh-CN\":\"撤销 (Ctrl+Z)\",\"en-US\":\"\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "formDesigner",
+    "items": [
+      {
+        "code": "canvasEmpty",
+        "valueJson": "{\"zh-CN\":\"从左侧字段面板点击添加字段\",\"en-US\":\"Click a field on the left to add it to the canvas\"}"
+      },
+      {
+        "code": "cat.choice",
+        "valueJson": "{\"zh-CN\":\"选择类\",\"en-US\":\"Choice\"}"
+      },
+      {
+        "code": "cat.date",
+        "valueJson": "{\"zh-CN\":\"日期\",\"en-US\":\"Date\"}"
+      },
+      {
+        "code": "cat.input",
+        "valueJson": "{\"zh-CN\":\"基础输入\",\"en-US\":\"Input\"}"
+      },
+      {
+        "code": "cat.layout",
+        "valueJson": "{\"zh-CN\":\"布局\",\"en-US\":\"Layout\"}"
+      },
+      {
+        "code": "cat.pick",
+        "valueJson": "{\"zh-CN\":\"业务选取\",\"en-US\":\"Picker\"}"
+      },
+      {
+        "code": "cat.special",
+        "valueJson": "{\"zh-CN\":\"特殊\",\"en-US\":\"Special\"}"
+      },
+      {
+        "code": "device.desktop",
+        "valueJson": "{\"zh-CN\":\"桌面\",\"en-US\":\"Desktop\"}"
+      },
+      {
+        "code": "device.mobile",
+        "valueJson": "{\"zh-CN\":\"手机\",\"en-US\":\"Mobile\"}"
+      },
+      {
+        "code": "device.tablet",
+        "valueJson": "{\"zh-CN\":\"平板\",\"en-US\":\"Tablet\"}"
+      },
+      {
+        "code": "field.defaultValue",
+        "valueJson": "{\"zh-CN\":\"默认值\",\"en-US\":\"Default\"}"
+      },
+      {
+        "code": "field.fullWidth",
+        "valueJson": "{\"zh-CN\":\"独占一行\",\"en-US\":\"Full Width\"}"
+      },
+      {
+        "code": "field.help",
+        "valueJson": "{\"zh-CN\":\"帮助文字\",\"en-US\":\"Help Text\"}"
+      },
+      {
+        "code": "field.key",
+        "valueJson": "{\"zh-CN\":\"字段 key\",\"en-US\":\"Field Key\"}"
+      },
+      {
+        "code": "field.keyPh",
+        "valueJson": "{\"zh-CN\":\"业务唯一标识（如 applicantName）\",\"en-US\":\"Unique business key (e.g. applicantName)\"}"
+      },
+      {
+        "code": "field.label",
+        "valueJson": "{\"zh-CN\":\"显示名\",\"en-US\":\"Label\"}"
+      },
+      {
+        "code": "field.labelPh",
+        "valueJson": "{\"zh-CN\":\"字段显示名\",\"en-US\":\"Field label\"}"
+      },
+      {
+        "code": "field.max",
+        "valueJson": "{\"zh-CN\":\"最大\",\"en-US\":\"Max\"}"
+      },
+      {
+        "code": "field.maxPh",
+        "valueJson": "{\"zh-CN\":\"最大长度 / 值\",\"en-US\":\"max length / value\"}"
+      },
+      {
+        "code": "field.message",
+        "valueJson": "{\"zh-CN\":\"错误文案\",\"en-US\":\"Error Message\"}"
+      },
+      {
+        "code": "field.min",
+        "valueJson": "{\"zh-CN\":\"最小\",\"en-US\":\"Min\"}"
+      },
+      {
+        "code": "field.minPh",
+        "valueJson": "{\"zh-CN\":\"最小长度 / 值\",\"en-US\":\"min length / value\"}"
+      },
+      {
+        "code": "field.options",
+        "valueJson": "{\"zh-CN\":\"选项\",\"en-US\":\"Options\"}"
+      },
+      {
+        "code": "field.pattern",
+        "valueJson": "{\"zh-CN\":\"正则\",\"en-US\":\"Pattern\"}"
+      },
+      {
+        "code": "field.patternPh",
+        "valueJson": "{\"zh-CN\":\"如 ^[A-Za-z]+$\",\"en-US\":\"e.g. ^[A-Za-z]+$\"}"
+      },
+      {
+        "code": "field.placeholder",
+        "valueJson": "{\"zh-CN\":\"占位提示\",\"en-US\":\"Placeholder\"}"
+      },
+      {
+        "code": "field.required",
+        "valueJson": "{\"zh-CN\":\"是否必填\",\"en-US\":\"Required\"}"
+      },
+      {
+        "code": "field.type",
+        "valueJson": "{\"zh-CN\":\"字段类型\",\"en-US\":\"Type\"}"
+      },
+      {
+        "code": "field.validator",
+        "valueJson": "{\"zh-CN\":\"校验\",\"en-US\":\"Validation\"}"
+      },
+      {
+        "code": "hint.richText",
+        "valueJson": "{\"zh-CN\":\"本期仅提供纯文本富文本，后续可接入 tinymce / wangEditor\",\"en-US\":\"Plain-text only for now. tinymce / wangEditor integration planned.\"}"
+      },
+      {
+        "code": "invalid",
+        "valueJson": "{\"zh-CN\":\"输入不合法\",\"en-US\":\"Invalid input\"}"
+      },
+      {
+        "code": "jsonCopy",
+        "valueJson": "{\"zh-CN\":\"复制\",\"en-US\":\"Copy\"}"
+      },
+      {
+        "code": "jsonTitle",
+        "valueJson": "{\"zh-CN\":\"当前 schema JSON\",\"en-US\":\"Current schema JSON\"}"
+      },
+      {
+        "code": "mode.build",
+        "valueJson": "{\"zh-CN\":\"设计\",\"en-US\":\"Design\"}"
+      },
+      {
+        "code": "mode.json",
+        "valueJson": "{\"zh-CN\":\"JSON\",\"en-US\":\"JSON\"}"
+      },
+      {
+        "code": "mode.preview",
+        "valueJson": "{\"zh-CN\":\"预览\",\"en-US\":\"Preview\"}"
+      },
+      {
+        "code": "option.add",
+        "valueJson": "{\"zh-CN\":\"添加选项\",\"en-US\":\"Add option\"}"
+      },
+      {
+        "code": "option.label",
+        "valueJson": "{\"zh-CN\":\"标签\",\"en-US\":\"Label\"}"
+      },
+      {
+        "code": "option.value",
+        "valueJson": "{\"zh-CN\":\"值\",\"en-US\":\"Value\"}"
+      },
+      {
+        "code": "outline",
+        "valueJson": "{\"zh-CN\":\"大纲\",\"en-US\":\"Outline\"}"
+      },
+      {
+        "code": "outlineEmpty",
+        "valueJson": "{\"zh-CN\":\"画布为空 —— 从左侧字段面板添加\",\"en-US\":\"Canvas is empty — add a field from the left palette\"}"
+      },
+      {
+        "code": "palette",
+        "valueJson": "{\"zh-CN\":\"字段面板\",\"en-US\":\"Field Palette\"}"
+      },
+      {
+        "code": "paletteHint",
+        "valueJson": "{\"zh-CN\":\"点击添加该字段\",\"en-US\":\"Click to add this field\"}"
+      },
+      {
+        "code": "paletteSearch",
+        "valueJson": "{\"zh-CN\":\"搜索字段\",\"en-US\":\"Search fields\"}"
+      },
+      {
+        "code": "placeholder.date",
+        "valueJson": "{\"zh-CN\":\"请选择日期\",\"en-US\":\"Please pick a date\"}"
+      },
+      {
+        "code": "placeholder.datetime",
+        "valueJson": "{\"zh-CN\":\"请选择日期时间\",\"en-US\":\"Please pick a date and time\"}"
+      },
+      {
+        "code": "placeholder.dept",
+        "valueJson": "{\"zh-CN\":\"请选择部门\",\"en-US\":\"Please pick a department\"}"
+      },
+      {
+        "code": "placeholder.number",
+        "valueJson": "{\"zh-CN\":\"请输入数字\",\"en-US\":\"Please input a number\"}"
+      },
+      {
+        "code": "placeholder.richText",
+        "valueJson": "{\"zh-CN\":\"请输入\",\"en-US\":\"Please input\"}"
+      },
+      {
+        "code": "placeholder.select",
+        "valueJson": "{\"zh-CN\":\"请选择\",\"en-US\":\"Please select\"}"
+      },
+      {
+        "code": "placeholder.text",
+        "valueJson": "{\"zh-CN\":\"请输入\",\"en-US\":\"Please input\"}"
+      },
+      {
+        "code": "placeholder.textarea",
+        "valueJson": "{\"zh-CN\":\"请输入\",\"en-US\":\"Please input\"}"
+      },
+      {
+        "code": "placeholder.user",
+        "valueJson": "{\"zh-CN\":\"请选择人员\",\"en-US\":\"Please pick a user\"}"
+      },
+      {
+        "code": "propsEmpty",
+        "valueJson": "{\"zh-CN\":\"选中画布上的字段以编辑属性\",\"en-US\":\"Select a field on the canvas to edit its properties\"}"
+      },
+      {
+        "code": "propsTitle",
+        "valueJson": "{\"zh-CN\":\"字段属性\",\"en-US\":\"Field Properties\"}"
+      },
+      {
+        "code": "redo",
+        "valueJson": "{\"zh-CN\":\"重做 (Ctrl+Shift+Z)\",\"en-US\":\"Redo (Ctrl+Shift+Z)\"}"
+      },
+      {
+        "code": "required",
+        "valueJson": "{\"zh-CN\":\"请填写 {label}\",\"en-US\":\"{label} is required\"}"
+      },
+      {
+        "code": "section.advanced",
+        "valueJson": "{\"zh-CN\":\"高级\",\"en-US\":\"Advanced\"}"
+      },
+      {
+        "code": "section.basic",
+        "valueJson": "{\"zh-CN\":\"基础\",\"en-US\":\"Basic\"}"
+      },
+      {
+        "code": "type.CHECKBOX",
+        "valueJson": "{\"zh-CN\":\"多选\",\"en-US\":\"Checkbox\"}"
+      },
+      {
+        "code": "type.DATE",
+        "valueJson": "{\"zh-CN\":\"日期\",\"en-US\":\"Date\"}"
+      },
+      {
+        "code": "type.DATETIME",
+        "valueJson": "{\"zh-CN\":\"日期时间\",\"en-US\":\"DateTime\"}"
+      },
+      {
+        "code": "type.DEPT",
+        "valueJson": "{\"zh-CN\":\"部门\",\"en-US\":\"Department\"}"
+      },
+      {
+        "code": "type.DIVIDER",
+        "valueJson": "{\"zh-CN\":\"分割线\",\"en-US\":\"Divider\"}"
+      },
+      {
+        "code": "type.FILE",
+        "valueJson": "{\"zh-CN\":\"文件上传\",\"en-US\":\"File Upload\"}"
+      },
+      {
+        "code": "type.NUMBER",
+        "valueJson": "{\"zh-CN\":\"数字\",\"en-US\":\"Number\"}"
+      },
+      {
+        "code": "type.RADIO",
+        "valueJson": "{\"zh-CN\":\"单选\",\"en-US\":\"Radio\"}"
+      },
+      {
+        "code": "type.RICH_TEXT",
+        "valueJson": "{\"zh-CN\":\"富文本\",\"en-US\":\"Rich Text\"}"
+      },
+      {
+        "code": "type.SELECT",
+        "valueJson": "{\"zh-CN\":\"下拉选择\",\"en-US\":\"Dropdown\"}"
+      },
+      {
+        "code": "type.TEXT",
+        "valueJson": "{\"zh-CN\":\"单行文本\",\"en-US\":\"Single Line\"}"
+      },
+      {
+        "code": "type.TEXTAREA",
+        "valueJson": "{\"zh-CN\":\"多行文本\",\"en-US\":\"Multi Line\"}"
+      },
+      {
+        "code": "type.USER",
+        "valueJson": "{\"zh-CN\":\"人员\",\"en-US\":\"User\"}"
+      },
+      {
+        "code": "undo",
+        "valueJson": "{\"zh-CN\":\"撤销 (Ctrl+Z)\",\"en-US\":\"Undo (Ctrl+Z)\"}"
+      },
+      {
+        "code": "unnamed",
+        "valueJson": "{\"zh-CN\":\"未命名\",\"en-US\":\"Unnamed\"}"
+      },
+      {
+        "code": "upload.dropOrClick",
+        "valueJson": "{\"zh-CN\":\"拖拽或点击上传\",\"en-US\":\"Drop or click to upload\"}"
+      },
+      {
+        "code": "warning.deptLoadFailed",
+        "valueJson": "{\"zh-CN\":\"部门列表加载失败\",\"en-US\":\"Failed to load department list\"}"
+      },
+      {
+        "code": "warning.userLoadFailed",
+        "valueJson": "{\"zh-CN\":\"用户列表加载失败\",\"en-US\":\"Failed to load user list\"}"
+      },
+      {
+        "code": "zoom",
+        "valueJson": "{\"zh-CN\":\"画布缩放\",\"en-US\":\"Canvas Zoom\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "header",
+    "items": [
+      {
+        "code": "exitFullscreen",
+        "valueJson": "{\"zh-CN\":\"退出全屏\",\"en-US\":\"Exit fullscreen\"}"
+      },
+      {
+        "code": "fullscreen",
+        "valueJson": "{\"zh-CN\":\"全屏\",\"en-US\":\"Fullscreen\"}"
+      },
+      {
+        "code": "help",
+        "valueJson": "{\"zh-CN\":\"帮助\",\"en-US\":\"Help\"}"
+      },
+      {
+        "code": "notifEmpty",
+        "valueJson": "{\"zh-CN\":\"暂无新通知\",\"en-US\":\"No new notifications\"}"
+      },
+      {
+        "code": "notifications",
+        "valueJson": "{\"zh-CN\":\"通知\",\"en-US\":\"Notifications\"}"
+      },
+      {
+        "code": "shortcutEsc",
+        "valueJson": "{\"zh-CN\":\"关闭弹窗 / 退出全屏\",\"en-US\":\"Close dialog / exit fullscreen\"}"
+      },
+      {
+        "code": "shortcutFullscreen",
+        "valueJson": "{\"zh-CN\":\"切换全屏\",\"en-US\":\"Toggle fullscreen\"}"
+      },
+      {
+        "code": "shortcuts",
+        "valueJson": "{\"zh-CN\":\"快捷键\",\"en-US\":\"Keyboard shortcuts\"}"
+      },
+      {
+        "code": "shortcutSearch",
+        "valueJson": "{\"zh-CN\":\"全局搜索（占位）\",\"en-US\":\"Global search (placeholder)\"}"
       }
     ]
   },
@@ -2413,6 +3200,22 @@
         "valueJson": "{\"zh-CN\":\"智能识别 · 多存储 · 多角色权限\",\"en-US\":\"Smart OCR · Multi-storage · Role-based access\"}"
       },
       {
+        "code": "defaultHint",
+        "valueJson": "{\"zh-CN\":\"默认账号 {code}，首次登录后请修改密码\",\"en-US\":\"Default account {code}, change your password at first login\"}"
+      },
+      {
+        "code": "featureOcr",
+        "valueJson": "{\"zh-CN\":\"批量上传 PDF/XML 发票，自动识别结构化字段\",\"en-US\":\"Bulk upload PDF/XML invoices with auto field recognition\"}"
+      },
+      {
+        "code": "featureRbac",
+        "valueJson": "{\"zh-CN\":\"基于 RBAC 的细粒度权限管理\",\"en-US\":\"Fine-grained RBAC permission management\"}"
+      },
+      {
+        "code": "featureStorage",
+        "valueJson": "{\"zh-CN\":\"本地磁盘 / S3 兼容存储一键切换\",\"en-US\":\"Local disk / S3-compatible storage at the flip of a switch\"}"
+      },
+      {
         "code": "password",
         "valueJson": "{\"zh-CN\":\"密码\",\"en-US\":\"Password\"}"
       },
@@ -2422,11 +3225,11 @@
       },
       {
         "code": "submit",
-        "valueJson": "{\"zh-CN\":\"登录\",\"en-US\":\"Login\"}"
+        "valueJson": "{\"zh-CN\":\"登录\",\"en-US\":\"Sign in\"}"
       },
       {
         "code": "subtitle",
-        "valueJson": "{\"zh-CN\":\"登录以继续\",\"en-US\":\"Login to continue\"}"
+        "valueJson": "{\"zh-CN\":\"登录以继续\",\"en-US\":\"Sign in to continue\"}"
       },
       {
         "code": "title",
@@ -2502,8 +3305,8 @@
         "valueJson": "{\"zh-CN\":\"流程设计\",\"en-US\":\"Flow Designer\"}"
       },
       {
-        "code": "design.page.Index",
-        "valueJson": "{\"zh-CN\":\"页面设计\",\"en-US\":\"Page Designer\"}"
+        "code": "design.form.Index",
+        "valueJson": "{\"zh-CN\":\"表单设计\",\"en-US\":\"Form Designer\"}"
       },
       {
         "code": "documents._",
@@ -2572,6 +3375,14 @@
       {
         "code": "systemUser",
         "valueJson": "{\"zh-CN\":\"用户\",\"en-US\":\"Users\"}"
+      },
+      {
+        "code": "todo._",
+        "valueJson": "{\"zh-CN\":\"任务清单\",\"en-US\":\"Task List\"}"
+      },
+      {
+        "code": "todo.task.Index",
+        "valueJson": "{\"zh-CN\":\"任务管理\",\"en-US\":\"Tasks\"}"
       }
     ]
   },
@@ -3077,6 +3888,14 @@
         "valueJson": "{\"zh-CN\":\"S3 兼容\",\"en-US\":\"S3 Compatible\"}"
       },
       {
+        "code": "testFail",
+        "valueJson": "{\"zh-CN\":\"连通失败\",\"en-US\":\"Connection failed\"}"
+      },
+      {
+        "code": "testOk",
+        "valueJson": "{\"zh-CN\":\"连通正常\",\"en-US\":\"Connection OK\"}"
+      },
+      {
         "code": "typeButton",
         "valueJson": "{\"zh-CN\":\"按钮\",\"en-US\":\"Button\"}"
       },
@@ -3099,6 +3918,388 @@
       {
         "code": "userTitleDesc",
         "valueJson": "{\"zh-CN\":\"管理系统用户、角色与权限\",\"en-US\":\"Manage users, roles and permissions\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "tab",
+    "items": [
+      {
+        "code": "close",
+        "valueJson": "{\"zh-CN\":\"关闭当前\",\"en-US\":\"Close current\"}"
+      },
+      {
+        "code": "closeAll",
+        "valueJson": "{\"zh-CN\":\"关闭所有\",\"en-US\":\"Close all\"}"
+      },
+      {
+        "code": "closeOthers",
+        "valueJson": "{\"zh-CN\":\"关闭其它\",\"en-US\":\"Close others\"}"
+      },
+      {
+        "code": "refresh",
+        "valueJson": "{\"zh-CN\":\"刷新当前\",\"en-US\":\"Refresh current\"}"
+      }
+    ]
+  },
+  {
+    "namespace": "todo",
+    "items": [
+      {
+        "code": "adminViewAllLabel",
+        "valueJson": "{\"zh-CN\":\"全员\",\"en-US\":\"All users\"}"
+      },
+      {
+        "code": "assigneeForbidden",
+        "valueJson": "{\"zh-CN\":\"仅任务创建者或管理员可修改执行人\",\"en-US\":\"Only the task creator or an admin can change the assignee\"}"
+      },
+      {
+        "code": "assigneePlaceholder",
+        "valueJson": "{\"zh-CN\":\"选择执行人（默认自己）\",\"en-US\":\"Select an assignee (default: yourself)\"}"
+      },
+      {
+        "code": "assigneeSelf",
+        "valueJson": "{\"zh-CN\":\"自己（默认）\",\"en-US\":\"Self (default)\"}"
+      },
+      {
+        "code": "attachments.confirmDelete",
+        "valueJson": "{\"zh-CN\":\"确定删除附件「{name}」吗？\",\"en-US\":\"Delete attachment \\\"{name}\\\"?\"}"
+      },
+      {
+        "code": "attachments.count",
+        "valueJson": "{\"zh-CN\":\"{n} 个附件\",\"en-US\":\"{n} attachments\"}"
+      },
+      {
+        "code": "attachments.count_one",
+        "valueJson": "{\"zh-CN\":\"1 个附件\",\"en-US\":\"1 attachment\"}"
+      },
+      {
+        "code": "attachments.delete",
+        "valueJson": "{\"zh-CN\":\"删除\",\"en-US\":\"Delete\"}"
+      },
+      {
+        "code": "attachments.download",
+        "valueJson": "{\"zh-CN\":\"下载\",\"en-US\":\"Download\"}"
+      },
+      {
+        "code": "attachments.dropHint",
+        "valueJson": "{\"zh-CN\":\"点击或拖拽文件至此区域上传\",\"en-US\":\"Click or drag files here to upload\"}"
+      },
+      {
+        "code": "attachments.empty",
+        "valueJson": "{\"zh-CN\":\"暂无附件\",\"en-US\":\"No attachments yet\"}"
+      },
+      {
+        "code": "attachments.overSize",
+        "valueJson": "{\"zh-CN\":\"文件超过 20MB 限制\",\"en-US\":\"File exceeds the 20MB limit\"}"
+      },
+      {
+        "code": "attachments.size",
+        "valueJson": "{\"zh-CN\":\"大小\",\"en-US\":\"Size\"}"
+      },
+      {
+        "code": "attachments.uploadedBy",
+        "valueJson": "{\"zh-CN\":\"上传人\",\"en-US\":\"Uploaded by\"}"
+      },
+      {
+        "code": "attachments.uploadError",
+        "valueJson": "{\"zh-CN\":\"上传失败：{msg}\",\"en-US\":\"Upload failed: {msg}\"}"
+      },
+      {
+        "code": "attachments.uploadHint",
+        "valueJson": "{\"zh-CN\":\"单文件最大 20MB；同 SHA-256 视为重复\",\"en-US\":\"Max 20MB per file; same SHA (409600) is treated as duplicate\"}"
+      },
+      {
+        "code": "attachments.uploadSuccess",
+        "valueJson": "{\"zh-CN\":\"附件已上传\",\"en-US\":\"Attachment uploaded\"}"
+      },
+      {
+        "code": "completed",
+        "valueJson": "{\"zh-CN\":\"任务已完成\",\"en-US\":\"Task completed\"}"
+      },
+      {
+        "code": "confirmDelete",
+        "valueJson": "{\"zh-CN\":\"确定删除任务「{name}」吗？\",\"en-US\":\"Delete task \\\"{name}\\\"?\"}"
+      },
+      {
+        "code": "create",
+        "valueJson": "{\"zh-CN\":\"新建任务\",\"en-US\":\"New task\"}"
+      },
+      {
+        "code": "createTitle",
+        "valueJson": "{\"zh-CN\":\"新建任务\",\"en-US\":\"New task\"}"
+      },
+      {
+        "code": "dashboard.dueFuture",
+        "valueJson": "{\"zh-CN\":\"{date}\",\"en-US\":\"{date}\"}"
+      },
+      {
+        "code": "dashboard.dueNoDate",
+        "valueJson": "{\"zh-CN\":\"未设截止\",\"en-US\":\"No due date\"}"
+      },
+      {
+        "code": "dashboard.dueThisWeek",
+        "valueJson": "{\"zh-CN\":\"本周到期\",\"en-US\":\"Due this week\"}"
+      },
+      {
+        "code": "dashboard.dueToday",
+        "valueJson": "{\"zh-CN\":\"今日到期\",\"en-US\":\"Due today\"}"
+      },
+      {
+        "code": "dashboard.dueTomorrow",
+        "valueJson": "{\"zh-CN\":\"明日到期\",\"en-US\":\"Due tomorrow\"}"
+      },
+      {
+        "code": "dashboard.empty",
+        "valueJson": "{\"zh-CN\":\"太棒了！所有任务都已完成 🎉\",\"en-US\":\"All done — nothing on your list 🎉\"}"
+      },
+      {
+        "code": "dashboard.emptyDesc",
+        "valueJson": "{\"zh-CN\":\"点击「新建任务」开始记录\",\"en-US\":\"Click \\\"New task\\\" to start.\"}"
+      },
+      {
+        "code": "dashboard.moreCount",
+        "valueJson": "{\"zh-CN\":\"还有 {n} 条待办…\",\"en-US\":\"{n} more pending…\"}"
+      },
+      {
+        "code": "dashboard.overdueDays",
+        "valueJson": "{\"zh-CN\":\"逾期 {n} 天\",\"en-US\":\"{n}d overdue\"}"
+      },
+      {
+        "code": "dashboard.overdueDays_one",
+        "valueJson": "{\"zh-CN\":\"逾期 1 天\",\"en-US\":\"1d overdue\"}"
+      },
+      {
+        "code": "dashboard.title",
+        "valueJson": "{\"zh-CN\":\"我的任务\",\"en-US\":\"My tasks\"}"
+      },
+      {
+        "code": "dashboard.viewAll",
+        "valueJson": "{\"zh-CN\":\"查看全部\",\"en-US\":\"View all\"}"
+      },
+      {
+        "code": "desc",
+        "valueJson": "{\"zh-CN\":\"管理个人任务，设置优先级与截止日期，支持循环任务与标签分组\",\"en-US\":\"Manage your tasks with priority, due dates, recurrence and tags\"}"
+      },
+      {
+        "code": "duePlaceholder",
+        "valueJson": "{\"zh-CN\":\"选择截止时间\",\"en-US\":\"Pick a due date\"}"
+      },
+      {
+        "code": "editTitle",
+        "valueJson": "{\"zh-CN\":\"编辑任务：{name}\",\"en-US\":\"Edit task: {name}\"}"
+      },
+      {
+        "code": "fields.assignee",
+        "valueJson": "{\"zh-CN\":\"执行人\",\"en-US\":\"Assignee\"}"
+      },
+      {
+        "code": "fields.attachments",
+        "valueJson": "{\"zh-CN\":\"附件\",\"en-US\":\"Attachments\"}"
+      },
+      {
+        "code": "fields.createdAt",
+        "valueJson": "{\"zh-CN\":\"创建时间\",\"en-US\":\"Created\"}"
+      },
+      {
+        "code": "fields.createdBy",
+        "valueJson": "{\"zh-CN\":\"创建人\",\"en-US\":\"Created by\"}"
+      },
+      {
+        "code": "fields.description",
+        "valueJson": "{\"zh-CN\":\"描述\",\"en-US\":\"Description\"}"
+      },
+      {
+        "code": "fields.done",
+        "valueJson": "{\"zh-CN\":\"完成\",\"en-US\":\"Done\"}"
+      },
+      {
+        "code": "fields.dueAt",
+        "valueJson": "{\"zh-CN\":\"截止时间\",\"en-US\":\"Due\"}"
+      },
+      {
+        "code": "fields.parent",
+        "valueJson": "{\"zh-CN\":\"父任务\",\"en-US\":\"Parent\"}"
+      },
+      {
+        "code": "fields.priority",
+        "valueJson": "{\"zh-CN\":\"优先级\",\"en-US\":\"Priority\"}"
+      },
+      {
+        "code": "fields.recurrence",
+        "valueJson": "{\"zh-CN\":\"重复\",\"en-US\":\"Recurrence\"}"
+      },
+      {
+        "code": "fields.recurrenceDate",
+        "valueJson": "{\"zh-CN\":\"日期\",\"en-US\":\"Date\"}"
+      },
+      {
+        "code": "fields.recurrenceDom",
+        "valueJson": "{\"zh-CN\":\"日期（每月几号）\",\"en-US\":\"Day of month\"}"
+      },
+      {
+        "code": "fields.recurrenceDow",
+        "valueJson": "{\"zh-CN\":\"星期\",\"en-US\":\"Day of week\"}"
+      },
+      {
+        "code": "fields.recurrenceMonth",
+        "valueJson": "{\"zh-CN\":\"月份\",\"en-US\":\"Month\"}"
+      },
+      {
+        "code": "fields.status",
+        "valueJson": "{\"zh-CN\":\"状态\",\"en-US\":\"Status\"}"
+      },
+      {
+        "code": "fields.tags",
+        "valueJson": "{\"zh-CN\":\"标签\",\"en-US\":\"Tags\"}"
+      },
+      {
+        "code": "fields.title",
+        "valueJson": "{\"zh-CN\":\"标题\",\"en-US\":\"Title\"}"
+      },
+      {
+        "code": "parentHint",
+        "valueJson": "{\"zh-CN\":\"父任务被删除时本任务保留；只允许关联未完成的任务\",\"en-US\":\"If the parent is deleted, this task is kept. Only PENDING tasks can be linked.\"}"
+      },
+      {
+        "code": "parentLabel",
+        "valueJson": "{\"zh-CN\":\"父 #{id}\",\"en-US\":\"Parent #{id}\"}"
+      },
+      {
+        "code": "parentPlaceholder",
+        "valueJson": "{\"zh-CN\":\"选择父任务（仅显示当前用户的待办任务）\",\"en-US\":\"Select a parent task (your pending tasks only)\"}"
+      },
+      {
+        "code": "priority.high",
+        "valueJson": "{\"zh-CN\":\"高\",\"en-US\":\"High\"}"
+      },
+      {
+        "code": "priority.low",
+        "valueJson": "{\"zh-CN\":\"低\",\"en-US\":\"Low\"}"
+      },
+      {
+        "code": "priority.medium",
+        "valueJson": "{\"zh-CN\":\"中\",\"en-US\":\"Med\"}"
+      },
+      {
+        "code": "priority.none",
+        "valueJson": "{\"zh-CN\":\"无\",\"en-US\":\"None\"}"
+      },
+      {
+        "code": "recurrence.daily",
+        "valueJson": "{\"zh-CN\":\"每天\",\"en-US\":\"Daily\"}"
+      },
+      {
+        "code": "recurrence.dayUnit",
+        "valueJson": "{\"zh-CN\":\"日\",\"en-US\":\"\"}"
+      },
+      {
+        "code": "recurrence.dow1",
+        "valueJson": "{\"zh-CN\":\"周一\",\"en-US\":\"Mon\"}"
+      },
+      {
+        "code": "recurrence.dow2",
+        "valueJson": "{\"zh-CN\":\"周二\",\"en-US\":\"Tue\"}"
+      },
+      {
+        "code": "recurrence.dow3",
+        "valueJson": "{\"zh-CN\":\"周三\",\"en-US\":\"Wed\"}"
+      },
+      {
+        "code": "recurrence.dow4",
+        "valueJson": "{\"zh-CN\":\"周四\",\"en-US\":\"Thu\"}"
+      },
+      {
+        "code": "recurrence.dow5",
+        "valueJson": "{\"zh-CN\":\"周五\",\"en-US\":\"Fri\"}"
+      },
+      {
+        "code": "recurrence.dow6",
+        "valueJson": "{\"zh-CN\":\"周六\",\"en-US\":\"Sat\"}"
+      },
+      {
+        "code": "recurrence.dow7",
+        "valueJson": "{\"zh-CN\":\"周日\",\"en-US\":\"Sun\"}"
+      },
+      {
+        "code": "recurrence.lastDay",
+        "valueJson": "{\"zh-CN\":\"最后一天\",\"en-US\":\"Last day\"}"
+      },
+      {
+        "code": "recurrence.monthly",
+        "valueJson": "{\"zh-CN\":\"每月\",\"en-US\":\"Monthly\"}"
+      },
+      {
+        "code": "recurrence.monthlyDay",
+        "valueJson": "{\"zh-CN\":\"每月{n}日\",\"en-US\":\"Day {n}\"}"
+      },
+      {
+        "code": "recurrence.none",
+        "valueJson": "{\"zh-CN\":\"不重复\",\"en-US\":\"None\"}"
+      },
+      {
+        "code": "recurrence.required",
+        "valueJson": "{\"zh-CN\":\"请设置重复规则的具体日期\",\"en-US\":\"Please set the repeat rule details\"}"
+      },
+      {
+        "code": "recurrence.weekly",
+        "valueJson": "{\"zh-CN\":\"每周\",\"en-US\":\"Weekly\"}"
+      },
+      {
+        "code": "recurrence.weeklyDow",
+        "valueJson": "{\"zh-CN\":\"每周{dow}\",\"en-US\":\"Every {dow}\"}"
+      },
+      {
+        "code": "recurrence.yearly",
+        "valueJson": "{\"zh-CN\":\"每年\",\"en-US\":\"Yearly\"}"
+      },
+      {
+        "code": "recurrence.yearlyMd",
+        "valueJson": "{\"zh-CN\":\"每年{m}月{d}日\",\"en-US\":\"{m}/{d} yearly\"}"
+      },
+      {
+        "code": "recurrenceSpawned",
+        "valueJson": "{\"zh-CN\":\"已完成，下一条任务已自动生成\",\"en-US\":\"Done. The next task has been auto-scheduled.\"}"
+      },
+      {
+        "code": "searchPlaceholder",
+        "valueJson": "{\"zh-CN\":\"搜索标题或描述\",\"en-US\":\"Search title or description\"}"
+      },
+      {
+        "code": "selfBadge",
+        "valueJson": "{\"zh-CN\":\"我\",\"en-US\":\"Me\"}"
+      },
+      {
+        "code": "status.completed",
+        "valueJson": "{\"zh-CN\":\"已完成\",\"en-US\":\"Completed\"}"
+      },
+      {
+        "code": "status.pending",
+        "valueJson": "{\"zh-CN\":\"待办\",\"en-US\":\"Pending\"}"
+      },
+      {
+        "code": "tabs.attachments",
+        "valueJson": "{\"zh-CN\":\"附件\",\"en-US\":\"Attachments\"}"
+      },
+      {
+        "code": "tabs.basic",
+        "valueJson": "{\"zh-CN\":\"基本\",\"en-US\":\"Basic\"}"
+      },
+      {
+        "code": "tagsHint",
+        "valueJson": "{\"zh-CN\":\"标签按\\\"同名自动合并\\\"；删除最后一个使用某标签的任务时该标签也会被清理\",\"en-US\":\"Same-name tags are merged. Orphan tags are cleaned up automatically.\"}"
+      },
+      {
+        "code": "tagsPlaceholder",
+        "valueJson": "{\"zh-CN\":\"输入后回车创建标签\",\"en-US\":\"Type and press Enter to create a tag\"}"
+      },
+      {
+        "code": "title",
+        "valueJson": "{\"zh-CN\":\"任务清单\",\"en-US\":\"Tasks\"}"
+      },
+      {
+        "code": "totalCount",
+        "valueJson": "{\"zh-CN\":\"共 {n} 条\",\"en-US\":\"{n} total\"}"
       }
     ]
   }

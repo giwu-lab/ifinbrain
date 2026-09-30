@@ -11,13 +11,16 @@ export const SUPPORTED_LOCALES: Locale[] = ['zh-CN', 'en-US'];
 
 function detectInitialLocale(): Locale {
   if (typeof window === 'undefined') return 'zh-CN';
+  // 用户在 UI 显式选过 → 尊重选择
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === 'zh-CN' || stored === 'en-US') return stored as Locale;
+  // 否则按浏览器语言探测：zh-* 视为 zh-CN；其它一律默认 zh-CN
+  // （项目本身中文优先；用户可在 header 右上语言切换器切到 en-US）
   const langs = window.navigator.languages || [window.navigator.language];
   for (const l of langs) {
-    if (l.toLowerCase().startsWith('zh')) return 'zh-CN';
+    if (l && l.toLowerCase().startsWith('zh')) return 'zh-CN';
   }
-  return 'en-US';
+  return 'zh-CN';
 }
 
 export const i18n: I18n = createI18n({
