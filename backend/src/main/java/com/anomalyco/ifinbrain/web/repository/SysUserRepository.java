@@ -15,4 +15,7 @@ public interface SysUserRepository extends JpaRepository<SysUser, Long> {
 
     @Query("SELECT u FROM SysUser u WHERE u.username LIKE %:kw% OR u.displayName LIKE %:kw%")
     List<SysUser> searchByKeyword(String kw);
+
+    /** 任务清单执行人选择器数据源：仅启用用户，按 username 升序。 */
+    List<SysUser> findAllByStatusOrderByUsernameAsc(Short status);
 }
