@@ -155,21 +155,33 @@ onBeforeUnmount(destroyViewer);
 
 <style scoped>
 /*
- * 1) drawer 横向滚动条抑制（v1.5.1）
- * Element Plus 的 .el-drawer__body 默认 overflow:auto + 内容 padding，
- * 当 .file-render / .markdown-body / pre / table 等 inner 节点宽度
- * 超过 drawer 宽度时（图片原始尺寸、pre 长行、markdown 代码块、
- * 表格不可拆列），body 会出现横向滚动条。这里强制 overflow-x:hidden，
- * 让宽内容由 inner 元素自身消化（图片 max-width:100% / 长行折行）。
+ * 1) drawer 横向滚动条抑制（v1.5.1 累计 v3）
  *
- * 同样抑制 @file-viewer/renderer-pdf 的内层 .pdf-wrapper（其本身
- * overflow:auto，fit:'width' 是主修，但加防御 CSS 兜底）。
+ * Element Plus .el-drawer__body 默认 overflow:auto；
+ * @file-viewer/renderer-pdf 自带 .pdf-wrapper/.pdf-shell/.pdf-viewport/.pdf-content
+ * 4 层也都 overflow:auto（多 mode 下），任一层宽 > 父容器都出横滚。
+ *
+ * fit:'width' 是 PDF 主修（line 95），但 fit 只在 initial 跑一次，
+ * 浏览器缩放 / 抽屉尺寸变化 / 加载时序 race 都可能让某一层测量
+ * 不准 → 横滚条漏出。这里双保险：
+ *   A) 在 6 层 ancestor（drawer body / overlay / drawer root / pdf-shell /
+ *      pdf-viewport / pdf-wrapper）强制 overflow-x:hidden
+ *   B) 直接覆盖 @file-viewer 给 .pdf-page 写死的 width:816px，
+ *      改为 width:100% + height:auto + box-sizing:border-box
+ *
+ * !important 的取舍：@file-viewer 自己也用 !important（.pdfViewer.enablePermissions
+ * 的 user-select），且把 box-sizing 强制为 content-box —— 这是它给所有内层元素的
+ * 通配 reset。我们的覆盖若不加 !important 会输给它的 reset 顺序。
  */
+:deep(.el-overlay),
+:deep(.el-drawer),
 :deep(.el-drawer__body) {
-  overflow-x: hidden;
+  overflow-x: hidden !important;
 }
+:deep(.pdf-shell),
+:deep(.pdf-viewport),
 :deep(.pdf-wrapper) {
-  overflow-x: hidden;
+  overflow-x: hidden !important;
 }
 
 .project-file-viewer {
@@ -235,10 +247,35 @@ onBeforeUnmount(destroyViewer);
   display: flex;
   flex-direction: column;
 }
-/* PDF 页面（fit:'width' 主修 + max-width 兜底：极端 case 双保险） */
+/*
+ * PDF 页面 fit:'width' 主修 + 6 重保险：
+ *  - width:100% 直接覆盖 @file-viewer 写死的 width:816px（Letter @96dpi）
+ *  - max-width:100% 防止 box-sizing:content-box 下 padding/border 撑出
+ *  - height:auto 维持纵横比（fit 后 page 高度按比例缩放）
+ *  - !important 压过 @file-viewer 的 * { box-sizing:content-box } reset
+ *  - box-sizing:border-box 让 padding 不撑出父容器
+ */
 .viewer-host :deep(.pdfViewer .page) {
-  max-width: 100%;
-  height: auto;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  box-sizing: border-box !important;
+}
+/*
+ * PDF 工具条（toolbar 包含：上一页/下一页/缩放/页码/旋转），
+ * 在小抽屉宽度（80% × <1200px 屏 或 浏览器放大 ≥ 125%）下按钮组会
+ * 撑出横向滚动。强制 flex-wrap:wrap 让按钮换行，溢出风险归零。
+ * @file-viewer 自带的 @media (max-width:720px) 只对 ≤720px 视口生效，
+ * 抽屉宽度不在此范围内时不换行 —— 这是用户报告横滚的真凶之一。
+ */
+.viewer-host :deep(.pdf-toolbar) {
+  flex-wrap: wrap !important;
+  row-gap: 4px;
+}
+.viewer-host :deep(.pdfViewer) {
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
 }
 .viewer-host :deep(.code-area) {
   flex: 1 1 0%;
