@@ -38,7 +38,7 @@
               v-for="task in flowTasks"
               :key="task.id"
               class="nd-item nd-item-flow"
-              @click="goFlow(task.instanceId)"
+              @click="goFlow(task)"
             >
               <div class="nd-item-icon"><el-icon><Promotion /></el-icon></div>
               <div class="nd-item-body">
@@ -213,9 +213,9 @@ watch(
   () => {}
 );
 
-function goFlow(instanceId: number) {
+function goFlow(task: FlowTaskItem) {
   emit('update:modelValue', false);
-  router.push(`/design/flow-runtime`);
+  router.push({ path: '/design/flow-runtime', query: { taskId: String(task.id) } });
 }
 
 function goFlowRuntime() {

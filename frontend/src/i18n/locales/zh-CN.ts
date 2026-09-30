@@ -1005,6 +1005,8 @@ export default {
     flowRejected: '已驳回',
     flowDetailTitle: '流程详情',
     flowDetailPartial: '无法加载完整历史',
+    flowTaskAlreadyDone: '该任务已被处理或不在您的待办列表',
+    flowTaskLoadFail: '任务详情加载失败',
     flowHistoryTitle: '审批历史',
     flowStartPickFlow: '选择已发布的流程',
     flowStartBusinessKeyPh: '业务主键（如订单号 / 请假单 ID）',

@@ -964,6 +964,8 @@ header: {
     flowRejected: 'Rejected',
     flowDetailTitle: 'Flow Instance',
     flowDetailPartial: 'Partial detail (history unavailable)',
+    flowTaskAlreadyDone: 'Task already processed or no longer in your pending list',
+    flowTaskLoadFail: 'Failed to load task detail',
     flowHistoryTitle: 'Approval History',
     flowStartPickFlow: 'Select a published flow',
     flowStartBusinessKeyPh: 'Business key (e.g. order # / leave ID)',
