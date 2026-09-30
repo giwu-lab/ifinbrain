@@ -18,7 +18,7 @@
 
       <el-tooltip :content="t('stylePanel.title')" placement="bottom">
         <el-button text class="header-icon-btn" @click="styleOpen = true">
-          <el-icon><Brush /></el-icon>
+          <IconPalette :size="16" />
         </el-button>
       </el-tooltip>
 
@@ -107,8 +107,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
   Expand, Fold, Position, CaretBottom, FullScreen, Aim, Bell,
-  QuestionFilled, Brush
+  QuestionFilled
 } from '@element-plus/icons-vue';
+import IconPalette from '@/components/icons/IconPalette.vue';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
