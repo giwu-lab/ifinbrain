@@ -87,9 +87,14 @@ async function load() {
         toolbar: { position: 'bottom-right' },
         // 强制亮色主题：不随 OS / 浏览器 prefers-color-scheme 切换
         theme: 'light',
-        // PDF 默认 150% 缩放；不调用 fitToWidth —— 用户可手动点 toolbar 适应宽度
+        // PDF 初始按宽度自适应。816px 的 Letter 页面 ×1.5 = 1224px，80% 抽屉
+        // 实际可视宽约 1200px（扣 sidebar 220px + padding），会撑出 .pdf-wrapper
+        // 的横向滚动条。改用顶层 fit: 'width'，从根消除横滚。resize: 'initial'
+        // 仅在首次加载 + 用户主动缩放之前生效；用户 zoom 后可用 toolbar 的
+        // 「适应宽度」按钮重新 fit。
+        fit: { mode: 'width', resize: 'initial', padding: 8 },
         pdf: {
-          initialViewState: { scale: 1.5 },
+          // fit 优先；initialViewState.scale 与 fit 互斥，留空
         },
         // beforeOperation 是顶层选项；download 由 emit 转给父组件统一处理（避免 file-viewer 内部
         // 与我们的 download() 双触发）。per-archive view perm 已在 FileController.raw() 守住。
@@ -156,8 +161,14 @@ onBeforeUnmount(destroyViewer);
  * 超过 drawer 宽度时（图片原始尺寸、pre 长行、markdown 代码块、
  * 表格不可拆列），body 会出现横向滚动条。这里强制 overflow-x:hidden，
  * 让宽内容由 inner 元素自身消化（图片 max-width:100% / 长行折行）。
+ *
+ * 同样抑制 @file-viewer/renderer-pdf 的内层 .pdf-wrapper（其本身
+ * overflow:auto，fit:'width' 是主修，但加防御 CSS 兜底）。
  */
 :deep(.el-drawer__body) {
+  overflow-x: hidden;
+}
+:deep(.pdf-wrapper) {
   overflow-x: hidden;
 }
 
@@ -223,6 +234,11 @@ onBeforeUnmount(destroyViewer);
   max-width: 100%;
   display: flex;
   flex-direction: column;
+}
+/* PDF 页面（fit:'width' 主修 + max-width 兜底：极端 case 双保险） */
+.viewer-host :deep(.pdfViewer .page) {
+  max-width: 100%;
+  height: auto;
 }
 .viewer-host :deep(.code-area) {
   flex: 1 1 0%;
