@@ -87,12 +87,20 @@ async function load() {
         toolbar: { position: 'bottom-right' },
         // 强制亮色主题：不随 OS / 浏览器 prefers-color-scheme 切换
         theme: 'light',
-        // PDF 初始按宽度自适应。816px 的 Letter 页面 ×1.5 = 1224px，80% 抽屉
-        // 实际可视宽约 1200px（扣 sidebar 220px + padding），会撑出 .pdf-wrapper
-        // 的横向滚动条。改用顶层 fit: 'width'，从根消除横滚。resize: 'initial'
-        // 仅在首次加载 + 用户主动缩放之前生效；用户 zoom 后可用 toolbar 的
-        // 「适应宽度」按钮重新 fit。
-        fit: { mode: 'width', resize: 'initial', padding: 8 },
+        // PDF 抽屉渲染：fit:'width' + resize:'always'（v1.5.1 v5）
+        //
+        // 上一版 resize:'initial' 只在首次加载 fit 一次。结果抽屉打开时
+        // PDF.js 测量到的 .pdf-wrapper 宽 = 父元素 transition 动画过程中的
+        // 旧宽度（≈1920px 全屏），等到抽屉动画完成 fit 已经跑完，
+        // scale 被钉死在 296%，.page 被 inline style="width: 1761px !important"
+        // 撑出 .pdf-wrapper 的横向滚动条。
+        //
+        // 改 resize:'always'：每次 .pdf-wrapper 尺寸变化（抽屉打开动画、
+        // 拖拽改 size、浏览器缩放）都触发 fit 重新测量，永远 fit 当前
+        // 真实可视宽度。minScale/maxScale 防止极端值（用户 222% 后 fit
+        // 不会跳到 50% 或 400%，保留最小 0.5×/最大 3× 的合理区间）。
+        // padding:8 给 PDF 边距留 8px，避免贴边。
+        fit: { mode: 'width', resize: 'always', padding: 8, minScale: 0.5, maxScale: 3 },
         pdf: {
           // fit 优先；initialViewState.scale 与 fit 互斥，留空
         },
@@ -241,18 +249,21 @@ onBeforeUnmount(destroyViewer);
   flex-direction: column;
 }
 /*
- * PDF 页面 fit:'width' 主修 + 6 重保险：
- *  - width:100% 直接覆盖 @file-viewer 写死的 width:816px（Letter @96dpi）
- *  - max-width:100% 防止 box-sizing:content-box 下 padding/border 撑出
- *  - height:auto 维持纵横比（fit 后 page 高度按比例缩放）
- *  - !important 压过 @file-viewer 的 * { box-sizing:content-box } reset
- *  - box-sizing:border-box 让 padding 不撑出父容器
+ * PDF 容器兜底（v1.5.1 v5）
+ *
+ * fit: 'width' resize: 'always' 是主修（动态重新 fit），
+ * 但 PDF.js 在 .page 上 inline style="width: 1761px !important" 是
+ * inline-important，特异性 = 1000 + selector，永远压 selector-important。
+ * 所以这里不再尝试用 selector !important 覆盖 .page —— 改用对
+ * 父容器 .pdfViewer 加 width:100% + overflow-x:hidden 双保险：
+ *   - width:100% !important 让 .pdfViewer 不超过 .pdf-viewport 宽度
+ *   - overflow-x:hidden 兜底裁掉任何极端溢出（页面文字会被裁一部分，
+ *     用户点 toolbar 「适应宽度」按钮能恢复完整视图）
  */
-.viewer-host :deep(.pdfViewer .page) {
+.viewer-host :deep(.pdfViewer) {
   width: 100% !important;
   max-width: 100% !important;
-  height: auto !important;
-  box-sizing: border-box !important;
+  overflow-x: hidden !important;
 }
 /*
  * PDF 工具条（toolbar 包含：上一页/下一页/缩放/页码/旋转），
