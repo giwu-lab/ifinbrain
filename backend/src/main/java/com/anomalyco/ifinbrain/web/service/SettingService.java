@@ -79,17 +79,35 @@ public class SettingService {
             throw new BizException(400, "type must be local or s3");
         }
         save("storage.type", dto.getType());
-        if (dto.getLocal() != null) save("storage.local.root", dto.getLocal().getRoot());
+
+        // 仅当 dto 显式提供字段时才落库（null / 空串视为「保留旧值」）。
+        // 之前 dto.getLocal() / dto.getS3() 永远 != null（DTO 默认 new Local() / new S3()），
+        // 切 type=local 时 dto.getS3().getBucket() == null 会把已存的 bucket 静默清空 → 后续 S3 调用 404。
+        // 与下方 saveParserConfig 对 apiKey / baseUrl 的处理一致：null = 「未提供」= 保留旧值。
+        if (dto.getLocal() != null && notBlank(dto.getLocal().getRoot())) {
+            save("storage.local.root", dto.getLocal().getRoot().trim());
+        }
         if (dto.getS3() != null) {
-            save("storage.s3.endpoint", dto.getS3().getEndpoint());
-            save("storage.s3.region", dto.getS3().getRegion());
-            save("storage.s3.bucket", dto.getS3().getBucket());
+            if (notBlank(dto.getS3().getEndpoint())) save("storage.s3.endpoint", dto.getS3().getEndpoint().trim());
+            if (notBlank(dto.getS3().getRegion()))   save("storage.s3.region",   dto.getS3().getRegion().trim());
+            if (notBlank(dto.getS3().getBucket()))   save("storage.s3.bucket",   dto.getS3().getBucket().trim());
             // 密钥字段：空 / 掩码 都视为「保留旧值」；否则加密后落库
             saveSecretIfPresent("storage.s3.accessKey", dto.getS3().getAccessKey());
             saveSecretIfPresent("storage.s3.secretKey", dto.getS3().getSecretKey());
-            save("storage.s3.pathStyle", String.valueOf(dto.getS3().isPathStyle()));
+            // pathStyle 默认 true：仅当用户显式传 pathStyle=false 才落库。Jackson 反序列化时
+            // Boolean 字段缺失 = 默认值 true（与 DTO 初始化一致），无法区分「未传」与「传 true」。
+            // 因此这里只在 endpoint / region / bucket 至少一个非空时才一并写 pathStyle，避免
+            // 仅切 type 时把已存的 pathStyle=false 静默重置为 true。
+            if (notBlank(dto.getS3().getEndpoint()) || notBlank(dto.getS3().getRegion())
+                    || notBlank(dto.getS3().getBucket())) {
+                save("storage.s3.pathStyle", String.valueOf(dto.getS3().isPathStyle()));
+            }
         }
         storageSelector.reload();
+    }
+
+    private static boolean notBlank(String s) {
+        return s != null && !s.isBlank();
     }
 
     /** 密钥字段写入：空串 / "********" 掩码都视为不变，否则 AES-256-GCM 加密后存 sys_setting */
