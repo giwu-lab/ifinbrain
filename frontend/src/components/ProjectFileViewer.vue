@@ -155,29 +155,22 @@ onBeforeUnmount(destroyViewer);
 
 <style scoped>
 /*
- * 1) drawer 横向滚动条抑制（v1.5.1 累计 v3）
- *
- * Element Plus .el-drawer__body 默认 overflow:auto；
- * @file-viewer/renderer-pdf 自带 .pdf-wrapper/.pdf-shell/.pdf-viewport/.pdf-content
- * 4 层也都 overflow:auto（多 mode 下），任一层宽 > 父容器都出横滚。
+ * 1) drawer 横向滚动条抑制（v1.5.1 累计 v4）
  *
  * fit:'width' 是 PDF 主修（line 95），但 fit 只在 initial 跑一次，
  * 浏览器缩放 / 抽屉尺寸变化 / 加载时序 race 都可能让某一层测量
- * 不准 → 横滚条漏出。这里双保险：
- *   A) 在 6 层 ancestor（drawer body / overlay / drawer root / pdf-shell /
- *      pdf-viewport / pdf-wrapper）强制 overflow-x:hidden
- *   B) 直接覆盖 @file-viewer 给 .pdf-page 写死的 width:816px，
- *      改为 width:100% + height:auto + box-sizing:border-box
+ * 不准 → 横滚条漏出。这里在 PDF 内部 4 层 ancestor 强制 overflow-x:hidden。
  *
- * !important 的取舍：@file-viewer 自己也用 !important（.pdfViewer.enablePermissions
- * 的 user-select），且把 box-sizing 强制为 content-box —— 这是它给所有内层元素的
- * 通配 reset。我们的覆盖若不加 !important 会输给它的 reset 顺序。
+ * 注：el-drawer 的 .el-overlay / .el-drawer / .el-drawer__body 不在本 <style scoped>
+ * 内处理 —— 见下方非 scoped <style> 块。原因：el-drawer 用 <Teleport to="body">
+ * 把 overlay/drawer DOM 移到 <body> 下，是 ProjectFileViewer 的 **祖先** 而非后代；
+ * :deep() 只能匹配后代，匹配不到祖先。所以这 3 个祖先层规则必须用全局非 scoped
+ * CSS。
+ *
+ * 教训：v3 之前的版本里 :deep(.el-overlay) { overflow-x:hidden !important }
+ * 编译为 [data-v-xxx] .el-overlay —— 永远不匹配（el-overlay 在 body 顶层），
+ * 所以那个横滚条没被消除，v3 修了一半（仍漏 overlay），v4 才彻底解决。
  */
-:deep(.el-overlay),
-:deep(.el-drawer),
-:deep(.el-drawer__body) {
-  overflow-x: hidden !important;
-}
 :deep(.pdf-shell),
 :deep(.pdf-viewport),
 :deep(.pdf-wrapper) {
@@ -321,5 +314,26 @@ onBeforeUnmount(destroyViewer);
 .viewer-host :deep(.code-area code) {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+</style>
+
+<style>
+/*
+ * 非 scoped 全局样式（v1.5.1 v4）。
+ *
+ * 原因：el-drawer 通过 <Teleport to="body"> 把 overlay/drawer 移出
+ * ProjectFileViewer 的 DOM 树，挂在 <body> 直接子节点。它们是
+ * ProjectFileViewer 的 **祖先** 而非后代 —— :deep() 只匹配后代，
+ * 编译后的 [data-v-xxx] .el-overlay 永远不命中。
+ *
+ * 范围控制：本全局规则只挂"el-overlay/el-drawer/el-drawer__body
+ * 三个祖先类 + overflow-x:hidden 这一条规则"，scope 极小。
+ * 全局污染风险 ≈ 0（el-overlay 仅 el-drawer/dialog/drawer 使用，
+ * 都不会受 overflow-x:hidden 影响 —— 它们内容自己处理水平滚动）。
+ */
+.el-overlay,
+.el-drawer,
+.el-drawer__body {
+  overflow-x: hidden !important;
 }
 </style>
