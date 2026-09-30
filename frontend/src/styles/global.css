@@ -270,3 +270,126 @@ body { background: var(--color-bg); font-size: var(--font-size-base); -webkit-fo
 .el-table__fixed-right {
   box-shadow: -2px 0 6px rgba(15, 23, 42, 0.06);
 }
+
+/* ============================================================
+ *  Layout variants —— 由 [data-layout] 决定 BasicLayout 子结构
+ *  默认 sidebar（左侧栏 + 顶栏 + 内容）
+ *  - topnav: 顶部横向菜单 + 内容（侧栏收起到顶栏左侧）
+ *  - header-sidebar: 顶栏 + 菜单水平排在顶栏下方（无垂直侧栏）
+ *  - floating-sidebar: 侧栏悬浮（圆角 + 阴影），主区域卡片化
+ * ========================================================== */
+
+/* 1) sidebar (默认) —— 不做额外干预 */
+:root[data-layout="sidebar"] .layout-root { /* default */ }
+
+/* 2) topnav —— 侧栏收成水平菜单（在 TopNavLayout 内实现） */
+:root[data-layout="topnav"] .layout-root { /* layout 子组件控制 */ }
+
+/* 3) header-sidebar —— 同上 */
+:root[data-layout="header-sidebar"] .layout-root { /* layout 子组件控制 */ }
+
+/* 4) floating-sidebar —— 侧栏悬浮 + 内容卡片化 */
+:root[data-layout="floating-sidebar"] .layout-root .aside {
+  border-right: none;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  border-radius: 0 14px 14px 0;
+  margin: 8px 0 8px 8px;
+  background: var(--sidebar-bg-actual, #ffffff);
+}
+:root[data-layout="floating-sidebar"] .layout-root .main {
+  background: transparent;
+}
+:root[data-layout="floating-sidebar"] .layout-root .main-inner {
+  margin: 8px 8px 8px 0;
+  background: var(--color-bg-elev);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  overflow: auto;
+}
+
+/* ============================================================
+ *  暗色模式：el-table fixed 列 / el-card / drawer / popover / empty 等
+ * ========================================================== */
+:root[data-theme="dark"] .el-card { background: var(--color-bg-elev); border-color: var(--color-border); }
+:root[data-theme="dark"] .el-card__header { border-bottom-color: var(--color-border-soft); }
+:root[data-theme="dark"] .el-table {
+  --el-table-bg-color: var(--color-bg-elev);
+  --el-table-tr-bg-color: var(--color-bg-elev);
+  --el-table-header-bg-color: var(--color-bg);
+  --el-table-row-hover-bg-color: var(--color-primary-soft);
+  --el-table-border-color: var(--color-border-soft);
+  --el-table-header-text-color: var(--color-text);
+  --el-table-text-color: var(--color-text);
+}
+:root[data-theme="dark"] .el-table th.el-table__cell {
+  background: var(--color-bg) !important;
+  color: var(--color-text);
+}
+:root[data-theme="dark"] .el-table .el-table__row > td.el-table__cell {
+  border-bottom-color: var(--color-border-soft) !important;
+}
+:root[data-theme="dark"] .el-table__fixed-right,
+:root[data-theme="dark"] .el-table__fixed-right .el-table__fixed-body-wrapper,
+:root[data-theme="dark"] .el-table__fixed-right .el-table__fixed-header-wrapper {
+  background: var(--color-bg-elev) !important;
+}
+:root[data-theme="dark"] .el-table.el-table .el-table__cell.el-table-fixed-column--right,
+:root[data-theme="dark"] .el-table.el-table td.el-table__fixed-right-patch {
+  background: var(--color-bg-elev) !important;
+}
+:root[data-theme="dark"] .el-table.el-table thead .el-table__cell.el-table-fixed-column--right {
+  background: var(--color-bg) !important;
+}
+:root[data-theme="dark"] .el-table.el-table tr:hover > .el-table__cell.el-table-fixed-column--right {
+  background: var(--color-primary-soft) !important;
+}
+:root[data-theme="dark"] .el-table.el-table tr.current-row > .el-table__cell.el-table-fixed-column--right {
+  background: var(--color-bg-elev) !important;
+}
+
+:root[data-theme="dark"] .el-input__wrapper,
+:root[data-theme="dark"] .el-textarea__inner,
+:root[data-theme="dark"] .el-select__wrapper {
+  background-color: var(--color-bg-elev);
+  box-shadow: 0 0 0 1px var(--color-border) inset !important;
+}
+:root[data-theme="dark"] .el-input__inner,
+:root[data-theme="dark"] .el-textarea__inner { color: var(--color-text); }
+
+:root[data-theme="dark"] .el-drawer { --el-drawer-bg-color: var(--color-bg-elev); }
+:root[data-theme="dark"] .el-popper,
+:root[data-theme="dark"] .el-popover,
+:root[data-theme="dark"] .el-dropdown-menu {
+  background: var(--color-bg-elev);
+  border-color: var(--color-border);
+}
+:root[data-theme="dark"] .el-empty__description p { color: var(--color-text-secondary); }
+:root[data-theme="dark"] .el-tag { border-color: var(--color-border); }
+:root[data-theme="dark"] .el-pagination .el-pager li,
+:root[data-theme="dark"] .el-pagination button { color: var(--color-text-secondary); background: transparent !important; }
+
+/* 暗色下 brand logo 阴影调亮 */
+:root[data-theme="dark"] .logo-mark { box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
+
+/* 暗色下：dir / menu 顶栏文本色 */
+:root[data-theme="dark"] .side-menu :deep(.el-menu-item),
+:root[data-theme="dark"] .side-menu :deep(.el-sub-menu__title) {
+  color: var(--color-text-sidebar) !important;
+}
+:root[data-theme="dark"] .side-menu :deep(.el-menu-item:hover),
+:root[data-theme="dark"] .side-menu :deep(.el-sub-menu__title:hover) {
+  color: var(--color-primary) !important;
+}
+:root[data-theme="dark"] .header {
+  background: var(--header-bg, var(--color-bg-elev));
+  border-bottom-color: var(--color-border-soft);
+}
+:root[data-theme="dark"] .header-right .pill { background: var(--color-bg); border-color: var(--color-border); }
+:root[data-theme="dark"] .user-info-name { color: var(--color-text); }
+:root[data-theme="dark"] .aside { border-right-color: var(--color-border); }
+:root[data-theme="dark"] .aside-footer { border-top-color: var(--color-border-soft); background: rgba(0,0,0,0.2); }
+:root[data-theme="dark"] .brand { border-bottom-color: var(--color-border-soft); }
+:root[data-theme="dark"] .brand-name { color: var(--color-text); }
+
+/* 暗色下 page-header 吸顶背景 */
+:root[data-theme="dark"] .{domain}-page .page-header { background: var(--color-bg); }
