@@ -40,7 +40,7 @@
 
       <el-dropdown trigger="click" @command="onLang">
         <span class="pill">
-          <el-icon><Position /></el-icon>
+          <IconGlobe :size="14" />
           <span class="pill-text">{{ currentLangLabel }}</span>
         </span>
         <template #dropdown>
@@ -106,10 +106,11 @@ import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
-  Expand, Fold, Position, CaretBottom, FullScreen, Aim, Bell,
+  Expand, Fold, CaretBottom, FullScreen, Aim, Bell,
   QuestionFilled
 } from '@element-plus/icons-vue';
 import IconPalette from '@/components/icons/IconPalette.vue';
+import IconGlobe from '@/components/icons/IconGlobe.vue';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
