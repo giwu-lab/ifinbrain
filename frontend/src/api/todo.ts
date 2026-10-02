@@ -34,6 +34,13 @@ export interface TodoTask {
   tagNames?: string[];
 }
 
+/** 后端 /dashboard 返回的就是 List<TodoDashboardItem>，不是 wrapper。 */
+export interface TodoDashboardResponse {
+  items: TodoDashboardItem[];
+  /** 当前用户 PENDING 任务真实总数（与 items.length 无关，徽章用此值） */
+  total: number;
+}
+
 export interface TodoDashboardItem {
   id: number;
   title: string;

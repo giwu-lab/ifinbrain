@@ -214,12 +214,12 @@ export default {
 
   dashboard: {
     welcomeDesc: '使用左侧导航管理用户、角色、菜单与存储设置。',
-    flowTodoCount: '待办任务',
-    flowTodoHint: '点击查看 →',
     myTasksCount: '我的任务',
     myTasksHint: '点击查看 →',
+    flowTodoCount: '待办任务',
+    flowTodoHint: '点击查看 →',
+    rolesCount: '角色数',
     menusCount: '菜单数',
-    storageType: '存储类型',
     greetingMorning: '早上好',
     greetingNoon: '中午好',
     greetingAfternoon: '下午好',

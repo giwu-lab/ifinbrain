@@ -13,10 +13,35 @@
       </div>
     </div>
 
-    <!-- 4 个统计卡片 -->
+    <!-- 4 个快捷入口卡（点击跳转） -->
     <el-row :gutter="20" class="stat-row">
+      <!-- 我的任务（todo:task:view 才有） -->
+      <el-col v-if="auth.hasPerm('todo:task:view')" :xs="12" :sm="12" :md="6">
+        <div class="stat-card stat-primary clickable fade-in-up" style="animation-delay: 0.05s" @click="goTodo">
+          <div class="stat-icon"><el-icon><List /></el-icon></div>
+          <div class="stat-body">
+            <div class="stat-label">{{ t('dashboard.myTasksCount') }}</div>
+            <div class="stat-value">{{ myTasksCount }}</div>
+            <div class="stat-foot muted">{{ t('dashboard.myTasksHint') }}</div>
+          </div>
+        </div>
+      </el-col>
+
+      <!-- 待办审批（design:flow:view 才有） -->
+      <el-col v-if="auth.hasPerm('design:flow:view')" :xs="12" :sm="12" :md="6">
+        <div class="stat-card stat-info clickable fade-in-up" style="animation-delay: 0.10s" @click="goFlowRuntime">
+          <div class="stat-icon"><el-icon><Promotion /></el-icon></div>
+          <div class="stat-body">
+            <div class="stat-label">{{ t('dashboard.flowTodoCount') }}</div>
+            <div class="stat-value">{{ flowTodoCount }}</div>
+            <div class="stat-foot muted">{{ t('dashboard.flowTodoHint') }}</div>
+          </div>
+        </div>
+      </el-col>
+
+      <!-- 角色数（恒有） -->
       <el-col :xs="12" :sm="12" :md="6">
-        <div class="stat-card stat-primary fade-in-up" style="animation-delay: 0.05s">
+        <div class="stat-card stat-success clickable fade-in-up" style="animation-delay: 0.15s" @click="goRoles">
           <div class="stat-icon"><el-icon><UserFilled /></el-icon></div>
           <div class="stat-body">
             <div class="stat-label">{{ t('dashboard.rolesCount') }}</div>
@@ -27,18 +52,10 @@
           </div>
         </div>
       </el-col>
+
+      <!-- 菜单数（恒有） -->
       <el-col :xs="12" :sm="12" :md="6">
-        <div class="stat-card stat-success fade-in-up" style="animation-delay: 0.10s">
-          <div class="stat-icon"><el-icon><Key /></el-icon></div>
-          <div class="stat-body">
-            <div class="stat-label">{{ t('dashboard.permissionsCount') }}</div>
-            <div class="stat-value">{{ auth.permissions.length }}</div>
-            <div class="stat-foot muted">{{ t('dashboard.permissionsCount') }} · {{ auth.user?.username }}</div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :xs="12" :sm="12" :md="6">
-        <div class="stat-card stat-warning fade-in-up" style="animation-delay: 0.15s">
+        <div class="stat-card stat-warning clickable fade-in-up" style="animation-delay: 0.20s" @click="goMenus">
           <div class="stat-icon"><el-icon><Menu /></el-icon></div>
           <div class="stat-body">
             <div class="stat-label">{{ t('dashboard.menusCount') }}</div>
@@ -46,16 +63,6 @@
             <div class="stat-foot muted">
               <span v-for="m in auth.menus.slice(0, 2)" :key="m.id" class="foot-item">{{ menuName(m) }}</span>
             </div>
-          </div>
-        </div>
-      </el-col>
-      <el-col v-if="auth.hasPerm('setting:view')" :xs="12" :sm="12" :md="6">
-        <div class="stat-card stat-info fade-in-up" style="animation-delay: 0.20s">
-          <div class="stat-icon"><el-icon><Folder /></el-icon></div>
-          <div class="stat-body">
-            <div class="stat-label">{{ t('dashboard.storageType') }}</div>
-            <div class="stat-value">{{ storageLabel }}</div>
-            <div class="stat-foot muted">{{ storageHint }}</div>
           </div>
         </div>
       </el-col>
@@ -99,19 +106,23 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import {
-  UserFilled, Key, Menu, Folder,
+  List, Menu, Promotion, UserFilled,
   UploadFilled, Document, User, Setting
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
-import { settingApi } from '@/api/setting';
+import { todoApi } from '@/api/todo';
+import { flowTaskApi } from '@/api/flowTask';
 import TodoWidget from './components/TodoWidget.vue';
 
 const { t } = useI18n();
 const router = useRouter();
 const auth = useAuthStore();
 
-const storageLabel = ref('—');
-const storageHint = ref('');
+/** 我的任务数（个人 PENDING todo）—— 取 dashboard 接口的 items.length。
+ *  注：dashboard 接口 max limit=50，0~50 范围内准确；>50 时显示 50（点击跳转看全部） */
+const myTasksCount = ref(0);
+/** 待审批任务数（flow 待办） */
+const flowTodoCount = ref(0);
 
 const greeting = computed(() => {
   const h = new Date().getHours();
@@ -131,22 +142,33 @@ function menuName(m: { name: string; component?: string }) {
   return m.name;
 }
 
+/* 快捷入口：dashboard 4 卡点击 → 跳转对应页面 */
+function goTodo() { router.push('/todo'); }
+function goFlowRuntime() { router.push('/design/flow-runtime'); }
+function goRoles() { router.push('/system/role'); }
+function goMenus() { router.push('/system/menu'); }
+
+/* 底部快捷入口 */
 function goUpload() { router.push('/invoice/upload'); }
 function goRecords() { router.push('/invoice/list'); }
 function goUsers() { router.push('/system/user'); }
 function goStorage() { router.push('/system/storage'); }
 
 onMounted(async () => {
-  // storage 配置是 admin-only 资源（setting:view）—— 没权限的用户连卡片都不渲染，
-  // 避免登录后立刻触发 403 toast
-  if (!auth.hasPerm('setting:view')) return;
-  try {
-    const c = await settingApi.storage();
-    storageLabel.value = c.type.toUpperCase();
-    storageHint.value = c.type === 'local'
-      ? (c.local?.root || '')
-      : (c.s3?.bucket ? `${c.s3.endpoint}/${c.s3.bucket}` : c.s3?.endpoint || '');
-  } catch {}
+  /* 两个 count 都是轻量 endpoint，并行拉；权限缺失或失败静默（避免登录后立即 403 toast）。
+   *  - todoApi.dashboard(50) → 拉最多 50 条 PENDING，rows.length 作 count
+   *    （>50 时显示 50，点卡片跳 /todo 看全部；后续可加专用 /count 端点）
+   *  - flowTaskApi.pendingCount() → 真正的 count endpoint
+   */
+  const tasks = [
+    auth.hasPerm('todo:task:view')
+      ? todoApi.dashboard(50).then((rows) => { myTasksCount.value = rows.length; }).catch(() => {})
+      : Promise.resolve(),
+    auth.hasPerm('design:flow:view')
+      ? flowTaskApi.pendingCount().then((n) => { flowTodoCount.value = n; }).catch(() => {})
+      : Promise.resolve(),
+  ];
+  await Promise.all(tasks);
 });
 </script>
 
@@ -225,6 +247,12 @@ onMounted(async () => {
   border: 1px solid var(--color-border-soft);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: default;
+}
+.stat-card.clickable { cursor: pointer; }
+.stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.18);
+  border-color: var(--color-primary-soft);
 }
 .stat-card:hover {
   transform: translateY(-2px);

@@ -208,12 +208,12 @@ header: {
 
   dashboard: {
     welcomeDesc: 'Use the left navigation to manage users, roles, menus and storage.',
-    flowTodoCount: 'Pending Tasks',
-    flowTodoHint: 'View Todos →',
     myTasksCount: 'My Tasks',
     myTasksHint: 'View Tasks →',
+    flowTodoCount: 'Pending Approvals',
+    flowTodoHint: 'Open Runtime →',
+    rolesCount: 'Roles',
     menusCount: 'Menus',
-    storageType: 'Storage',
     greetingMorning: 'Good morning',
     greetingNoon: 'Good noon',
     greetingAfternoon: 'Good afternoon',
