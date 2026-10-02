@@ -972,8 +972,8 @@ onMounted(async () => {
 .att-uploader { width: 100%; }
 :deep(.att-uploader .el-upload) { width: 100%; display: block; }
 :deep(.att-uploader .el-upload-dragger) {
-  background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 100%);
-  border: 2px dashed #c7d2fe;
+  background: linear-gradient(135deg, var(--color-primary-softer) 0%, var(--color-bg-elev) 100%);
+  border: 2px dashed var(--color-border-strong);
   border-radius: 12px;
   padding: 18px 24px;
   transition: all 0.2s ease;

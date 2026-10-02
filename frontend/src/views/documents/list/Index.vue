@@ -718,8 +718,8 @@ onMounted(() => loadBySlug(slug.value));
 }
 :deep(.upload-area .el-upload) { width: 100%; display: block; }
 :deep(.upload-area .el-upload-dragger) {
-  background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 100%);
-  border: 2px dashed #c7d2fe;
+  background: linear-gradient(135deg, var(--color-primary-softer) 0%, var(--color-bg-elev) 100%);
+  border: 2px dashed var(--color-border-strong);
   border-radius: 14px;
   padding: 16px 24px;
   transition: all 0.2s ease;

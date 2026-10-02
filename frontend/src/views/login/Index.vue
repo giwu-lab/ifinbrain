@@ -383,7 +383,7 @@ async function submit() {
   color: var(--color-primary);
 }
 .hint code {
-  background: white;
+  background: var(--color-bg-elev);
   padding: 1px 6px;
   border-radius: 4px;
   font-family: 'SF Mono', Menlo, monospace;
