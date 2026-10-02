@@ -24,8 +24,11 @@
   /* 中性色 */
   --color-bg:             #f5f7fb;
   --color-bg-elev:        #ffffff;
+  --color-bg-popover:     #ffffff;
+  --color-bg-overlay:     #ffffff;
   --color-border:         #e5e7eb;
   --color-border-soft:    #f1f3f7;
+  --color-border-strong:  #d1d5db;
   --color-text:           #111827;
   --color-text-secondary: #6b7280;
   --color-text-muted:     #9ca3af;
@@ -47,45 +50,91 @@
 }
 
 /* ============================================================
- *  暗色模式
- *  - 不复写 --color-primary 等主题色；只对中性 / 背景 / 文本 token 做暗化
- *  - dark badge/fixed 列见 global.css 末尾的 dark 适配
+ *  暗色模式 —— 深蓝灰 (Linear / GitHub Dark 风格)
+ *  - 5 层 surface 递进：bg < elev < popover < overlay < scrim
+ *  - 边框用半透明白（精致）
+ *  - 主色提亮一档（暗色下 #2563eb 太重 → #60a5fa）
+ *  - alert / tag 等用 soft tinted bgs
  * ========================================================== */
 :root[data-theme="dark"] {
-  --color-bg:             #0b1220;
-  --color-bg-elev:        #111827;
-  --color-border:         #1f2937;
-  --color-border-soft:    #1a2333;
-  --color-text:           #e5e7eb;
-  --color-text-secondary: #9ca3af;
-  --color-text-muted:     #6b7280;
+  /* 色板：基础 —— 提亮一档 */
+  --color-primary:        #60a5fa;
+  --color-primary-hover:  #93c5fd;
+  --color-primary-soft:   rgba(96, 165, 250, 0.16);
+  --color-primary-softer: rgba(96, 165, 250, 0.06);
+
+  /* 中性色 —— 深蓝灰 5 层 */
+  --color-bg:             #0b1220;            /* 页面背景（深蓝）*/
+  --color-bg-elev:        #111827;            /* 卡片 / 列表 */
+  --color-bg-popover:     #1a2333;            /* 弹层 */
+  --color-bg-overlay:     #1f2937;            /* 抽屉/对话框 */
+
+  /* 边框 —— 半透明白（精致）*/
+  --color-border:         rgba(255, 255, 255, 0.10);
+  --color-border-soft:    rgba(255, 255, 255, 0.05);
+  --color-border-strong:  rgba(255, 255, 255, 0.16);
+
+  /* 文字 3 层 */
+  --color-text:           #f1f5f9;            /* 主文本 */
+  --color-text-secondary: #cbd5e1;           /* 次要 */
+  --color-text-muted:     #94a3b8;           /* 弱化 */
   --color-text-sidebar:   #e5e7eb;
 
-  --color-primary-soft:   rgba(99, 102, 241, 0.20);
-  --color-primary-softer: rgba(99, 102, 241, 0.08);
-  --color-success-soft:   rgba(16, 185, 129, 0.18);
-  --color-warning-soft:   rgba(245, 158, 11, 0.20);
-  --color-danger-soft:    rgba(239, 68, 68, 0.18);
-  --color-info-soft:      rgba(99, 102, 241, 0.20);
+  /* status —— 暗色下柔和的 tinted bgs */
+  --color-success:        #34d399;
+  --color-success-soft:   rgba(52, 211, 153, 0.15);
+  --color-warning:        #fbbf24;
+  --color-warning-soft:   rgba(251, 191, 36, 0.16);
+  --color-danger:         #f87171;
+  --color-danger-soft:    rgba(248, 113, 113, 0.16);
+  --color-info:           #818cf8;
+  --color-info-soft:      rgba(129, 140, 248, 0.16);
 
-  /* 默认暗色下主题主色更亮一档（Element Plus 暗色模板用 #409eff） */
-  --el-color-primary: #6366f1;
+  /* 顶栏 / 菜单 —— smart dark switch 时也会写 */
+  --header-bg:            #1a1f2e;
+  --sidebar-bg-actual:    #0f172a;
 
-  /* Element Plus 暗色背景 */
-  --el-bg-color: #111827;
+  /* Element Plus 派生 —— 大块覆盖让 EP 自己选 */
+  --el-color-primary: #60a5fa;
+  --el-color-primary-light-3: #60a5fa;
+  --el-color-primary-light-5: rgba(96, 165, 250, 0.5);
+  --el-color-primary-light-7: rgba(96, 165, 250, 0.25);
+  --el-color-primary-light-8: rgba(96, 165, 250, 0.14);
+  --el-color-primary-light-9: rgba(96, 165, 250, 0.06);
+  --el-color-primary-dark-2: #3b82f6;
+
+  --el-color-success: #34d399;
+  --el-color-warning: #fbbf24;
+  --el-color-danger: #f87171;
+  --el-color-info: #818cf8;
+
+  --el-bg-color: #1a2333;
   --el-bg-color-page: #0b1220;
   --el-bg-color-overlay: #1f2937;
-  --el-text-color-primary: #e5e7eb;
+  --el-text-color-primary: #f1f5f9;
   --el-text-color-regular: #e5e7eb;
-  --el-text-color-secondary: #9ca3af;
-  --el-text-color-placeholder: #6b7280;
-  --el-border-color: #1f2937;
-  --el-border-color-light: #1a2333;
-  --el-border-color-lighter: #1a2333;
-  --el-border-color-extra-light: #111827;
-  --el-fill-color: #1f2937;
-  --el-fill-color-light: #1a2333;
-  --el-fill-color-lighter: #111827;
-  --el-fill-color-blank: #111827;
+  --el-text-color-secondary: #cbd5e1;
+  --el-text-color-placeholder: #94a3b8;
+  --el-text-color-disabled: #64748b;
+
+  --el-border-color: rgba(255, 255, 255, 0.10);
+  --el-border-color-light: rgba(255, 255, 255, 0.06);
+  --el-border-color-lighter: rgba(255, 255, 255, 0.04);
+  --el-border-color-extra-light: rgba(255, 255, 255, 0.03);
+  --el-border-color-dark: rgba(255, 255, 255, 0.16);
+  --el-border-color-darker: rgba(255, 255, 255, 0.20);
+
+  --el-fill-color: rgba(255, 255, 255, 0.08);
+  --el-fill-color-light: rgba(255, 255, 255, 0.04);
+  --el-fill-color-lighter: rgba(255, 255, 255, 0.02);
+  --el-fill-color-blank: transparent;
+  --el-fill-color-dark: rgba(255, 255, 255, 0.12);
+
   --el-mask-color: rgba(0, 0, 0, 0.7);
+  --el-box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --el-box-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --el-box-shadow-lighter: 0 2px 6px rgba(0, 0, 0, 0.18);
+
+  /* 弹层（popover / dropdown / tooltip）—— 统一 elev-2 */
+  --el-bg-color-overlay: #1a2333;
 }

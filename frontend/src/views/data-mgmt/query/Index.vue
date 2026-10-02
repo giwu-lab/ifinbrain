@@ -369,7 +369,7 @@ onMounted(loadList);
 .qy-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--color-bg-elev);
   overflow: hidden;
 }
 

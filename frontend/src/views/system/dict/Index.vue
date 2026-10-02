@@ -675,13 +675,13 @@ watch(() => types.value.length, (n) => {
   grid-template-columns: 360px 1fr;
   gap: 12px;
   height: 100%;
-  background: #fff;
+  background: var(--color-bg-elev);
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
 }
-.dict-types { border-right: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; background: #fff; }
-.dict-items { padding: 16px; min-width: 0; background: #fff; }
+.dict-types { border-right: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; background: var(--color-bg-elev); }
+.dict-items { padding: 16px; min-width: 0; background: var(--color-bg-elev); }
 
 .pane-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; }
 .pane-title { font-weight: 600; font-size: 14px; color: var(--color-text); }

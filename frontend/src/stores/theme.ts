@@ -74,6 +74,32 @@ function cloneDefault(): ThemeSettings {
   return { ...DEFAULT_SETTINGS };
 }
 
+/** Smart dark switch：用户在亮色下未自定义 headerColor/menuColor 时，切到暗色自动用深色默认 */
+const DARK_DEFAULTS = {
+  headerColor: '#1a1f2e',
+  menuColor: '#0f172a',
+  primaryColor: '#60a5fa',
+} as const;
+
+const LIGHT_DEFAULTS = {
+  headerColor: '#ffffff',
+  menuColor: '#ffffff',
+  primaryColor: '#2563eb',
+} as const;
+
+/** 颜色是否「看起来是白色」 —— 用于判断用户是否自定义过 */
+function looksLightish(c: string): boolean {
+  const { r, g, b, a } = parseColor(c);
+  if (a < 0.9) return false;
+  return (r + g + b) / 3 > 230;
+}
+
+/** 颜色是否「看起来是深色默认」—— 用于反向还原 */
+function looksDarkish(c: string): boolean {
+  const { r, g, b } = parseColor(c);
+  return (r + g + b) / 3 < 60;
+}
+
 function saveToStorage(s: ThemeSettings) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
 }
@@ -193,14 +219,40 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   async function update(patch: Partial<ThemeSettings>) {
-    settings.value = { ...settings.value, ...patch };
+    let next = { ...settings.value, ...patch };
+
+    /* smart dark switch — 切到 dark：
+     *  若 headerColor / menuColor 当前是白色默认 → 自动用深色默认；
+     *  若 primaryColor 是 #2563eb（亮色默认）→ 提亮为 #60a5fa。
+     * 切到 light 不反向还原：用户可能手动调过暗色配置，留给用户主动重置。 */
+    if (patch.mode === 'dark' && settings.value.mode !== 'dark') {
+      if (looksLightish(next.headerColor)) next.headerColor = DARK_DEFAULTS.headerColor;
+      if (looksLightish(next.menuColor))   next.menuColor   = DARK_DEFAULTS.menuColor;
+      if (next.primaryColor.toLowerCase() === LIGHT_DEFAULTS.primaryColor) {
+        next.primaryColor = DARK_DEFAULTS.primaryColor;
+      }
+    }
+    /* 反向：切回 light 时，若 header/menu 仍是「深色默认」 → 自动还原白色默认 */
+    if (patch.mode === 'light' && settings.value.mode === 'dark') {
+      if (looksDarkish(next.headerColor)) next.headerColor = LIGHT_DEFAULTS.headerColor;
+      if (looksDarkish(next.menuColor))   next.menuColor   = LIGHT_DEFAULTS.menuColor;
+    }
+
+    settings.value = next;
     saveToStorage(settings.value);
     applyToRoot(settings.value);
     scheduleSync();
   }
 
   async function reset() {
-    settings.value = cloneDefault();
+    /* 根据当前 mode 选择合适的默认色组，避免用户在暗色下重置后变成白色 */
+    const isDark = effectiveMode(settings.value) === 'dark';
+    settings.value = {
+      ...cloneDefault(),
+      headerColor: isDark ? DARK_DEFAULTS.headerColor : LIGHT_DEFAULTS.headerColor,
+      menuColor:   isDark ? DARK_DEFAULTS.menuColor   : LIGHT_DEFAULTS.menuColor,
+      primaryColor: isDark ? DARK_DEFAULTS.primaryColor : LIGHT_DEFAULTS.primaryColor,
+    };
     saveToStorage(settings.value);
     applyToRoot(settings.value);
     try { await preferenceApi.reset(); } catch { /* ignore */ }

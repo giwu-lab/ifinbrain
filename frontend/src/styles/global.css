@@ -50,13 +50,13 @@
   --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.05);
 
   /* 间距 */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-8: 16px;
 
   /* 字体 */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -93,14 +93,58 @@ html, body {
   min-width: 0;
 }
 /*
+ * 抽屉打开时无底部横滚条（v1.5.2 累计 v7）
+ *
+ * body/html 已被 §7.5 锁住；但 el-main / .main 在 4 个 layout 里都写死
+ * `overflow: auto`，抽屉渲染后内部元素（PDF.js .page canvas 撑宽 / el-table
+ * 多列 / 顶级 tab 溢出等）任一项都让 .main.scrollWidth > clientWidth，
+ * .main 自身就出现底部横滚条。视觉上"在抽屉底部"，但其实是 .main 的滚动条。
+ *
+ * 修法：.main 强制 overflow-x: clip，保留 overflow-y: auto（不影响页面垂直滚动）。
+ *   - el-table 内部 .el-table__body-wrapper 自己 overflow-x: auto，独立滚动不受影响
+ *   - 用户在 .main 之外仍能上下滚动；只是不能在 .main 整体水平滚动
+ */
+.el-main, .main {
+  overflow-x: clip !important;
+  overflow-y: auto;
+  max-width: 100%;
+}
+/*
  * Element Plus z-index —— 弹层（el-select / el-cascader / el-date-picker / el-popover / el-tooltip）
- * 必须永远高于 §7.4 的 .el-overlay mask（9999）。默认 --el-index-top:1000 → 弹层 1001 被盖住，
- * 表现为 dialog 内 el-select 下拉"开了但空白"。
- * 提升 --el-index-top 到 10000，弹层（10001）稳在 overlay 之上；不影响其它 stacking。
+ * 必须永远高于 §7.4 的 .el-overlay mask（9999）。两层都得盖：
+ *   - .el-popper（外层包裹）默认 z-index: 2000  → 被 9999 盖住 → 整棵子树 hidden
+ *   - .el-select-dropdown（内层）= calc(--el-index-top + 1)  → 也得 ≥ 9999
+ *
+ * 修法：把 --el-index-top 顶到 10000，并强制 .el-popper 用同一基线。
+ * 弹层（10001 / popper 10000）稳在 overlay 之上；不影响其它 stacking。
  */
 :root {
   --el-index-top: 10000;
   --el-index-popper: 10100;
+}
+.el-popper {
+  z-index: var(--el-index-top) !important;
+}
+
+/*
+ * 全屏消息（ElMessage / ElMessageBox / ElNotification）z-index 必须高于
+ * .el-overlay mask（9999）。否则弹窗打开时触发的 error toast / 二次确认
+ * 弹窗会被 mask 盖住，用户感知不到。
+ *
+ * 修复背景：AGENTS.md §7.4 把 .el-overlay 顶到 9999（修复 mask 视觉异常）；
+ * Element Plus 自身 useZIndex() 默认 base 2000，nextZIndex() 给 message 类组件
+ * 分配的 z-index 在 2001~2003 区间，全部 < 9999 → 被 mask 遮蔽。
+ *
+ * 与上面 .el-popper 同档（10000）即可，无需更高。
+ * - .el-message / .el-notification：直接挂 body 的 fixed 元素，无 overlay 包裹。
+ * - .el-message-box：内部用 <el-overlay>，但外层 wrapper 设 10000 后会创建
+ *   新的 stacking context，子 .el-overlay 的 z-index 9999 在该 context 内
+ *   渲染，整棵子树在全局仍处于 10000 这一档 > 原 dialog overlay 的 9999。
+ */
+.el-message,
+.el-message-box,
+.el-notification {
+  z-index: 10000 !important;
 }
 html, body { max-width: 100vw; }
 /* webkit 兜底：某些浏览器即便 overflow 是 clip 也会画默认 scrollbar */
@@ -233,9 +277,11 @@ body {
   font-weight: 500;
 }
 
-.card-table {
+.card-table,
+.el-card.card-table {
   background: var(--color-bg-elev);
   padding: var(--space-5);
+  --el-card-padding: 10px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border-soft);
@@ -310,12 +356,26 @@ body {
 }
 
 /* ============== 动画 ============== */
+/*
+ * fade-in-up —— v1.5.2 关键修复：
+ *   animation-fill-mode 用 `backwards` 而非 `both`。
+ *   之前 `both` 让 `to` 状态（transform: translateY(0)）永久驻留，
+ *   computed transform 变成 identity matrix `matrix(1,0,0,1,0,0)`。
+ *   即使 transform 数值上是 identity，非 none 的 transform 也会让元素
+ *   成为 fixed 子代的 containing block → 页面里所有 el-drawer / el-dialog
+ *   的 overlay（position: fixed）从相对 viewport 变成相对 .page-container，
+ *   偏移 sidebar 宽 240px → 抽屉左边 432 / 右视口 1200，内容被右视口裁掉。
+ *
+ *   `backwards` 只在 delay 期间保持 from 状态；动画跑完后 transform 归零，
+ *   computed transform = none，fixed 后代正确相对 viewport 定位。
+ *   opacity 默认 1，动画后默认 1，无视觉差异。
+ */
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in-up {
-  animation: fade-in-up 0.28s ease-out both;
+  animation: fade-in-up 0.28s ease-out backwards;
 }
 
 @keyframes shimmer {
@@ -465,13 +525,176 @@ body {
 :root[data-theme="dark"] .el-popper,
 :root[data-theme="dark"] .el-popover,
 :root[data-theme="dark"] .el-dropdown-menu {
-  background: var(--color-bg-elev);
+  background: var(--color-bg-popover);
+  border-color: var(--color-border);
+}
+:root[data-theme="dark"] .el-popper.is-light,
+:root[data-theme="dark"] .el-popover.is-light {
+  background: var(--color-bg-popover);
   border-color: var(--color-border);
 }
 :root[data-theme="dark"] .el-empty__description p { color: var(--color-text-secondary); }
 :root[data-theme="dark"] .el-tag { border-color: var(--color-border); }
 :root[data-theme="dark"] .el-pagination .el-pager li,
 :root[data-theme="dark"] .el-pagination button { color: var(--color-text-secondary); background: transparent !important; }
+:root[data-theme="dark"] .el-pagination .el-pager li.is-active { color: var(--color-primary); }
+
+/* === el-button 默认 / text 变体（暗色下边框/文字需重设）=== */
+:root[data-theme="dark"] .el-button {
+  --el-button-bg-color: var(--color-bg-elev);
+  --el-button-border-color: var(--color-border-strong);
+  --el-button-text-color: var(--color-text);
+  --el-button-hover-bg-color: var(--color-bg-popover);
+  --el-button-hover-text-color: var(--color-primary);
+  --el-button-hover-border-color: var(--color-primary);
+  --el-button-disabled-bg-color: var(--color-bg-elev);
+  --el-button-disabled-text-color: var(--color-text-muted);
+  --el-button-disabled-border-color: var(--color-border-soft);
+}
+:root[data-theme="dark"] .el-button.is-text,
+:root[data-theme="dark"] .el-button--text {
+  --el-button-bg-color: transparent;
+  --el-button-text-color: var(--color-text-secondary);
+  --el-button-hover-bg-color: var(--color-primary-softer);
+  --el-button-hover-text-color: var(--color-primary);
+  --el-button-border-color: transparent;
+}
+
+/* === el-form-item label / 提示 === */
+:root[data-theme="dark"] .el-form-item__label { color: var(--color-text-secondary); }
+:root[data-theme="dark"] .el-form-item__error { color: var(--color-danger); }
+
+/* === el-divider === */
+:root[data-theme="dark"] .el-divider__text { background-color: var(--color-bg); color: var(--color-text-secondary); }
+:root[data-theme="dark"] .el-divider { --el-border-color: var(--color-border-soft); }
+
+/* === el-tabs === */
+:root[data-theme="dark"] .el-tabs__header { margin-bottom: 0; }
+:root[data-theme="dark"] .el-tabs--card > .el-tabs__header { border-bottom-color: var(--color-border-soft); }
+:root[data-theme="dark"] .el-tabs--card > .el-tabs__header .el-tabs__item.is-active { background: var(--color-bg-elev); border-color: var(--color-border); color: var(--color-primary); }
+:root[data-theme="dark"] .el-tabs__item { color: var(--color-text-secondary); }
+:root[data-theme="dark"] .el-tabs__item:hover { color: var(--color-text); }
+:root[data-theme="dark"] .el-tabs__item.is-active { color: var(--color-primary); }
+:root[data-theme="dark"] .el-tabs__active-bar { background-color: var(--color-primary); }
+:root[data-theme="dark"] .el-tabs__nav-wrap::after { background-color: var(--color-border-soft); }
+
+/* === el-upload dragger（最关键：暗色下不出现亮色大块）===
+ * Element Plus 上传组件的 .el-upload-dragger 默认硬编码了 #f5f7fa bg，
+ * 暗色模式下必须覆写为 elev + soft border。 */
+:root[data-theme="dark"] .el-upload-dragger {
+  background: var(--color-bg-elev) !important;
+  border: 1px dashed var(--color-border-strong) !important;
+  color: var(--color-text-secondary);
+}
+:root[data-theme="dark"] .el-upload-dragger:hover {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-softer) !important;
+}
+:root[data-theme="dark"] .el-upload-dragger.is-dragover {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-softer) !important;
+}
+:root[data-theme="dark"] .el-upload-list__item {
+  background: var(--color-bg-elev);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+:root[data-theme="dark"] .el-upload-list__item .el-icon--close { color: var(--color-text-muted); }
+
+/* === el-date-editor / el-date-picker === */
+:root[data-theme="dark"] .el-date-editor.el-input { background-color: var(--color-bg-elev); }
+:root[data-theme="dark"] .el-date-table td { color: var(--color-text-secondary); }
+:root[data-theme="dark"] .el-date-table td.available:hover { background-color: var(--color-primary-softer); }
+:root[data-theme="dark"] .el-date-table td.current:not(.disabled) span { background-color: var(--color-primary); color: white; }
+:root[data-theme="dark"] .el-date-picker__header-label { color: var(--color-text); }
+
+/* === el-checkbox / el-radio === */
+:root[data-theme="dark"] .el-checkbox__label,
+:root[data-theme="dark"] .el-radio__label { color: var(--color-text); }
+:root[data-theme="dark"] .el-checkbox__input.is-disabled .el-checkbox__label,
+:root[data-theme="dark"] .el-radio__input.is-disabled .el-radio__label { color: var(--color-text-muted); }
+
+/* === el-tree === */
+:root[data-theme="dark"] .el-tree { background: transparent; color: var(--color-text); }
+:root[data-theme="dark"] .el-tree-node__content:hover { background-color: var(--color-primary-softer); }
+:root[data-theme="dark"] .el-tree-node.is-current > .el-tree-node__content { background-color: var(--color-primary-softer); color: var(--color-primary); }
+
+/* === el-dialog === */
+:root[data-theme="dark"] .el-dialog { background: var(--color-bg-overlay); border: 1px solid var(--color-border); }
+:root[data-theme="dark"] .el-dialog__header { padding-bottom: 12px; border-bottom: 1px solid var(--color-border-soft); }
+:root[data-theme="dark"] .el-dialog__title { color: var(--color-text); }
+:root[data-theme="dark"] .el-dialog__body { color: var(--color-text); }
+:root[data-theme="dark"] .el-dialog__footer { padding-top: 12px; border-top: 1px solid var(--color-border-soft); }
+
+/* === el-message-box === */
+:root[data-theme="dark"] .el-message-box { background: var(--color-bg-overlay); border: 1px solid var(--color-border); }
+:root[data-theme="dark"] .el-message-box__title { color: var(--color-text); }
+:root[data-theme="dark"] .el-message-box__content { color: var(--color-text-secondary); }
+:root[data-theme="dark"] .el-message-box__btns { border-top-color: var(--color-border-soft); }
+
+/* === el-message (toast) === */
+:root[data-theme="dark"] .el-message { background: var(--color-bg-overlay); border: 1px solid var(--color-border); color: var(--color-text); }
+:root[data-theme="dark"] .el-message--success { background: rgba(52, 211, 153, 0.18); border-color: rgba(52, 211, 153, 0.4); color: #6ee7b7; }
+:root[data-theme="dark"] .el-message--warning { background: rgba(251, 191, 36, 0.18); border-color: rgba(251, 191, 36, 0.4); color: #fcd34d; }
+:root[data-theme="dark"] .el-message--info    { background: rgba(96, 165, 250, 0.18); border-color: rgba(96, 165, 250, 0.4); color: #93c5fd; }
+:root[data-theme="dark"] .el-message--error   { background: rgba(248, 113, 113, 0.18); border-color: rgba(248, 113, 113, 0.4); color: #fca5a5; }
+
+/* === el-alert（页面里的 dup-alert 等）=== */
+:root[data-theme="dark"] .el-alert { background: var(--color-bg-elev); border: 1px solid var(--color-border); color: var(--color-text); }
+:root[data-theme="dark"] .el-alert--success { background: rgba(52, 211, 153, 0.14); border-color: rgba(52, 211, 153, 0.30); color: #6ee7b7; }
+:root[data-theme="dark"] .el-alert--success .el-alert__title,
+:root[data-theme="dark"] .el-alert--success .el-alert__description { color: #6ee7b7; }
+:root[data-theme="dark"] .el-alert--warning { background: rgba(251, 191, 36, 0.14); border-color: rgba(251, 191, 36, 0.30); color: #fcd34d; }
+:root[data-theme="dark"] .el-alert--warning .el-alert__title,
+:root[data-theme="dark"] .el-alert--warning .el-alert__description { color: #fcd34d; }
+:root[data-theme="dark"] .el-alert--info    { background: rgba(96, 165, 250, 0.14); border-color: rgba(96, 165, 250, 0.30); color: #93c5fd; }
+:root[data-theme="dark"] .el-alert--info    .el-alert__title,
+:root[data-theme="dark"] .el-alert--info    .el-alert__description { color: #93c5fd; }
+:root[data-theme="dark"] .el-alert--error   { background: rgba(248, 113, 113, 0.14); border-color: rgba(248, 113, 113, 0.30); color: #fca5a5; }
+:root[data-theme="dark"] .el-alert--error   .el-alert__title,
+:root[data-theme="dark"] .el-alert--error   .el-alert__description { color: #fca5a5; }
+
+/* === el-progress === */
+:root[data-theme="dark"] .el-progress__text { color: var(--color-text-secondary); }
+:root[data-theme="dark"] .el-progress-bar__outer { background-color: var(--color-bg); }
+
+/* === el-skeleton === */
+:root[data-theme="dark"] .el-skeleton__item { background: linear-gradient(90deg,
+                          rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.12) 37%, rgba(255, 255, 255, 0.06) 63%); }
+:root[data-theme="dark"] .el-skeleton__item.is-text { background: rgba(255, 255, 255, 0.06); }
+
+/* === el-step === */
+:root[data-theme="dark"] .el-step__title.is-process,
+:root[data-theme="dark"] .el-step__title.is-finish { color: var(--color-text-secondary); }
+:root[data-theme="dark"] .el-step__title.is-wait { color: var(--color-text-muted); }
+:root[data-theme="dark"] .el-step__description.is-process { color: var(--color-text); }
+
+/* === el-collapse === */
+:root[data-theme="dark"] .el-collapse { border-top: 0; border-bottom: 1px solid var(--color-border-soft); }
+:root[data-theme="dark"] .el-collapse-item__header { background: var(--color-bg-elev); color: var(--color-text); border-bottom: 1px solid var(--color-border-soft); }
+:root[data-theme="dark"] .el-collapse-item__wrap { background: var(--color-bg-elev); border-bottom: 1px solid var(--color-border-soft); }
+:root[data-theme="dark"] .el-collapse-item__content { color: var(--color-text-secondary); }
+
+/* === el-switch === */
+:root[data-theme="dark"] .el-switch__core { border-color: var(--color-border-strong); background-color: var(--color-bg-popover); }
+
+/* === el-slider === */
+:root[data-theme="dark"] .el-slider__runway { background-color: var(--color-bg-popover); }
+:root[data-theme="dark"] .el-slider__button { border-color: var(--color-primary); }
+
+/* === el-backtop === */
+:root[data-theme="dark"] .el-backtop { background: var(--color-bg-popover); color: var(--color-primary); border: 1px solid var(--color-border); }
+
+/* === el-notification === */
+:root[data-theme="dark"] .el-notification { background: var(--color-bg-overlay); border: 1px solid var(--color-border); color: var(--color-text); }
+:root[data-theme="dark"] .el-notification__title { color: var(--color-text); }
+
+/* === el-tooltip（popper is-light 即可）=== */
+:root[data-theme="dark"] .el-tooltip__popper { color: var(--color-text); }
+
+/* === el-tooltip 暗色下浅底 === */
+:root[data-theme="dark"] .el-tooltip.is-dark { background-color: rgba(15, 23, 42, 0.92) !important; color: #f1f5f9 !important; }
+:root[data-theme="dark"] .el-tooltip.is-dark .el-popper__arrow::before { background: rgba(15, 23, 42, 0.92) !important; border-color: rgba(15, 23, 42, 0.92) !important; }
 
 /* 暗色下 brand logo 阴影调亮 */
 :root[data-theme="dark"] .logo-mark { box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
@@ -489,12 +712,82 @@ body {
   background: var(--header-bg, var(--color-bg-elev));
   border-bottom-color: var(--color-border-soft);
 }
-:root[data-theme="dark"] .header-right .pill { background: var(--color-bg); border-color: var(--color-border); }
+:root[data-theme="dark"] .header-right .pill { background: var(--color-bg); border-color: var(--color-border); color: var(--color-text); }
 :root[data-theme="dark"] .user-info-name { color: var(--color-text); }
 :root[data-theme="dark"] .aside { border-right-color: var(--color-border); }
 :root[data-theme="dark"] .aside-footer { border-top-color: var(--color-border-soft); background: rgba(0,0,0,0.2); }
 :root[data-theme="dark"] .brand { border-bottom-color: var(--color-border-soft); }
 :root[data-theme="dark"] .brand-name { color: var(--color-text); }
+:root[data-theme="dark"] .brand-sub { color: var(--color-text-muted); }
+:root[data-theme="dark"] .user-info-role { color: var(--color-text-muted); }
+:root[data-theme="dark"] .aside .side-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); }
+:root[data-theme="dark"] .aside-footer .user-mini:hover { background: var(--color-bg-popover); }
+
+/* 暗色下：各 layout 专用 header */
+:root[data-theme="dark"] .topnav-header,
+:root[data-theme="dark"] .hs-header {
+  background: var(--header-bg, var(--color-bg-elev));
+  border-bottom-color: var(--color-border-soft);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+:root[data-theme="dark"] .topnav-menu,
+:root[data-theme="dark"] .hs-menu {
+  background: var(--color-bg-elev) !important;
+  border-bottom-color: var(--color-border-soft) !important;
+}
+:root[data-theme="dark"] .topnav-menu :deep(.el-menu-item),
+:root[data-theme="dark"] .hs-menu :deep(.el-menu-item) {
+  color: var(--color-text) !important;
+  border-bottom-color: transparent !important;
+}
+:root[data-theme="dark"] .topnav-menu :deep(.el-menu-item:hover),
+:root[data-theme="dark"] .hs-menu :deep(.el-menu-item:hover) { color: var(--color-primary) !important; }
+:root[data-theme="dark"] .topnav-menu :deep(.el-menu-item.is-active),
+:root[data-theme="dark"] .hs-menu :deep(.el-menu-item.is-active) {
+  color: var(--color-primary) !important;
+  border-bottom-color: var(--color-primary) !important;
+  background: var(--color-primary-softer) !important;
+}
+:root[data-theme="dark"] .floating-root .aside {
+  background: var(--sidebar-bg-actual, var(--color-bg-elev));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+:root[data-theme="dark"] .floating-root .main-inner {
+  background: var(--color-bg-elev);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 暗色下：tab 多标签页 */
+:root[data-theme="dark"] .tab-bar {
+  background: var(--color-bg);
+  border-bottom-color: var(--color-border-soft);
+}
+:root[data-theme="dark"] .tab-bar-item {
+  color: var(--color-text-secondary);
+  border-right-color: var(--color-border-soft);
+}
+:root[data-theme="dark"] .tab-bar-item:hover { background: var(--color-primary-softer); color: var(--color-text); }
+:root[data-theme="dark"] .tab-bar-item.active {
+  color: var(--color-primary);
+  background: var(--color-bg-elev);
+}
+:root[data-theme="dark"] .tab-bar-item.active::before { background: var(--color-primary); }
+:root[data-theme="dark"] .tab-context-menu { background: var(--color-bg-popover); border-color: var(--color-border); }
+:root[data-theme="dark"] .tab-context-menu :deep(.el-dropdown-menu__item) { color: var(--color-text-secondary); }
+:root[data-theme="dark"] .tab-context-menu :deep(.el-dropdown-menu__item:hover),
+:root[data-theme="dark"] .tab-context-menu :deep(.el-dropdown-menu__item:focus) { background: var(--color-primary-softer); color: var(--color-primary); }
+
+/* 暗色下：login 页面 */
+:root[data-theme="dark"] .login-page { background: linear-gradient(135deg, #0b1220 0%, #111827 100%); }
+:root[data-theme="dark"] .login-card { background: var(--color-bg-overlay); border: 1px solid var(--color-border); }
+:root[data-theme="dark"] .login-card .input { background: var(--color-bg-elev); border-color: var(--color-border-strong); }
+:root[data-theme="dark"] .login-card .title { color: var(--color-text); }
+:root[data-theme="dark"] .login-card .subtitle { color: var(--color-text-secondary); }
+
+/* 暗色下：滚动条 */
+:root[data-theme="dark"] ::-webkit-scrollbar-track { background: var(--color-bg); }
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 4px; }
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
 
 /* 暗色下 page-header 吸顶背景 */
 :root[data-theme="dark"] .{domain}-page .page-header { background: var(--color-bg); }

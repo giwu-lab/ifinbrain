@@ -216,7 +216,7 @@ onMounted(async () => {
 /* ===== Stat 卡片 ===== */
 .stat-row { margin-bottom: 24px; }
 .stat-card {
-  background: white;
+  background: var(--color-bg-elev);
   border-radius: 14px;
   padding: 20px;
   display: flex;
@@ -281,7 +281,7 @@ onMounted(async () => {
   padding: 20px 12px;
   border-radius: 12px;
   border: 1px solid var(--color-border-soft);
-  background: white;
+  background: var(--color-bg-elev);
   cursor: pointer;
   transition: all 0.2s ease;
 }

@@ -777,15 +777,15 @@ async function saveCommit() {
 .meta-form { padding: 4px 0 0; }
 :deep(.upload-area) { width: 100%; }
 :deep(.upload-area .el-upload-dragger) {
-  background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 100%);
-  border: 2px dashed #c7d2fe;
+  background: linear-gradient(135deg, var(--color-primary-softer) 0%, var(--color-bg-elev) 100%);
+  border: 2px dashed var(--color-border-strong);
   border-radius: 14px;
-  padding: 24px 24px;
+  padding: 24px 12px;
   transition: all 0.2s ease;
 }
 :deep(.upload-area .el-upload-dragger:hover) {
   border-color: var(--color-primary);
-  background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%);
+  background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-primary-softer) 100%);
 }
 .upload-icon { font-size: 40px; color: var(--color-primary); margin-bottom: 6px; }
 .upload-title { font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 4px; }
@@ -814,7 +814,7 @@ async function saveCommit() {
   margin-top: 20px;
   display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
   padding: 16px 20px;
-  background: white;
+  background: var(--color-bg-elev);
   border-radius: 10px;
   border: 1px solid var(--color-border-soft);
   position: sticky;

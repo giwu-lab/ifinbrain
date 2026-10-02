@@ -387,7 +387,7 @@ onMounted(reload);
 .parser-config,
 .parser-status,
 .reserved-card {
-  background: #fff;
+  background: var(--color-bg-elev);
   border: 1px solid var(--line);
   border-radius: 4px;
 }

@@ -131,7 +131,7 @@ onMounted(reload);
 
 <style scoped>
 .todo-widget {
-  background: white;
+  background: var(--color-bg-elev);
   border: 1px solid var(--color-border-soft);
   border-radius: 14px;
   padding: 18px 20px 14px;
@@ -205,9 +205,9 @@ onMounted(reload);
   border: 1px solid transparent;
   flex-shrink: 0;
 }
-.prio-tag-HIGH   { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
-.prio-tag-MEDIUM { background: #fffbeb; color: #d97706; border-color: #fed7aa; }
-.prio-tag-LOW    { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+.prio-tag-HIGH   { background: var(--color-danger-soft); color: var(--color-danger); border-color: var(--color-danger-soft); }
+.prio-tag-MEDIUM { background: var(--color-warning-soft); color: var(--color-warning); border-color: var(--color-warning-soft); }
+.prio-tag-LOW    { background: var(--color-primary-soft); color: var(--color-primary); border-color: var(--color-primary-soft); }
 .prio-tag-NONE   { background: var(--color-bg); color: var(--color-text-muted); border-color: var(--color-border-soft); }
 
 .due {
