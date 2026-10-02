@@ -184,15 +184,15 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 
 | 概念 | 文件 | 说明 |
 |---|---|---|
-| Store | `frontend/src/stores/theme.ts` | Pinia setup-store；schema `ThemeSettings`；localStorage 缓存 + DB `sys_user_preference` 双向同步；500ms 节流 PUT |
+| Store | `frontend/src/stores/theme.ts` | Pinia setup-store；schema `ThemeSettings`；localStorage 缓存 + DB `sys_user_preference` 双向同步；500ms 节流 PUT；**smart dark switch** |
 | 后端 | `backend/.../preference/{entity,repository,service,controller,dto}` | `GET /api/preference` / `PUT /api/preference` / `DELETE /api/preference` |
 | DB | `migration-{dev,prod}/V39__add_user_preference.sql` | `(user_id PK FK CASCADE, theme_json TEXT, updated_at SMESTAMP)` |
 | 抽屉 | `components/layout/StylePanel.vue` | 右侧 `el-drawer` + 两 tab + 重置确认 |
 | 4 布局 | `layouts/SidebarLayout.vue` / `TopNavLayout.vue` / `HeaderSidebarLayout.vue` / `FloatingSidebarLayout.vue` | `BasicLayout` 是壳，`<component :is="layoutComp">` 按 store 切换 |
 | 3 色板 | `components/layout/StylePanelColorPicker.vue` | 颜色 picker + 透明度滑块 + 12 色预设 |
 | 6 动画 | `components/layout/StylePanelAnimation.vue` + `styles/animations.css` | fade/slide/zoom/fade-slide/flip/scale；CSS class 前缀 `sp-{type}` |
-| 主题 token | `styles/theme.css` | `:root[data-theme="light"\|"dark"]` 双 token 集 |
-| 元素面板 | `main.ts` 中加载 `element-plus/theme-chalk/dark/css-vars.css` | Element Plus 暗色由 `.dark` 类切换（`AppRoot.vue` 内同步） |
+| 主题 token | `styles/theme.css` | `:root[data-theme="light"\|"dark"]` 双 token 集（5 层 surface + 半透明白边框） |
+| Element Plus 暗色 | `main.ts` 中加载 `element-plus/theme-chalk/dark/css-vars.css` | EP 暗色由 `.dark` 类切换（`AppRoot.vue` 内同步） |
 
 **默认 = 项目现状**：蓝紫主色 `#2563eb` / 白顶栏 / 白侧栏 / 亮色 / fade 动画 / 进度条开 / loading 开。
 
@@ -200,6 +200,140 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 - 橙红主色（默认仍是 ifinbrain 蓝紫）
 - 黑色 sidebar（默认仍是浅色）
 - 按钮 `→` / ALL-CAPS eyebrow / SaaS-card 套娃 / pill 状态
+
+#### 7.3.1 暗色模式 token 设计（深蓝灰 / Linear 风格）
+
+**5 层 surface 递进**（每层 +3–5% 亮度，给层次感）：
+
+| 层 | light | dark | 用途 |
+|---|---|---|---|
+| `--color-bg` | `#f5f7fb` | `#0b1220` | 页面背景 |
+| `--color-bg-elev` | `#ffffff` | `#111827` | 卡片 / 列表 |
+| `--color-bg-popover` | `#ffffff` | `#1a2333` | 弹层（popover / dropdown / tooltip） |
+| `--color-bg-overlay` | `#ffffff` | `#1f2937` | 抽屉 / 对话框 |
+
+**边框用 rgba**（亮色用实色，暗色用半透明白）：
+
+```css
+:root { --color-border: #e5e7eb; --color-border-soft: #f1f3f7; }
+:root[data-theme="dark"] {
+  --color-border:        rgba(255, 255, 255, 0.10);   /* 主边框 */
+  --color-border-soft:   rgba(255, 255, 255, 0.05);   /* 弱化边框 */
+  --color-border-strong: rgba(255, 255, 255, 0.16);   /* 强边框（输入框等）*/
+}
+```
+
+**文字 3 层**：
+
+```css
+--color-text:           #f1f5f9;   /* 主文本 */
+--color-text-secondary: #cbd5e1;   /* 次要（label / description）*/
+--color-text-muted:     #94a3b8;   /* 弱化（placeholder / hint）*/
+```
+
+**主色暗色下提亮一档**（避免暗色下 `#2563eb` 太重）：
+
+```css
+--color-primary:        #60a5fa;   /* 暗色下 #2563eb → #60a5fa */
+--color-primary-hover:  #93c5fd;
+--color-primary-soft:   rgba(96, 165, 250, 0.16);
+--color-primary-softer: rgba(96, 165, 250, 0.06);
+```
+
+**status 暗色用柔和 tinted bgs**：
+
+```css
+--color-success:      #34d399;  --color-success-soft:   rgba(52, 211, 153, 0.15);
+--color-warning:      #fbbf24;  --color-warning-soft:   rgba(251, 191, 36, 0.16);
+--color-danger:       #f87171;  --color-danger-soft:    rgba(248, 113, 113, 0.16);
+--color-info:         #818cf8;  --color-info-soft:      rgba(129, 140, 248, 0.16);
+```
+
+#### 7.3.2 Smart Dark Switch（用户友好型切换）
+
+在 `stores/theme.ts` 的 `update()` action 里：
+
+```ts
+// 切到 dark：自动应用深色 sidebar / header（仅在原值是白色默认时）
+if (patch.mode === 'dark' && settings.value.mode !== 'dark') {
+  if (looksLightish(next.headerColor)) next.headerColor = DARK_DEFAULTS.headerColor;
+  if (looksLightish(next.menuColor))   next.menuColor   = DARK_DEFAULTS.menuColor;
+  if (next.primaryColor === LIGHT_DEFAULTS.primaryColor) next.primaryColor = DARK_DEFAULTS.primaryColor;
+}
+// 切回 light：反向还原（若 header/menu 仍是深色默认 → 自动改回白色）
+if (patch.mode === 'light' && settings.value.mode === 'dark') {
+  if (looksDarkish(next.headerColor)) next.headerColor = LIGHT_DEFAULTS.headerColor;
+  if (looksDarkish(next.menuColor))   next.menuColor   = LIGHT_DEFAULTS.menuColor;
+}
+```
+
+**`looksLightish(c)` / `looksDarkish(c)`** 用 RGB 均值判断，避免覆盖用户手动调过的个性化色。
+
+`reset()` 也根据当前 mode 选择 `DARK_DEFAULTS` / `LIGHT_DEFAULTS`，避免重置后颜色风格不匹配当前主题。
+
+#### 7.3.3 Element Plus 暗色组件全覆盖
+
+`styles/global.css` 末尾 `:root[data-theme="dark"]` 选择器下覆盖 14 个组件：
+
+| 组件 | 覆盖要点 |
+|---|---|
+| `el-button`（default / text）| bg = elev / border = border-strong / text = --text-secondary |
+| `el-tabs` / `el-tabs__item` | active = primary / inactive = text-secondary；active-bar = primary |
+| `el-upload-dragger` | **关键**：bg = elev + softer border（修复 upload 页面深色亮块问题）|
+| `el-date-editor / el-picker` | 继承 el-input 覆盖；选中态用 primary |
+| `el-tree` | hover / is-current 行用 primary-soft |
+| `el-dialog` | bg = overlay / header / footer 边框分隔 |
+| `el-message-box` | bg = overlay |
+| `el-message / el-notification` | 各色 tinted bg + 色文字（success / warning / info / error）|
+| `el-alert` | 同上 tinted bg |
+| `el-progress` / `el-step` | 文字色 + 进度条底色 |
+| `el-skeleton` | shimmer gradient 改为 rgba 255,255,255 半透明 |
+| `el-collapse` | header / wrap 用 elev |
+| `el-switch / el-slider / el-backtop` | track / button / bg 用 bg-popover |
+
+**加 layout 配套暗色**：`.topnav-header / .hs-header / .floating-root / .tab-bar / .tab-context-menu / .login-page` 都做了 `:root[data-theme="dark"]` 适配，确保 layout 切换时暗色保持一致。
+
+#### 7.3.4 暗色页面硬编码 white 排查
+
+扫描所有 `background: white / #fff` 硬编码，命中处改用 `var(--color-bg-elev)`：
+
+```
+views/invoice/Upload.vue          dragger / save-bar
+views/invoice/parser/Index.vue    parser-status / reserved-card
+views/dashboard/Index.vue         stat-card / shortcut
+views/dashboard/components/TodoWidget.vue   widget root / prio-tag
+views/system/dict/Index.vue       dict-types / dict-items
+views/data-mgmt/query/Index.vue   表格容器
+views/todo/task/Index.vue         prio-tag
+```
+
+**priority tag 颜色统一改用 status-soft token**（避免暗色下浅黄/浅红背景不协调）：
+```css
+.prio-high { background: var(--color-danger-soft); color: var(--color-danger); }
+.prio-medium { background: var(--color-warning-soft); color: var(--color-warning); }
+.prio-low { background: var(--color-primary-soft); color: var(--color-primary); }
+```
+
+#### 7.3.5 Playwright 验证
+
+`scripts/dark-theme-shoot.mjs` — 启动 admin 账号 → 11 个页面 × 2 主题 + login，共 **23 张截图**到 `frontend/docs/screenshots/`：
+
+```bash
+node scripts/dark-theme-shoot.mjs
+# 依赖：playwright 已装在 /opt/node-22/lib/node_modules/playwright
+# 依赖：backend（端口 8080）+ vite dev（端口 5173）已在跑
+```
+
+**新页面接入**只需检查截图是否出现「亮色块 / 看不清按钮 / 文字对比差」，如有硬编码 white → 改 token，再重新跑脚本验证。
+
+#### 7.3.6 避坑
+
+- ❌ 不要在 view 里写 `background: white / #fff / #f0f4ff` —— 暗色下必炸
+- ❌ 不要在暗色视图里用 `linear-gradient(...#fff...)` —— 渐变会让硬编码颜色贯穿
+- ❌ 不要在 `[data-theme="dark"]` 下用 `box-shadow: 0 6px 16px rgba(15, 23, 42, ...)` —— shadow 是黑色半透明，暗色页上看不出
+- ❌ 不要把 brand 字体放 `text-transform: uppercase` —— AGENTS §7 借鉴边界明确禁止 ALL-CAPS eyebrow
+- ✅ 暗色 border 一律用 `rgba(255,255,255,.05/.10/.16)` 三个档位，不要写死具体色
+- ✅ 用 `var(--color-bg-elev)` / `var(--color-bg-popover)` 而不是写死 dark 值
 
 ### 7.4 弹窗 mask 视觉异常（避坑笔记）
 
