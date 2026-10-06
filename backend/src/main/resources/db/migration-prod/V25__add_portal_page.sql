@@ -9,7 +9,7 @@
 -- 1. sys_portal_page
 -- ---------------------------------------------------------------------------
 CREATE TABLE sys_portal_page (
-  id              INTEGER       PRIMARY KEY AUTOINCREMENT,
+  id              BIGSERIAL       PRIMARY KEY,
   code            VARCHAR(64)   NOT NULL UNIQUE,
   name            VARCHAR(128)  NOT NULL,
   description     VARCHAR(512),
@@ -31,7 +31,7 @@ CREATE INDEX idx_portal_page_code   ON sys_portal_page(code);
 --    迁移脚本只建表，不塞数据。
 -- ---------------------------------------------------------------------------
 CREATE TABLE sys_portal_block (
-  id              INTEGER       PRIMARY KEY AUTOINCREMENT,
+  id              BIGSERIAL       PRIMARY KEY,
   type            VARCHAR(64)   NOT NULL UNIQUE,
   name            VARCHAR(64)   NOT NULL,
   category        VARCHAR(32)   NOT NULL,                  -- stat / chart / table / media / layout

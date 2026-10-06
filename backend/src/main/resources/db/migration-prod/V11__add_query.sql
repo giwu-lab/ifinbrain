@@ -1,10 +1,10 @@
 -- V11: Data Management phase 2 (saved queries with custom SQL + safe execution)
 
 CREATE TABLE sys_query (
-  id                    INTEGER      PRIMARY KEY AUTOINCREMENT,
+  id                    BIGSERIAL      PRIMARY KEY,
   name                  VARCHAR(128) NOT NULL,
   description           VARCHAR(512),
-  datasource_id         INTEGER      NOT NULL,
+  datasource_id         BIGINT      NOT NULL,
   sql_template          TEXT         NOT NULL,
   params_schema_json    TEXT         NOT NULL DEFAULT '[]',
   status                SMALLINT     NOT NULL DEFAULT 1,

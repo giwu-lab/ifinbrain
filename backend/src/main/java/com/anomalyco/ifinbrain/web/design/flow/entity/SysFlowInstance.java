@@ -31,7 +31,6 @@ public class SysFlowInstance {
     private String currentNodeId;
 
     /** 流程变量 JSON（含表单数据 + 系统变量） */
-    @Lob
     @Column(name = "variables_json", columnDefinition = "TEXT")
     private String variablesJson;
 

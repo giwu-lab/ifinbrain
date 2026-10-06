@@ -24,7 +24,24 @@
         <awssdk.version>2.29.26</awssdk.version>
         <sqlite-jdbc.version>3.46.1.0</sqlite-jdbc.version>
         <poi.version>5.4.1</poi.version>
+        <!-- PDF 文本抽取。档案库里 PDF 是占比最大的一类（实测 4/14），
+             缺了它 RAG 对 PDF 一律检索不到。 -->
+        <pdfbox.version>3.0.4</pdfbox.version>
+        <!-- Spring AI 2.0.x 是首个明确面向 Spring Boot 4.0/4.1 的版本线 -->
+        <spring-ai.version>2.0.1</spring-ai.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- Web -->
@@ -111,6 +128,13 @@
             <version>${poi.version}</version>
         </dependency>
 
+        <!-- PDF 文本抽取（RAG 入库；poi 不覆盖 PDF） -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
+        </dependency>
+
         <!-- SQLite (dev) -->
         <dependency>
             <groupId>org.xerial</groupId>
@@ -139,17 +163,26 @@
             <scope>runtime</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.hibernate.orm</groupId>
-            <artifactId>hibernate-community-dialects</artifactId>
-            <version>7.0.2.Final</version>
-        </dependency>
-
         <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
             <version>${mapstruct.version}</version>
+        </dependency>
+
+        <!--
+          Spring AI：只用 EmbeddingModel + ChatClient，走 OpenAI 兼容协议指向硅基流动。
+
+          刻意不引 spring-ai-starter-vector-store-pgvector：
+            1) 它带的 PgVectorStore 会按 metadata(jsonb) 过滤，权限过滤落在应用层，
+               一旦漏判就是越权；本项目的做法是自建 rag_document_chunk 表 +
+               原生 SQL `library_id = ANY(...)` 在检索 SQL 内过滤，无权数据不出库。
+            2) 它的自动配置在 dev profile（SQLite）下会因 DataSource 非 PG 而建 bean 失败。
+               文档 RAG 能力用 ifinbrain.rag.enabled 开关隔离，dev 默认关，不影响现有启动。
+        -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
 
         <!-- Lombok -->

@@ -18,7 +18,6 @@ public class SysSetting {
     @Column(name = "key_name", length = 128)
     private String keyName;
 
-    @Lob
     @Column(name = "value_text", columnDefinition = "TEXT")
     private String valueText;
 

@@ -36,10 +36,19 @@ public class FlywayConfig {
     @PostConstruct
     public void migrate() {
         String[] activeProfiles = env.getActiveProfiles();
-        boolean isProd = Arrays.asList(activeProfiles).contains("prod");
+        // 迁移目录按**数据源方言**选，而不是按 profile 名选。
+        // 旧实现是 isProd ? migration-prod : migration-dev —— 但 dev 现在也连 PostgreSQL
+        // （RAG 需要 pgvector，SQLite 没有 vector 类型）。按 profile 选会让 dev 跑去执行
+        // migration-dev 里的 SQLite 方言 DDL（AUTOINCREMENT / TINYINT / strftime），
+        // 在 PG 上必然失败。方言才是真正的判据。
+        String dsUrl = env.getProperty("spring.datasource.url", "");
+        boolean sqlite = dsUrl.startsWith("jdbc:sqlite");
         List<String> locations = new ArrayList<>();
         locations.add("classpath:db/migration");
-        locations.add(isProd ? "classpath:db/migration-prod" : "classpath:db/migration-dev");
+        locations.add(sqlite ? "classpath:db/migration-dev" : "classpath:db/migration-prod");
+        if (!sqlite) {
+            log.info("Flyway: non-SQLite datasource detected ({}), using PostgreSQL migrations", dsUrl);
+        }
 
         ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
         List<String> effective = new ArrayList<>();
@@ -61,8 +70,8 @@ public class FlywayConfig {
         // Allow checksum fixes after V2 edits without manual repair step.
         flyway.repair();
         var result = flyway.migrate();
-        log.info("Flyway: applied {} migrations (now at schema v{}) [profile={}, locations={}]",
+        log.info("Flyway: applied {} migrations (now at schema v{}) [profile={}, dialect={}, locations={}]",
                 result.migrationsExecuted, result.targetSchemaVersion,
-                Arrays.toString(activeProfiles), effective);
+                Arrays.toString(activeProfiles), sqlite ? "sqlite" : "postgresql", effective);
     }
 }

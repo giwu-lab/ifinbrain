@@ -3,8 +3,9 @@
 -- （保留 V32 的 ALTER 让 schema_version 序列连续；本文件只做幂等 UPDATE）
 
 -- WEEKLY -> recurrence_dow (ISO: 1=Mon..7=Sun)
+-- due_at 是真正的 TIMESTAMP 列（见 V27），直接 EXTRACT 即可 —— 无需 SQLite 的毫秒时间戳换算
 UPDATE sys_todo_task
-   SET recurrence_dow = CASE CAST(strftime('%w', datetime(due_at/1000, 'unixepoch', 'localtime')) AS INTEGER)
+   SET recurrence_dow = CASE EXTRACT(DOW FROM due_at)::int
                           WHEN 0 THEN 7
                           WHEN 1 THEN 1
                           WHEN 2 THEN 2
@@ -17,5 +18,5 @@ UPDATE sys_todo_task
 
 -- MONTHLY -> recurrence_dom (1-31)
 UPDATE sys_todo_task
-   SET recurrence_dom = CAST(strftime('%d', datetime(due_at/1000, 'unixepoch', 'localtime')) AS INTEGER)
+   SET recurrence_dom = EXTRACT(DAY FROM due_at)::int
  WHERE recurrence = 'MONTHLY' AND due_at IS NOT NULL AND recurrence_dom IS NULL;

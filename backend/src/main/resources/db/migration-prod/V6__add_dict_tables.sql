@@ -1,6 +1,6 @@
 -- Dictionary feature: dict types + dict items
 CREATE TABLE sys_dict_type (
-  id          INTEGER      PRIMARY KEY AUTOINCREMENT,
+  id          BIGSERIAL      PRIMARY KEY,
   code        VARCHAR(64)  NOT NULL UNIQUE,
   name        VARCHAR(128) NOT NULL,
   remark      VARCHAR(255),
@@ -10,9 +10,9 @@ CREATE TABLE sys_dict_type (
 );
 
 CREATE TABLE sys_dict_item (
-  id          INTEGER      PRIMARY KEY AUTOINCREMENT,
-  dict_id     INTEGER      NOT NULL,
-  parent_id   INTEGER      NOT NULL DEFAULT 0,
+  id          BIGSERIAL      PRIMARY KEY,
+  dict_id     BIGINT      NOT NULL,
+  parent_id   BIGINT      NOT NULL DEFAULT 0,
   code        VARCHAR(64)  NOT NULL,
   label       VARCHAR(128) NOT NULL,
   value       VARCHAR(255),

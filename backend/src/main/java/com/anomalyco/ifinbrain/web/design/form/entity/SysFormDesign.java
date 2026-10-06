@@ -29,7 +29,6 @@ public class SysFormDesign {
      * 表单元数据 JSON：
      * { "version": 1, "fields": [ FormFieldSchema... ] }
      */
-    @Lob
     @Column(name = "fields_json", nullable = false, columnDefinition = "TEXT")
     private String fieldsJson;
 

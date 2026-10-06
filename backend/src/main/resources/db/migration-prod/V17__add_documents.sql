@@ -5,14 +5,14 @@
 -- 1. 类目表
 -- ---------------------------------------------------------------------------
 CREATE TABLE sys_document_category (
-  id           INTEGER      PRIMARY KEY AUTOINCREMENT,
+  id           BIGSERIAL      PRIMARY KEY,
   name         VARCHAR(64)  NOT NULL,
   slug         VARCHAR(64)  NOT NULL UNIQUE,
   icon         VARCHAR(64)  NOT NULL DEFAULT 'Folder',
   sort         INTEGER      NOT NULL DEFAULT 0,
   status       SMALLINT     NOT NULL DEFAULT 1,
   remark       VARCHAR(255),
-  created_by   INTEGER,
+  created_by   BIGINT,
   created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -22,8 +22,8 @@ CREATE INDEX idx_doc_cat_status ON sys_document_category(status, sort);
 -- 2. 档案表
 -- ---------------------------------------------------------------------------
 CREATE TABLE sys_document (
-  id                INTEGER      PRIMARY KEY AUTOINCREMENT,
-  category_id       INTEGER      NOT NULL,
+  id                BIGSERIAL      PRIMARY KEY,
+  category_id       BIGINT      NOT NULL,
   name              VARCHAR(255) NOT NULL,
   storage_key       VARCHAR(512) NOT NULL,
   storage_type      VARCHAR(16)  NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE sys_document (
   size_bytes        BIGINT       NOT NULL,
   sha256            CHAR(64),
   mime_type         VARCHAR(128),
-  uploader_id       INTEGER,
+  uploader_id       BIGINT,
   uploader_name     VARCHAR(64),
   remark            VARCHAR(255),
   status            SMALLINT     NOT NULL DEFAULT 1,

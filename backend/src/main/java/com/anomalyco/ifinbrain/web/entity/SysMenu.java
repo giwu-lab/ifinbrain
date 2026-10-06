@@ -57,7 +57,8 @@ public class SysMenu {
      *   { paramLabels: {name: 显示名}, columns: {sourceCol: {headerText, width}} }
      * query_id 非 NULL 时才有意义。
      */
-    @Lob
+    // 不加 @Lob：PG 上 @Lob + String 会走 large-object(oid) 语义，与迁移里定义的 TEXT 冲突。
+    // nativeQuery（SELECT DISTINCT m.*）读回时抛 22003「不良的类型值」。columnDefinition 足够。
     @Column(name = "config_json", columnDefinition = "TEXT")
     private String configJson;
 

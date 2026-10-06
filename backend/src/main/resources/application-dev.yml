@@ -1,12 +1,20 @@
 spring:
   datasource:
-    url: jdbc:sqlite:${SQLITE_PATH:./data/ifinbrain.db}
-    driver-class-name: org.sqlite.JDBC
+    # dev 与 prod 同库：RAG 依赖 pgvector，SQLite 没有 vector 类型。
+    # 远程实例必须使用带 pgvector 的镜像（pgvector/pgvector:pg18）。
+    url: jdbc:postgresql://${PG_HOST:}:${PG_PORT:5432}/${PG_DB:ifinbrain}${PG_QUERY_STRING:}
+    username: ${PG_USER:}
+    password: ${PG_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 1
-      connection-init-sql: 'PRAGMA foreign_keys = ON'
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      pool-name: ifinbrain-dev-pool
   jpa:
-    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    # Hibernate 7 自带 PostgreSQLDialect，不再需要 hibernate-community-dialects
+    # （该依赖在 pom.xml 中已删除）。
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: none
     properties:
@@ -14,4 +22,34 @@ spring:
         format_sql: false
         show_sql: false
   flyway:
-    enabled: true                          # 现有业务 sys_* 表由 Flyway 管理（SQLite）
+    # 迁移目录由 FlywayConfig 按数据源方言选择，这里只负责开关。
+    enabled: true
+  # 档案库 RAG。application.yml 里默认六项模型全关成 none，这里打开 chat/embedding。
+  # 打开的前提：dev 与 prod 共用同一台远程 PG（已装 pgvector），且 RAG_API_KEY 已配置。
+  # 少任何一样，Spring AI 都会在缺 api-key 时直接终止启动 —— 这是刻意的 fail-fast。
+  ai:
+    model:
+      chat: openai
+      embedding: openai
+    openai:
+      base-url: ${RAG_BASE_URL:https://api.siliconflow.cn/v1}
+      api-key: ${RAG_API_KEY:}
+      chat:
+        options:
+          model: ${RAG_CHAT_MODEL:Qwen/Qwen2.5-7B-Instruct}
+          temperature: 0.2
+          max-tokens: 1500
+      embedding:
+        options:
+          model: ${RAG_EMBEDDING_MODEL:BAAI/bge-m3}
+
+ifinbrain:
+  rag:
+    enabled: ${RAG_ENABLED:false}
+    embedding-base-url: ${RAG_BASE_URL:https://api.siliconflow.cn/v1}
+    embedding-api-key: ${RAG_API_KEY:}
+    embedding-model: ${RAG_EMBEDDING_MODEL:BAAI/bge-m3}
+    # 必须与 V45 迁移里 rag_document_chunk.embedding 的 vector(N) 一致
+    dimensions: 1024
+    chat-model: ${RAG_CHAT_MODEL:Qwen/Qwen2.5-7B-Instruct}
+

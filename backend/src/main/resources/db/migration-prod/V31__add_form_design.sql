@@ -19,7 +19,7 @@
 -- 1. sys_form_design（IF NOT EXISTS 让迁移幂等：DB 可能在 V30 阶段已建表）
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sys_form_design (
-  id           INTEGER       PRIMARY KEY AUTOINCREMENT,
+  id           BIGSERIAL       PRIMARY KEY,
   code         VARCHAR(64)   NOT NULL UNIQUE,             -- 业务码（kebab-case），如 'leave_request'
   name         VARCHAR(128)  NOT NULL,                    -- 显示名
   description  VARCHAR(512),

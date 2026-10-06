@@ -36,6 +36,12 @@ public class FlowInstanceController {
 
     @PostMapping("/start")
     public Result<FlowInstanceDto> start(@Valid @RequestBody StartFlowReq req) {
+        // perm 检查：全局 design:flow:deploy OR 流程级 design:flow:{code}:deploy
+        // （前端按 perm 过滤列表，后端做权威判断；admin/operator 全局通过；viewer 仅能起被授权的流程）
+        perm.requireAny(
+            "design:flow:deploy",
+            "design:flow:" + req.getCode() + ":deploy"
+        );
         engine.start(req, perm.currentUsername());
         // 查找刚启动的 instance（通过 businessKey + flowCode 唯一匹配）
         var instList = instanceService.list();
@@ -43,6 +49,19 @@ public class FlowInstanceController {
                 .filter(i -> i.getFlowCode().equals(req.getCode()) && i.getBusinessKey().equals(req.getBusinessKey()))
                 .reduce((a, b) -> b)   // 取最后一个
                 .orElseThrow());
+    }
+
+    /**
+     * 删除实例。仅 REJECTED 状态 + 发起人或 admin 可操作。
+     * 级联清理 task + history。
+     */
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        perm.require("design:flow:deploy");
+        String roles = perm.currentRoleCodes() == null ? "" : perm.currentRoleCodes();
+        boolean isAdmin = roles.contains("admin");
+        instanceService.delete(id, perm.currentUsername(), isAdmin);
+        return Result.ok();
     }
 
     /** 把 SysFlowInstance 转 DTO 暴露给前端（不重复实现） */

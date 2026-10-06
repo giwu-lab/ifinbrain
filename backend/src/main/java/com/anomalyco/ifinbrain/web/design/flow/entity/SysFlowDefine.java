@@ -28,7 +28,6 @@ public class SysFlowDefine {
      * 流程图 JSON：{ "nodes":[...], "edges":[...] }
      * 节点类型见 NodeType（START / APPROVAL / CONDITION / END）。
      */
-    @Lob
     @Column(name = "flow_json", nullable = false, columnDefinition = "TEXT")
     private String flowJson;
 

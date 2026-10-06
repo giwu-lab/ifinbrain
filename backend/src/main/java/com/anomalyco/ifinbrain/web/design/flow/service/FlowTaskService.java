@@ -31,6 +31,16 @@ public class FlowTaskService {
         return toDto(t);
     }
 
+    /**
+     * 当前用户的待办任务数 —— dashboard 卡片用。
+     * 过滤条件对齐 FlowEngineService.pendingTasks(username)：
+     *   status='PENDING' + assigneeType='USER' + assigneeId=username
+     */
+    @Transactional(readOnly = true)
+    public long pendingCount(String username) {
+        return taskRepo.countByStatusAndAssigneeTypeAndAssigneeId("PENDING", "USER", username);
+    }
+
     private FlowTaskDto toDto(SysFlowTask t) {
         SysFlowInstance inst = instanceRepo.findById(t.getInstanceId()).orElse(null);
         SysFlowDefine def = defineRepo.findById(t.getFlowId()).orElse(null);

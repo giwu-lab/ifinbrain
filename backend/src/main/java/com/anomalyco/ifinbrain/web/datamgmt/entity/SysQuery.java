@@ -30,7 +30,6 @@ public class SysQuery {
      * SQL 模板：SELECT-only，使用 :param_name 占位参数。
      * 落地前会跑 SqlSafetyChecker（禁 UPDATE/INSERT/DELETE/DROP/ALTER/TRUNCATE/GRANT/REVOKE 等）。
      */
-    @Lob
     @Column(name = "sql_template", nullable = false, columnDefinition = "TEXT")
     private String sqlTemplate;
 
@@ -38,7 +37,6 @@ public class SysQuery {
      * 参数 schema（JSON 数组）：[{name,label,type,required,defaultValue,placeholder}]
      * type: string | number | date | datetime
      */
-    @Lob
     @Column(name = "params_schema_json", nullable = false, columnDefinition = "TEXT")
     private String paramsSchemaJson;
 

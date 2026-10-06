@@ -26,7 +26,6 @@ public class SysUserPreference {
     @Column(name = "user_id")
     private Long userId;
 
-    @Lob
     @Column(name = "theme_json", nullable = false, columnDefinition = "TEXT")
     private String themeJson;
 

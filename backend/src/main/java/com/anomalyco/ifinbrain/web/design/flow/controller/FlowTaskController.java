@@ -29,6 +29,16 @@ public class FlowTaskController {
         return Result.ok(out);
     }
 
+    /**
+     * 当前用户的待办任务数 —— dashboard 卡片用。
+     * 不限 perm：登录用户都能看自己的待办数（与 dashboard「角色数/权限数/菜单数」一致，
+     * 这些都是个人档案性质的数据，不需要业务 perm）。
+     */
+    @GetMapping("/pending/count")
+    public Result<Long> pendingCount() {
+        return Result.ok(taskService.pendingCount(perm.currentUsername()));
+    }
+
     /** 我发起的 + 审批过的所有任务 */
     @GetMapping("/all")
     public Result<List<FlowTaskDto>> all() {

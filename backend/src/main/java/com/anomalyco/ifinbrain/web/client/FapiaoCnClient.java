@@ -8,19 +8,21 @@ import tools.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component
@@ -29,7 +31,8 @@ public class FapiaoCnClient {
 
     private final SysSettingRepository settingRepo;
     private final CryptoUtil crypto;
-    private volatile WebClient client;
+    private volatile HttpClient jdkClient;
+    private volatile WebClient webClient;
     private volatile CachedConfig cached;
 
     /** 当前生效配置缓存：优先 sys_setting，未启用则回退 application.yml/env */
@@ -87,32 +90,49 @@ public class FapiaoCnClient {
         try {
             CachedConfig fresh = loadFromSettings();
             this.cached = fresh;
-            this.client = null;
+            this.jdkClient = null;
+            this.webClient = null;
             log.info("FapiaoCn client reloaded: baseUrl={}, extractPath={}, batchPath={}, healthPath={}",
                 fresh.baseUrl, fresh.extractPath, fresh.batchPath, fresh.healthPath);
         } catch (com.anomalyco.ifinbrain.web.common.BizException ex) {
             // 保存配置时若尚未启用/未配置，不阻断设置保存——只是把缓存置空，识别时会再被 BizException 拒绝。
             log.info("FapiaoCn client reload skipped: {}", ex.getMessage());
             this.cached = null;
-            this.client = null;
+            this.jdkClient = null;
+            this.webClient = null;
         } catch (Exception ex) {
             log.warn("FapiaoCn client reload failed: {}", ex.getMessage());
             this.cached = null;
-            this.client = null;
+            this.jdkClient = null;
+            this.webClient = null;
         }
     }
 
-    private WebClient client() {
-        WebClient c = client;
+    private HttpClient jdkClient() {
+        HttpClient c = jdkClient;
         if (c != null) return c;
         synchronized (this) {
-            if (client != null) return client;
-            CachedConfig cfg = currentConfig();
-            client = WebClient.builder()
-                    .baseUrl(cfg.baseUrl)
-                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE)
+            if (jdkClient != null) return jdkClient;
+            jdkClient = HttpClient.newBuilder()
+                    // HttpClient 本身不缓存 TCP 连接，需要 server 端 keepalive；这里只用作连接池入口。
+                    // 实际超时由 HttpRequest 自身的 timeout() 控制。
+                    .version(HttpClient.Version.HTTP_1_1)  // 强制 HTTP/1.1（fapiao_cn uvicorn 默认 HTTP/1.1）
+                    .connectTimeout(Duration.ofSeconds(10))
                     .build();
-            return client;
+            return jdkClient;
+        }
+    }
+
+    private WebClient webClient() {
+        WebClient c = webClient;
+        if (c != null) return c;
+        synchronized (this) {
+            if (webClient != null) return webClient;
+            CachedConfig cfg = currentConfig();
+            webClient = WebClient.builder()
+                    .baseUrl(cfg.baseUrl)
+                    .build();
+            return webClient;
         }
     }
 
@@ -162,51 +182,87 @@ public class FapiaoCnClient {
 
     public List<ExtractItem> extractBatch(List<FilePart> files) {
         if (files == null || files.isEmpty()) return List.of();
-        MultipartBodyBuilder mb = new MultipartBodyBuilder();
-        for (FilePart f : files) {
-            mb.part("files", new ByteArrayResource(f.bytes) {
-                @Override public String getFilename() { return f.filename; }
-            });
-        }
         String key = apiKey();
         String path = batchPath();
-        List<ExtractItem> result = client().post()
-                .uri(path)
-                .header(HttpHeaders.AUTHORIZATION, key.isBlank() ? "" : "Bearer " + key)
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(mb.build()))
-                .retrieve()
-                .bodyToMono(new org.springframework.core.ParameterizedTypeReference<List<ExtractItem>>() {})
-                .timeout(Duration.ofSeconds(timeoutSeconds()))
-                .onErrorResume(e -> {
-                    log.error("FapiaoCn {} failed", path, e);
-                    return Mono.just(files.stream().map(f -> ExtractItem.error(f.filename, e.getMessage())).toList());
-                })
-                .block();
-        return result != null ? result : List.of();
+        // 手工构造 multipart/form-data body：boundary 完全由我们自己生成，
+        // body parts 用同一个 boundary，Content-Type header 也用同一个 boundary —— 三者一致，
+        // 避免 Spring 7 + WebClient 链路下 BodyInserters 的 writer 自己生成 boundary 与
+        // 显式 header 不同步导致 fapiao_cn 端 multipart 解析失败（"No files provided" → 400）。
+        String boundary = "----ifinbrain" + UUID.randomUUID().toString().replace("-", "");
+        String contentType = "multipart/form-data; boundary=" + boundary;
+        byte[] body = buildMultipartBody(files, boundary, "files");
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(currentConfig().baseUrl + path))
+                    .timeout(Duration.ofSeconds(timeoutSeconds()))
+                    .header("Authorization", key.isBlank() ? "" : "Bearer " + key)
+                    .header("Content-Type", contentType)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                    .build();
+            HttpResponse<String> resp = jdkClient().send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() == 200) {
+                ObjectMapper om = new ObjectMapper();
+                return om.readValue(resp.body(), new TypeReference<List<ExtractItem>>() {});
+            }
+            log.error("FapiaoCn {} failed: HTTP {} body={}", path, resp.statusCode(), resp.body());
+            return files.stream().map(f -> ExtractItem.error(f.filename,
+                    "HTTP " + resp.statusCode() + ": " + (resp.body() == null ? "" : resp.body()))).toList();
+        } catch (java.io.IOException | InterruptedException ex) {
+            if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
+            log.error("FapiaoCn {} failed: {}", path, ex.toString());
+            return files.stream().map(f -> ExtractItem.error(f.filename, ex.getMessage())).toList();
+        }
     }
 
     public ExtractItem extractSingle(FilePart f) {
-        MultipartBodyBuilder mb = new MultipartBodyBuilder();
-        mb.part("file", new ByteArrayResource(f.bytes) {
-            @Override public String getFilename() { return f.filename; }
-        });
         String key = apiKey();
         String path = extractPath();
-        ExtractItem resp = client().post()
-                .uri(path)
-                .header(HttpHeaders.AUTHORIZATION, key.isBlank() ? "" : "Bearer " + key)
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(mb.build()))
-                .retrieve()
-                .bodyToMono(ExtractItem.class)
-                .timeout(Duration.ofSeconds(timeoutSeconds()))
-                .onErrorResume(e -> {
-                    log.error("FapiaoCn {} failed", path, e);
-                    return Mono.just(ExtractItem.error(f.filename, e.getMessage()));
-                })
-                .block();
-        return resp != null ? resp : ExtractItem.error(f.filename, "empty response");
+        String boundary = "----ifinbrain" + UUID.randomUUID().toString().replace("-", "");
+        String contentType = "multipart/form-data; boundary=" + boundary;
+        byte[] body = buildMultipartBody(List.of(f), boundary, "file");
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(currentConfig().baseUrl + path))
+                    .timeout(Duration.ofSeconds(timeoutSeconds()))
+                    .header("Authorization", key.isBlank() ? "" : "Bearer " + key)
+                    .header("Content-Type", contentType)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                    .build();
+            HttpResponse<String> resp = jdkClient().send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() == 200) {
+                return new ObjectMapper().readValue(resp.body(), ExtractItem.class);
+            }
+            log.error("FapiaoCn {} failed: HTTP {} body={}", path, resp.statusCode(), resp.body());
+            return ExtractItem.error(f.filename, "HTTP " + resp.statusCode() + ": " + resp.body());
+        } catch (java.io.IOException | InterruptedException ex) {
+            if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
+            log.error("FapiaoCn {} failed: {}", path, ex.toString());
+            return ExtractItem.error(f.filename, ex.getMessage());
+        }
+    }
+
+    /**
+     * 手工构造 multipart/form-data body：boundary 与 Content-Type header 中的 boundary 严格一致。
+     * body 用 ISO-8859-1 编码 header 段（二进制字段直接用 ISO-8859-1 bytes，安全无歧义）。
+     */
+    private static byte[] buildMultipartBody(List<FilePart> files, String boundary, String fieldName) {
+        java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+        try {
+            String CRLF = "\r\n";
+            java.nio.charset.Charset iso = java.nio.charset.StandardCharsets.ISO_8859_1;
+            for (FilePart f : files) {
+                bos.write(("--" + boundary + CRLF).getBytes(iso));
+                bos.write(("Content-Disposition: form-data; name=\"" + fieldName + "\"; filename=\""
+                        + (f.filename == null ? "file" : f.filename) + "\"" + CRLF).getBytes(iso));
+                bos.write(("Content-Type: application/octet-stream" + CRLF + CRLF).getBytes(iso));
+                bos.write(f.bytes);
+                bos.write(CRLF.getBytes(iso));
+            }
+            bos.write(("--" + boundary + "--" + CRLF).getBytes(iso));
+        } catch (java.io.IOException ex) {
+            throw new RuntimeException("build multipart body failed", ex);
+        }
+        return bos.toByteArray();
     }
 
     /** 内部缓存：baseUrl/apiKey/timeoutSeconds/extractPath/batchPath/healthPath/是否启用自定义。 */

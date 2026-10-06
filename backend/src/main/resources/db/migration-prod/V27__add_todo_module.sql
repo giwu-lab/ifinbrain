@@ -7,8 +7,8 @@
 -- 1. 任务主表 sys_todo_task
 -- ---------------------------------------------------------------------------
 CREATE TABLE sys_todo_task (
-  id           INTEGER      PRIMARY KEY AUTOINCREMENT,
-  owner_id     INTEGER      NOT NULL,
+  id           BIGSERIAL      PRIMARY KEY,
+  owner_id     BIGINT      NOT NULL,
   title        VARCHAR(200) NOT NULL,
   description  TEXT,
   -- HIGH / MEDIUM / LOW / NONE
@@ -16,7 +16,7 @@ CREATE TABLE sys_todo_task (
   -- PENDING / COMPLETED
   status       VARCHAR(16)  NOT NULL DEFAULT 'PENDING',
   due_at       TIMESTAMP,
-  parent_id    INTEGER,
+  parent_id    BIGINT,
   -- NONE / DAILY / WEEKLY / MONTHLY
   recurrence   VARCHAR(16)  NOT NULL DEFAULT 'NONE',
   completed_at TIMESTAMP,
@@ -33,8 +33,8 @@ CREATE INDEX idx_todo_task_due_at ON sys_todo_task(due_at);
 -- 2. 标签表 sys_todo_tag —— 按 owner 隔离；同一 owner 内 name 唯一
 -- ---------------------------------------------------------------------------
 CREATE TABLE sys_todo_tag (
-  id         INTEGER      PRIMARY KEY AUTOINCREMENT,
-  owner_id   INTEGER      NOT NULL,
+  id         BIGSERIAL      PRIMARY KEY,
+  owner_id   BIGINT      NOT NULL,
   name       VARCHAR(64)  NOT NULL,
   created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (owner_id) REFERENCES sys_user(id) ON DELETE CASCADE,
@@ -46,8 +46,8 @@ CREATE TABLE sys_todo_tag (
 --    删任务 / 删标签都会自动清理中间表；后续 orphan tag 由 service 兜底清理。
 -- ---------------------------------------------------------------------------
 CREATE TABLE sys_todo_task_tag (
-  task_id INTEGER NOT NULL,
-  tag_id  INTEGER NOT NULL,
+  task_id BIGINT NOT NULL,
+  tag_id  BIGINT NOT NULL,
   PRIMARY KEY (task_id, tag_id),
   FOREIGN KEY (task_id) REFERENCES sys_todo_task(id) ON DELETE CASCADE,
   FOREIGN KEY (tag_id)  REFERENCES sys_todo_tag(id)  ON DELETE CASCADE

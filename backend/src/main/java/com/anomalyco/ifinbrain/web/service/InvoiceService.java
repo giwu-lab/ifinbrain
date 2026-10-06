@@ -621,31 +621,6 @@ public List<InvoiceRecord> exportAll(PageReq req) {
     }
 
     @Transactional
-    public void update(Long id, InvoiceRecord patch) {
-        perm.require("invoice:edit");
-        InvoiceRecord r = invoiceRepo.findById(id).orElseThrow(() -> new BizException(404, "Invoice not found"));
-        if (patch.getInvoiceType() != null) r.setInvoiceType(patch.getInvoiceType());
-        if (patch.getInvoiceNumber() != null) r.setInvoiceNumber(patch.getInvoiceNumber());
-        if (patch.getIssueDate() != null) r.setIssueDate(patch.getIssueDate());
-        if (patch.getBuyerName() != null) r.setBuyerName(patch.getBuyerName());
-        if (patch.getBuyerTaxId() != null) r.setBuyerTaxId(patch.getBuyerTaxId());
-        if (patch.getSellerName() != null) r.setSellerName(patch.getSellerName());
-        if (patch.getSellerTaxId() != null) r.setSellerTaxId(patch.getSellerTaxId());
-        if (patch.getAmountWithoutTax() != null) r.setAmountWithoutTax(patch.getAmountWithoutTax());
-        if (patch.getTaxAmount() != null) r.setTaxAmount(patch.getTaxAmount());
-        if (patch.getTotalAmount() != null) r.setTotalAmount(patch.getTotalAmount());
-        if (patch.getTotalAmountUpper() != null) r.setTotalAmountUpper(patch.getTotalAmountUpper());
-        if (patch.getPayee() != null) r.setPayee(patch.getPayee());
-        if (patch.getReviewer() != null) r.setReviewer(patch.getReviewer());
-        if (patch.getDrawer() != null) r.setDrawer(patch.getDrawer());
-        if (patch.getMessage() != null) r.setMessage(patch.getMessage());
-        if (patch.getVerificationNo() != null) r.setVerificationNo(patch.getVerificationNo());
-        if (patch.getVerifier() != null) r.setVerifier(patch.getVerifier());
-        if (patch.getVerificationDate() != null) r.setVerificationDate(patch.getVerificationDate());
-        invoiceRepo.save(r);
-    }
-
-    @Transactional
     public void delete(Long id) {
         perm.require("invoice:delete");
         invoiceRepo.findById(id).ifPresent(r -> {

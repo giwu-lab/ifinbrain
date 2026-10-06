@@ -18,6 +18,19 @@ spring:
       hibernate:
         jdbc:
           time_zone: Asia/Shanghai
+  # Spring AI 2.0 的模型自动配置一律是 matchIfMissing=true —— 属性「缺失」等于「启用」，
+  # 而 OpenAI 的任一模型在拿不到 api-key 时会从 OpenAiSetup#buildClientOptions 直接抛
+  # IllegalStateException 并终止整个应用上下文（不只少一个 bean）。
+  # 所以这里默认逐项显式关闭，需要哪个模型就在对应 profile 里打开哪个。
+  ai:
+    model:
+      chat: none
+      embedding: none
+      image: none
+      audio:
+        speech: none
+        transcription: none
+      moderation: none
 
 server:
   port: 8080
@@ -25,6 +38,9 @@ server:
   error:
     include-message: always
     include-binding-errors: always
+  tomcat:
+    uri-encoding: UTF-8
+    relaxed-query-chars: '[,]'
 
 management:
   endpoints:
@@ -37,7 +53,10 @@ management:
 
 ifinbrain:
   jwt:
-    access-secret: ${JWT_ACCESS_SECRET:dev-only-please-change-this-secret-key-min-32-bytes-long}
+    # 无内置默认值：硬编码兜底密钥会随源码泄露，任何人可据此伪造合法 token。
+    # 启动期由 JwtUtil.init() 强校验，未配置或长度 < 32 字节直接失败。
+    # 生成：openssl rand -base64 48
+    access-secret: ${JWT_ACCESS_SECRET}
     access-ttl-minutes: 30
     refresh-ttl-days: 7
   cors:

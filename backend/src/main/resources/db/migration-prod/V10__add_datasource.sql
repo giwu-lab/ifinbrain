@@ -1,7 +1,7 @@
 -- V10: Data Management feature (datasource CRUD + test connection)
 
 CREATE TABLE sys_datasource (
-  id              INTEGER      PRIMARY KEY AUTOINCREMENT,
+  id              BIGSERIAL      PRIMARY KEY,
   name            VARCHAR(64)  NOT NULL UNIQUE,
   db_type         VARCHAR(16)  NOT NULL,
   host            VARCHAR(128) NOT NULL,

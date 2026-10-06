@@ -29,7 +29,7 @@
 -- 1. sys_flow_define
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sys_flow_define (
-  id                INTEGER       PRIMARY KEY AUTOINCREMENT,
+  id                BIGSERIAL       PRIMARY KEY,
   code              VARCHAR(64)   NOT NULL UNIQUE,           -- 业务码（kebab-case），如 'leave_request'
   name              VARCHAR(128)  NOT NULL,                  -- 显示名
   description       VARCHAR(512),
@@ -48,8 +48,8 @@ CREATE INDEX IF NOT EXISTS idx_flow_define_code   ON sys_flow_define(code);
 -- 2. sys_flow_instance —— 流程实例（Phase 4 运行时填实，本期先建表）
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sys_flow_instance (
-  id              INTEGER       PRIMARY KEY AUTOINCREMENT,
-  flow_id         INTEGER       NOT NULL,
+  id              BIGSERIAL       PRIMARY KEY,
+  flow_id         BIGINT       NOT NULL,
   flow_code       VARCHAR(64)   NOT NULL,
   business_key    VARCHAR(128)  NOT NULL,                   -- 业务表主键
   state           VARCHAR(32)   NOT NULL,                   -- RUNNING / APPROVED / REJECTED / CANCELED
@@ -68,9 +68,9 @@ CREATE INDEX IF NOT EXISTS idx_flow_instance_flow_code    ON sys_flow_instance(f
 -- 3. sys_flow_task —— 审批任务（Phase 4 填实）
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sys_flow_task (
-  id             INTEGER       PRIMARY KEY AUTOINCREMENT,
-  instance_id    INTEGER       NOT NULL,
-  flow_id        INTEGER       NOT NULL,
+  id             BIGSERIAL       PRIMARY KEY,
+  instance_id    BIGINT       NOT NULL,
+  flow_id        BIGINT       NOT NULL,
   node_id        VARCHAR(64)   NOT NULL,
   node_label     VARCHAR(128),
   assignee_type  VARCHAR(16)   NOT NULL,                    -- USER / ROLE / ORG
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS sys_flow_task (
   assignee_name  VARCHAR(128),
   status         VARCHAR(16)   NOT NULL DEFAULT 'PENDING',  -- PENDING / APPROVED / REJECTED / SKIPPED
   comment        VARCHAR(512),
-  todo_task_id   INTEGER,                                   -- 联动 todo 模块（Phase 4）
+  todo_task_id   BIGINT,                                   -- 联动 todo 模块（Phase 4）
   created_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   completed_at   TIMESTAMP,
   FOREIGN KEY (instance_id) REFERENCES sys_flow_instance(id) ON DELETE CASCADE
@@ -91,8 +91,8 @@ CREATE INDEX IF NOT EXISTS idx_flow_task_todo      ON sys_flow_task(todo_task_id
 -- 4. sys_flow_history —— 审批历史
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sys_flow_history (
-  id             INTEGER       PRIMARY KEY AUTOINCREMENT,
-  instance_id    INTEGER       NOT NULL,
+  id             BIGSERIAL       PRIMARY KEY,
+  instance_id    BIGINT       NOT NULL,
   node_id        VARCHAR(64)   NOT NULL,
   node_label     VARCHAR(128),
   action         VARCHAR(16)   NOT NULL,                    -- SUBMIT / APPROVE / REJECT / DELEGATE / JUMP

@@ -12,22 +12,22 @@ CREATE INDEX idx_todo_task_assignee   ON sys_todo_task(assignee_id);
 
 -- created_by = 任务创建者（可能与 assignee 不同：admin 创建任务给其他人时分离）
 -- 用 SET NULL 而非 CASCADE：admin 被删后任务仍可保留，由 admin 视图查看
-ALTER TABLE sys_todo_task ADD COLUMN created_by INTEGER REFERENCES sys_user(id) ON DELETE SET NULL;
+ALTER TABLE sys_todo_task ADD COLUMN created_by BIGINT REFERENCES sys_user(id) ON DELETE SET NULL;
 CREATE INDEX idx_todo_task_created_by ON sys_todo_task(created_by);
 
 -- ---------------------------------------------------------------------------
 -- 2. sys_todo_attachment
 -- ---------------------------------------------------------------------------
 CREATE TABLE sys_todo_attachment (
-  id                INTEGER       PRIMARY KEY AUTOINCREMENT,
-  task_id           INTEGER       NOT NULL,
+  id                BIGSERIAL       PRIMARY KEY,
+  task_id           BIGINT       NOT NULL,
   storage_key       VARCHAR(512)  NOT NULL UNIQUE,
   storage_type      VARCHAR(16)   NOT NULL,
   original_filename VARCHAR(255)  NOT NULL,
   size_bytes        BIGINT        NOT NULL,
   sha256            CHAR(64),
   mime_type         VARCHAR(128),
-  uploader_id       INTEGER       REFERENCES sys_user(id) ON DELETE SET NULL,
+  uploader_id       BIGINT       REFERENCES sys_user(id) ON DELETE SET NULL,
   uploader_name     VARCHAR(64),
   status            SMALLINT      NOT NULL DEFAULT 1,
   created_at        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,

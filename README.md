@@ -170,7 +170,6 @@ Flyway 由 `FlywayConfig` 按 `spring.profiles.active` 自动挑选迁移目录�
 | PUT  | `/api/system/settings/storage` | `setting:update` |
 | GET  | `/api/invoices?page=&size=&keyword=` | `invoice:list` |
 | POST | `/api/invoices/upload-and-recognize` | `invoice:upload` |
-| PUT  | `/api/invoices/{id}` | `invoice:edit` |
 | GET  | `/api/files/raw?key=...` | `file:download` |
 
 完整 RBAC 权限点见 seed 脚本：`system:*` / `invoice:*` / `setting:*` / `file:*`。

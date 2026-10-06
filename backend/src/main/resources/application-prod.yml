@@ -24,3 +24,31 @@ spring:
           batch_size: 50
         order_inserts: true
         order_updates: true
+  # 档案库 RAG。application.yml 里默认把六项模型全关成 none，这里只打开需要的 chat/embedding。
+  # RAG 依赖 pgvector：数据库实例必须装好 vector 扩展，否则 V45 迁移与检索都会失败。
+  ai:
+    model:
+      chat: openai
+      embedding: openai
+    openai:
+      base-url: ${RAG_BASE_URL:https://api.siliconflow.cn/v1}
+      api-key: ${RAG_API_KEY:}
+      chat:
+        options:
+          model: ${RAG_CHAT_MODEL:Qwen/Qwen2.5-7B-Instruct}
+          temperature: 0.2
+          max-tokens: 1500
+      embedding:
+        options:
+          model: ${RAG_EMBEDDING_MODEL:BAAI/bge-m3}
+
+ifinbrain:
+  rag:
+    # 打开前请确认：① 远程库已 CREATE EXTENSION vector ② RAG_API_KEY 已配置
+    enabled: ${RAG_ENABLED:false}
+    embedding-base-url: ${RAG_BASE_URL:https://api.siliconflow.cn/v1}
+    embedding-api-key: ${RAG_API_KEY:}
+    embedding-model: ${RAG_EMBEDDING_MODEL:BAAI/bge-m3}
+    # 必须与 V45 迁移里 rag_document_chunk.embedding 的 vector(N) 一致
+    dimensions: 1024
+    chat-model: ${RAG_CHAT_MODEL:Qwen/Qwen2.5-7B-Instruct}

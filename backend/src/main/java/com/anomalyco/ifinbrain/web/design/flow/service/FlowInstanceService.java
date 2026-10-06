@@ -1,13 +1,16 @@
 package com.anomalyco.ifinbrain.web.design.flow.service;
 
+import com.anomalyco.ifinbrain.web.common.BizException;
 import com.anomalyco.ifinbrain.web.design.flow.dto.FlowHistoryDto;
 import com.anomalyco.ifinbrain.web.design.flow.dto.FlowInstanceDto;
 import com.anomalyco.ifinbrain.web.design.flow.entity.SysFlowDefine;
 import com.anomalyco.ifinbrain.web.design.flow.entity.SysFlowHistory;
 import com.anomalyco.ifinbrain.web.design.flow.entity.SysFlowInstance;
+import com.anomalyco.ifinbrain.web.design.flow.entity.SysFlowTask;
 import com.anomalyco.ifinbrain.web.design.flow.repository.SysFlowDefineRepository;
 import com.anomalyco.ifinbrain.web.design.flow.repository.SysFlowHistoryRepository;
 import com.anomalyco.ifinbrain.web.design.flow.repository.SysFlowInstanceRepository;
+import com.anomalyco.ifinbrain.web.design.flow.repository.SysFlowTaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +28,7 @@ public class FlowInstanceService {
     private final SysFlowInstanceRepository repo;
     private final SysFlowDefineRepository defineRepo;
     private final SysFlowHistoryRepository historyRepo;
+    private final SysFlowTaskRepository taskRepo;
 
     @Transactional(readOnly = true)
     public List<FlowInstanceDto> list() {
@@ -81,5 +85,26 @@ public class FlowInstanceService {
                 .comment(h.getComment())
                 .createdAt(h.getCreatedAt())
                 .build();
+    }
+
+    /**
+     * 删除实例。仅允许删除已驳回 (REJECTED) 的实例，且必须是发起人或 admin。
+     * 级联清理：sys_flow_task (按 instanceId) + sys_flow_history (按 instanceId) + sys_flow_instance。
+     */
+    @Transactional
+    public void delete(Long id, String currentUsername, boolean isAdmin) {
+        SysFlowInstance inst = repo.findById(id).orElseThrow(() -> new BizException(404, "流程实例不存在"));
+        if (!"REJECTED".equals(inst.getState())) {
+            throw new BizException(400, "仅已驳回的流程实例可删除");
+        }
+        if (!isAdmin && !inst.getStartedBy().equals(currentUsername)) {
+            throw new BizException(403, "仅发起人或管理员可删除此流程实例");
+        }
+        // 级联清理
+        taskRepo.findAll().stream().filter(t -> id.equals(t.getInstanceId()))
+                .forEach(t -> taskRepo.deleteById(t.getId()));
+        historyRepo.findAll().stream().filter(h -> id.equals(h.getInstanceId()))
+                .forEach(h -> historyRepo.deleteById(h.getId()));
+        repo.deleteById(id);
     }
 }

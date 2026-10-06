@@ -82,12 +82,6 @@ public class InvoiceController {
         return Result.ok(invoiceService.commit(body));
     }
 
-    @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @RequestBody InvoiceRecord patch) {
-        invoiceService.update(id, patch);
-        return Result.ok();
-    }
-
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         invoiceService.delete(id);

@@ -8,14 +8,14 @@
 -- 回填策略：「强制重新设置」（V28 之前的现有任务根据 due_at 推算）
 -- 仅回填已存在且对应列 NULL 的任务；新创建的任务由前端表单保证非空。
 
-ALTER TABLE sys_todo_task ADD COLUMN recurrence_dow   TINYINT;
-ALTER TABLE sys_todo_task ADD COLUMN recurrence_dom   TINYINT;
-ALTER TABLE sys_todo_task ADD COLUMN recurrence_month TINYINT;
+ALTER TABLE sys_todo_task ADD COLUMN recurrence_dow   SMALLINT;
+ALTER TABLE sys_todo_task ADD COLUMN recurrence_dom   SMALLINT;
+ALTER TABLE sys_todo_task ADD COLUMN recurrence_month SMALLINT;
 
--- 回填 WEEKLY：SQLite strftime('%w', ...) 是 0=Sun..6=Sat，转换为 ISO 1=Mon..7=Sun
--- 注意 due_at 在 JPA 下是整数毫秒时间戳（SQLite 类型 INTEGER），需要先转 datetime
+-- 回填 WEEKLY：PostgreSQL EXTRACT(DOW) 与 SQLite strftime('%w') 同样是 0=Sun..6=Sat，转换为 ISO 1=Mon..7=Sun
+-- due_at 是真正的 TIMESTAMP 列（见 V27），直接 EXTRACT 即可 —— 无需 SQLite 的毫秒时间戳换算
 UPDATE sys_todo_task
-   SET recurrence_dow = CASE CAST(strftime('%w', datetime(due_at/1000, 'unixepoch', 'localtime') ) AS INTEGER)
+   SET recurrence_dow = CASE EXTRACT(DOW FROM due_at)::int
                           WHEN 0 THEN 7
                           WHEN 1 THEN 1
                           WHEN 2 THEN 2
@@ -28,5 +28,5 @@ UPDATE sys_todo_task
 
 -- 回填 MONTHLY：直接从 due_at 取 day-of-month
 UPDATE sys_todo_task
-   SET recurrence_dom = CAST(strftime('%d', datetime(due_at/1000, 'unixepoch', 'localtime') ) AS INTEGER)
+   SET recurrence_dom = EXTRACT(DAY FROM due_at)::int
  WHERE recurrence = 'MONTHLY' AND due_at IS NOT NULL AND recurrence_dom IS NULL;
