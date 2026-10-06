@@ -5,7 +5,7 @@
         <h1 class="page-title">{{ t('dict.title') }}</h1>
         <p class="page-desc muted">{{ t('dict.desc') }}</p>
       </div>
-      <!-- page-header 只保留标题；字典 / 国际化 tab 各自在 pane 内部署操作按钮 -->
+      <!-- page-header 只保留标题；字典 tab 在 pane 内部署操作按钮 -->
     </div>
 
     <el-tabs v-model="activeTab" class="dict-tabs">
@@ -165,10 +165,6 @@
           </div>
         </div>
       </el-tab-pane>
-
-      <el-tab-pane :label="t('dict.tabI18n')" name="i18n">
-        <I18nPanel />
-      </el-tab-pane>
     </el-tabs>
 
     <!-- 类型编辑弹窗 -->
@@ -287,13 +283,12 @@ import {
 import { useAuthStore } from '@/stores/auth';
 import { dictApi, type DictItem, type DictType } from '@/api/dict';
 import { useDictStore } from '@/stores/dict';
-import I18nPanel from './I18nPanel.vue';
 
 const { t } = useI18n();
 const auth = useAuthStore();
 const store = useDictStore();
 
-const activeTab = ref<'dict' | 'i18n'>('dict');
+const activeTab = ref<'dict'>('dict');
 
 const types = ref<DictType[]>([]);
 const typesLoading = ref(false);

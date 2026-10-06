@@ -199,10 +199,11 @@ header: {
       'flow-runtime': { Index: 'Flow Runtime' }
     },
 
-    // Task List (introduced in P11)
+    // Task Management (introduced in P11)
+    // Naming: top-level dir = Task Management ('_' = self), child menu = Task List
     todo: {
-      _: 'Task List',
-      task: { Index: 'Tasks' },
+      _: 'Task Management',
+      task: { Index: 'Task List' },
     },
   },
 
@@ -406,6 +407,8 @@ header: {
     newUserTitle: 'New User',
     passwordLabel: 'Password',
     passwordHint: 'Leave blank to keep',
+    emailOptional: 'Optional',
+    invalidEmail: 'Please enter a valid email address',
     confirmDeleteUser: 'Delete this user?',
 
     newRole: 'New Role',
@@ -833,6 +836,41 @@ header: {
     folderPathInvalid: 'Invalid path (each segment: letters/digits/-/_, use / for nesting)',
     folderCreated: 'Folder created: {path}',
     folderCreateFail: 'Create failed: {msg}',
+
+    /* Archive Q&A (RAG) */
+    rag: {
+      title: 'Ask Archive',
+      openBtn: 'Ask Archive',
+      unavailable: 'Archive Q&A is not enabled in this environment (backend RAG switch is off)',
+      indexedBadge: '{n} chunks indexed',
+      clear: 'Clear',
+      emptyTitle: 'Ask your archive',
+      emptyDesc: 'Answers are generated only from indexed archive content and come with sources. Retrieval is limited to the archives you are allowed to view.',
+      noIndexHint: 'Almost nothing is indexed yet, so answers may find no content.',
+      examples: 'Try asking',
+      example1: 'Do any of these files mention a delivery date?',
+      example2: 'Summarize the main tech stack',
+      example3: 'Which files mention amounts or budgets?',
+      placeholder: 'Ask about this archive, e.g. when is delivery scheduled in this contract?',
+      send: 'Ask',
+      think: 'Retrieving and generating…',
+      askFail: 'Ask failed: {msg}',
+      citeTitle: 'Sources',
+      unknownFile: 'Unknown file',
+      distanceHint: 'Cosine distance, smaller is more similar',
+      elapsed: 'took {ms} ms',
+      indexBtn: 'Index',
+      indexing: 'Indexing…',
+      indexDone: '"{name}" indexed, {n} chunks',
+      indexSkipped: '"{name}" skipped: {note}',
+      indexFailed: 'Index failed: {msg}',
+      reindexBtn: 'Rebuild library index',
+      reindexConfirm: 'This re-parses and embeds every file in "{name}", replacing existing chunks. It calls the embedding API. Continue?',
+      reindexing: 'Rebuilding library index, this may take a while…',
+      reindexDone: 'Done: {indexed} indexed · {skipped} skipped · {failed} failed (of {total})',
+      reindexFailed: 'Rebuild failed: {msg}',
+      sourceLoadFailed: 'Failed to open source file: {msg}',
+    },
 
     /* Folder navigation */
     breadcrumbRoot: 'Root',

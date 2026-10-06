@@ -205,10 +205,11 @@ export default {
       'flow-runtime': { Index: '流程运行' }
     },
 
-    // 任务清单（P11 阶段引入）
+    // 任务管理（P11 阶段引入）
+    // 命名约定：顶级目录 = 任务管理（下划线前缀 = DIR 自身名），二级菜单 = 任务清单
     todo: {
-      _: '任务清单',
-      task: { Index: '任务管理' },
+      _: '任务管理',
+      task: { Index: '任务清单' },
     },
   },
 
@@ -216,7 +217,7 @@ export default {
     welcomeDesc: '使用左侧导航管理用户、角色、菜单与存储设置。',
     myTasksCount: '我的任务',
     myTasksHint: '点击查看 →',
-    flowTodoCount: '待办任务',
+    flowTodoCount: '待办流程',
     flowTodoHint: '点击查看 →',
     rolesCount: '角色数',
     menusCount: '菜单数',
@@ -412,6 +413,8 @@ export default {
     newUserTitle: '新增用户',
     passwordLabel: '密码',
     passwordHint: '留空表示不修改',
+    emailOptional: '选填',
+    invalidEmail: '请输入合法的邮箱地址',
     confirmDeleteUser: '确定要删除该用户吗？',
 
     newRole: '新增角色',
@@ -852,6 +855,41 @@ export default {
     folderPathInvalid: '路径格式不正确（每段限字母/数字/连字符/下划线/空格，多级用 / 分隔）',
     folderCreated: '文件夹已创建：{path}',
     folderCreateFail: '创建失败：{msg}',
+
+    /* 档案库问答（RAG） */
+    rag: {
+      title: '智能问答',
+      openBtn: '智能问答',
+      unavailable: '当前环境未启用档案库问答（后端 RAG 开关未打开）',
+      indexedBadge: '已索引 {n} 个分块',
+      clear: '清空',
+      emptyTitle: '基于档案库提问',
+      emptyDesc: '答案只依据已索引的档案内容生成，并附上来源；检索范围自动限定为你有权限查看的档案库。',
+      noIndexHint: '目前几乎没有档案被索引，回答可能查不到内容。',
+      examples: '试试这些问题',
+      example1: '这些档案里有没有提到交付时间？',
+      example2: '帮我总结一下主要的技术栈',
+      example3: '有哪些文件提到了金额或预算？',
+      placeholder: '基于本档案库提问，例如：这份合同约定什么时候交付？',
+      send: '提问',
+      think: '检索并生成回答中…',
+      askFail: '提问失败：{msg}',
+      citeTitle: '引用来源',
+      unknownFile: '未知文件',
+      distanceHint: '余弦距离，越小越相似',
+      elapsed: '耗时 {ms} 毫秒',
+      indexBtn: '建立索引',
+      indexing: '索引中…',
+      indexDone: '「{name}」已索引，生成 {n} 个分块',
+      indexSkipped: '「{name}」已跳过：{note}',
+      indexFailed: '索引失败：{msg}',
+      reindexBtn: '重建整库索引',
+      reindexConfirm: '将重新解析并向量化「{name}」下的全部档案，已索引内容会被覆盖。此操作会调用 embedding 接口，继续？',
+      reindexing: '正在重建整库索引，大库可能需要较长时间…',
+      reindexDone: '重建完成：成功 {indexed} · 跳过 {skipped} · 失败 {failed}（共 {total} 个档案）',
+      reindexFailed: '重建索引失败：{msg}',
+      sourceLoadFailed: '打开原档案失败：{msg}',
+    },
 
     /* 文件夹导航 */
     breadcrumbRoot: '根目录',
