@@ -147,21 +147,29 @@ public class FapiaoCnClient {
      * 返回的 Map 含 ok / body / url， url 是实际请求的完整地址（前端可展示）。
      */
     public java.util.Map<String, Object> probeHealth(String overrideUrl) {
-        String base;
-        String path;
+        // override 优先：用户可能正在改地址，「测试连通」必须探测表单里填的那个值。
+        // 原实现只在「配置缺失 / 未启用」时才用 override；配置一旦存在就把 override 整个丢掉，
+        // 于是改完地址点测试，看到的仍是库里旧地址的探测结果 —— 改完看着还是不通，误导排查方向。
+        String savedBase = null;
         try {
-            CachedConfig c = currentConfig();
-            base = c.baseUrl;
-            path = c.healthPath;
-        } catch (Exception e) {
-            // 配置未启用 / 未配置：用 overrideUrl 兜底，healthPath 默认 /health
-            base = overrideUrl;
-            path = "/health";
+            savedBase = currentConfig().baseUrl;
+        } catch (Exception ignore) {
+            // 未启用 / 读取失败 —— 留空，由下面的 baseUrl is required 兜底
         }
+        String base = (overrideUrl == null || overrideUrl.isBlank()) ? savedBase : overrideUrl.trim();
         if (base == null || base.isBlank()) {
             throw new com.anomalyco.ifinbrain.web.common.BizException(400, "baseUrl is required");
         }
-        if (path == null || path.isBlank()) path = "/health";
+        while (base.endsWith("/")) base = base.substring(0, base.length() - 1);
+
+        // healthPath 仍取已存配置（表单同一区块可改），取不到则用 /health
+        String path = "/health";
+        try {
+            String hp = currentConfig().healthPath;
+            if (hp != null && !hp.isBlank()) path = hp.trim();
+        } catch (Exception ignore) {
+            // 同上，路径用默认值
+        }
         if (!path.startsWith("/")) path = "/" + path;
         try {
             WebClient probe = WebClient.builder().baseUrl(base).build();
