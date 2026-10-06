@@ -17,29 +17,29 @@
 
     <el-card class="card-table" shadow="never">
       <el-table :data="rows" v-loading="loading" border stripe>
-        <el-table-column prop="id" :label="t('system.colId')" width="72" />
-        <el-table-column :label="t('system.colCode')" prop="code" width="160">
+        <el-table-column prop="id" :label="t('system.colId')" width="80" />
+        <el-table-column :label="t('system.colCode')" prop="code" width="140">
           <template #default="{ row }">
             <el-tag type="info" effect="plain" size="small" round>{{ row.code }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="t('system.colName')" prop="name" min-width="140" />
-        <el-table-column :label="t('system.colRemark')" prop="remark" min-width="200">
+        <el-table-column :label="t('system.colName')" prop="name" width="160" />
+        <el-table-column :label="t('system.colRemark')" prop="remark" width="280">
           <template #default="{ row }">
             <span v-if="row.remark" class="text-secondary">{{ row.remark }}</span>
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('system.colPermissions')" min-width="320">
+        <el-table-column :label="t('system.colPermissions')" min-width="640">
           <template #default="{ row }">
             <div class="perm-cluster">
-              <div v-for="mod in groupedRolePerms(row as RoleItem)" :key="mod.name" class="perm-cluster-row">
-                <span class="mod-label">{{ t(`system.permModule.${mod.name}`, mod.name) }}</span>
-                <!-- 档案库模块特殊处理：按档案库细分组（财务部 / 销售部 ...），全局权限单独一行 -->
-                <template v-if="mod.name === 'documents'">
-                  <div v-if="globalDocsPerms(mod.perms).length" class="perm-cluster-sub">
+              <div v-for="group in groupedByTopMenu(row as RoleItem)" :key="group.id" class="perm-cluster-row">
+                <span class="mod-label">{{ t(`system.permModule.${group.moduleKey}`, group.name) }}</span>
+                <!-- Documents DIR 特殊处理：全局 perm 单独一行 + 档案库按 slug 拆子行 -->
+                <template v-if="group.moduleKey === 'documents'">
+                  <div v-if="globalDocsPerms(group.perms).length" class="perm-cluster-sub">
                     <el-tag
-                      v-for="p in globalDocsPerms(mod.perms)"
+                      v-for="p in globalDocsPerms(group.perms)"
                       :key="p.code"
                       size="small"
                       effect="plain"
@@ -51,7 +51,7 @@
                     </el-tag>
                   </div>
                   <div
-                    v-for="cat in archivePermGroups(mod.perms)"
+                    v-for="cat in archivePermGroups(group.perms)"
                     :key="cat.slug"
                     class="perm-cluster-sub"
                   >
@@ -68,10 +68,10 @@
                     </el-tag>
                   </div>
                 </template>
-                <!-- 其他模块：原有展示 -->
+                <!-- 其他顶级 DIR / orphan bucket：前 4 个 verb + +N -->
                 <template v-else>
                   <el-tag
-                    v-for="p in mod.perms.slice(0, 4)"
+                    v-for="p in group.perms.slice(0, 4)"
                     :key="p.code"
                     size="small"
                     effect="plain"
@@ -82,13 +82,13 @@
                     {{ actionOf(p.code) }}
                   </el-tag>
                   <el-tag
-                    v-if="mod.perms.length > 4"
+                    v-if="group.perms.length > 4"
                     size="small"
                     effect="plain"
                     round
                     class="perm-tag"
                   >
-                    +{{ mod.perms.length - 4 }}
+                    +{{ group.perms.length - 4 }}
                   </el-tag>
                 </template>
               </div>
@@ -109,8 +109,12 @@
             <el-tooltip v-if="auth.hasPerm('system:role:update')" :content="t('common.edit')" placement="top">
               <el-button size="small" link :icon="Edit" @click="openEdit(row as RoleItem)" />
             </el-tooltip>
-            <!-- 删除：保留在 ··· 下拉 -->
-            <el-dropdown v-if="auth.hasPerm('system:role:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row as RoleItem)">
+            <!-- 删除：保留在 ··· 下拉。系统预设角色 admin 不提供删除入口（后端也会硬拦） -->
+            <el-dropdown
+              v-if="auth.hasPerm('system:role:delete') && !isPreset(row as RoleItem)"
+              trigger="click"
+              @command="(cmd: string) => onCmd(cmd, row as RoleItem)"
+            >
               <el-button :icon="MoreFilled" size="small" link />
               <template #dropdown>
                 <el-dropdown-menu>
@@ -195,13 +199,15 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import { Plus, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
-import { roleApi, type RoleItem, type PermissionItem } from '@/api/system';
-import { groupByModule, actionOf, moduleOf } from '@/utils/permission';
+import { roleApi, menuApi, type RoleItem, type PermissionItem, type MenuItem } from '@/api/system';
+import { groupByModule, groupByTopMenu, actionOf, moduleOf, type TopMenuGroup } from '@/utils/permission';
+import type { MenuNode } from '@/types';
 
 const { t } = useI18n();
 const auth = useAuthStore();
 const rows = ref<RoleItem[]>([]);
 const allPermissions = ref<PermissionItem[]>([]);
+const menus = ref<MenuNode[]>([]);
 const loading = ref(false);
 
 const dialog = reactive({ visible: false, mode: 'create' as 'create' | 'edit', title: '', loading: false });
@@ -221,6 +227,12 @@ async function reload() {
 }
 
 async function loadPerms() { allPermissions.value = await roleApi.permissions(); }
+
+/** 顶级菜单 flat 列表（用于按顶级 DIR 归类）。失败时静默回退（rows 仍按原 moduleOf 显示） */
+async function loadMenus() {
+  try { menus.value = await menuApi.flat() as unknown as MenuNode[]; }
+  catch { menus.value = []; }
+}
 
 /** 编辑对话框用：按 module 分组（用于 sectioned checkbox UI） */
 const groupedPermissions = computed(() => groupByModule(allPermissions.value));
@@ -243,29 +255,30 @@ const permByCode = computed(() => {
   return m;
 });
 
-function groupedRolePerms(row: RoleItem): { name: string; perms: PermissionItem[] }[] {
+/** 角色列表展示用：按顶级 sys_menu DIR 归类（详见 utils/permission.ts: groupByTopMenu） */
+function groupedByTopMenu(row: RoleItem): TopMenuGroup[] {
   const codes = row.permissionCodes || [];
   const items: PermissionItem[] = [];
   for (const c of codes) {
     const found = permByCode.value.get(c);
     if (found) items.push(found);
   }
-  return groupByModule(items);
+  return groupByTopMenu(items, menus.value);
 }
 
 /**
  * 档案库模块的全局权限（如 documents:view / documents:upload）—— 这些是 2 段式 code。
  * 由 ArchiveLibraryService 创建的 4 个档案库专属权限都是 3 段式 documents:{slug}:{verb}，归档案库分组。
  */
-function globalDocsPerms(perms: PermissionItem[]): PermissionItem[] {
-  return perms.filter(p => p.code.split(':').length === 2);
+function globalDocsPerms(perms: TopMenuGroup['perms']): PermissionItem[] {
+  return perms.filter(p => p.code.split(':').length === 2) as PermissionItem[];
 }
 
 /**
  * 档案库权限分组：每个档案库一行，展示该角色在该档案库下的 4 个 verb。
  * 档案库显示名从 perm.name 字段提取（"财务部 档案库查看" → "财务部"）；fallback 到 slug。
  */
-function archivePermGroups(perms: PermissionItem[]): { slug: string; archiveName: string; perms: PermissionItem[] }[] {
+function archivePermGroups(perms: TopMenuGroup['perms']): { slug: string; archiveName: string; perms: PermissionItem[] }[] {
   const cats = new Map<string, { slug: string; archiveName: string; perms: PermissionItem[] }>();
   for (const p of perms) {
     const parts = p.code.split(':');
@@ -275,7 +288,7 @@ function archivePermGroups(perms: PermissionItem[]): { slug: string; archiveName
       const name = (p.name || '').replace(/档案库(查看|上传|修改|删除)\s*$/, '').trim();
       cats.set(slug, { slug, archiveName: name || slug, perms: [] });
     }
-    cats.get(slug)!.perms.push(p);
+    cats.get(slug)!.perms.push(p as PermissionItem);
   }
   // 排序：按 slug 字典序稳定；如需业务排序可在 service 端做
   return Array.from(cats.values()).sort((a, b) => a.slug.localeCompare(b.slug));
@@ -312,6 +325,12 @@ async function save() {
   });
 }
 
+/** 系统预设角色（与后端 SystemPresets.PROTECTED_ROLE_CODES 对应）不可删除 */
+const PRESET_ROLE_CODES = ['admin', 'task_manager'];
+function isPreset(row: RoleItem) {
+  return PRESET_ROLE_CODES.includes(row.code);
+}
+
 async function remove(row: RoleItem) {
   await roleApi.remove(row.id);
   ElMessage.success(t('common.deleted'));
@@ -332,11 +351,14 @@ async function onCmd(cmd: string, row: RoleItem) {
   }
 }
 
-onMounted(async () => { await loadPerms(); await reload(); });
+onMounted(async () => {
+  await Promise.all([loadPerms(), loadMenus()]);
+  await reload();
+});
 </script>
 
 <style scoped>
-.page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
 .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .page-desc { margin: 4px 0 0; font-size: 13px; }
 

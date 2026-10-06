@@ -1,6 +1,7 @@
 package com.anomalyco.ifinbrain.web.service;
 
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.common.SystemPresets;
 import com.anomalyco.ifinbrain.web.dto.role.RoleCreateReq;
 import com.anomalyco.ifinbrain.web.dto.role.RoleListItem;
 import com.anomalyco.ifinbrain.web.dto.role.RoleUpdateReq;
@@ -79,7 +80,13 @@ public class RoleService {
 
     @Transactional
     public void delete(Long id) {
-        roleRepo.deleteById(id);
+        // 先查后删：拿到 code 做预设校验，并顺带把「删不存在的 id」修正成 404
+        // （deleteById 会抛 EmptyResultDataAccessException，最终变成 500）。
+        SysRole r = roleRepo.findById(id).orElseThrow(() -> new BizException(404, "Role not found"));
+        if (SystemPresets.PROTECTED_ROLE_CODES.contains(r.getCode())) {
+            throw new BizException(409, "系统预设角色 " + r.getCode() + " 不允许删除");
+        }
+        roleRepo.delete(r);
         rolePermRepo.deleteByRoleId(id);
     }
 

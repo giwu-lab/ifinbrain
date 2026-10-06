@@ -78,8 +78,12 @@
             <el-tooltip v-if="auth.hasPerm('system:user:update')" :content="t('common.edit')" placement="top">
               <el-button size="small" link :icon="Edit" @click="openEdit(row as UserItem)" />
             </el-tooltip>
-            <!-- 删除：保留在 ··· 下拉 -->
-            <el-dropdown v-if="auth.hasPerm('system:user:delete')" trigger="click" @command="(cmd: string) => onCmd(cmd, row as UserItem)">
+            <!-- 删除：保留在 ··· 下拉。系统预设账号 admin 不提供删除入口（后端也会硬拦） -->
+            <el-dropdown
+              v-if="auth.hasPerm('system:user:delete') && !isPreset(row as UserItem)"
+              trigger="click"
+              @command="(cmd: string) => onCmd(cmd, row as UserItem)"
+            >
               <el-button :icon="MoreFilled" size="small" link />
               <template #dropdown>
                 <el-dropdown-menu>
@@ -129,8 +133,8 @@
         <el-form-item :label="t('system.colDisplayName')">
           <el-input v-model="form.displayName" />
         </el-form-item>
-        <el-form-item :label="t('system.colEmail')">
-          <el-input v-model="form.email" />
+        <el-form-item :label="t('system.colEmail')" prop="email">
+          <el-input v-model="form.email" :placeholder="t('system.emailOptional')" clearable />
         </el-form-item>
         <el-form-item :label="t('system.colPhone')">
           <el-input v-model="form.phone" />
@@ -181,9 +185,21 @@ const form = reactive({
   status: 1 as number, roleIds: [] as number[]
 });
 const formRef = ref<FormInstance>();
+/** 邮箱选填：留空不校验，填了才要求是合法地址（与后端 @Email 同一口径） */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const rules = computed<FormRules>(() => ({
   username: [{ required: true, message: t('common.required') }],
-  password: [{ required: true, message: t('common.required') }]
+  password: [{ required: true, message: t('common.required') }],
+  email: [
+    {
+      validator: (_r: unknown, v: string, cb: (e?: Error) => void) => {
+        const s = (v ?? '').trim();
+        if (!s || EMAIL_RE.test(s)) return cb();
+        cb(new Error(t('system.invalidEmail')));
+      },
+      trigger: ['blur', 'change']
+    }
+  ]
 }));
 
 async function reload() {
@@ -225,11 +241,16 @@ async function save() {
     if (!valid) return;
     dialog.loading = true;
     try {
+      // 邮箱选填：去掉首尾空白后提交，空串由后端落成 NULL
+      const email = form.email.trim();
       if (dialog.mode === 'create') {
-        await userApi.create({ ...form });
+        await userApi.create({ ...form, email });
         ElMessage.success(t('common.created'));
       } else {
-        await userApi.update(form.id, { ...form });
+        // 编辑时密码留空 = 不修改。直接把空串发出去会被后端长度校验拒掉，
+        // 这里干脆不带上该字段（缺省语义就是「不动这个字段」）。
+        const { password, ...rest } = form;
+        await userApi.update(form.id, password ? { ...rest, email, password } : { ...rest, email });
         ElMessage.success(t('common.updated'));
       }
       dialog.visible = false;
@@ -238,6 +259,11 @@ async function save() {
       dialog.loading = false;
     }
   });
+}
+
+/** 系统预设账号（与后端 SystemPresets.ADMIN_USERNAME 对应）不可删除 */
+function isPreset(row: UserItem) {
+  return row.username === 'admin';
 }
 
 async function remove(row: UserItem) {
@@ -271,7 +297,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 .page-title {
   margin: 0;

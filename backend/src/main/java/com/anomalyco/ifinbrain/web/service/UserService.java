@@ -2,6 +2,7 @@ package com.anomalyco.ifinbrain.web.service;
 
 import com.anomalyco.ifinbrain.web.common.BizException;
 import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.SystemPresets;
 import com.anomalyco.ifinbrain.web.dto.user.UserCreateReq;
 import com.anomalyco.ifinbrain.web.dto.user.UserListItem;
 import com.anomalyco.ifinbrain.web.dto.user.UserUpdateReq;
@@ -70,7 +71,7 @@ public class UserService {
                 .username(req.getUsername())
                 .passwordHash(encoder.encode(req.getPassword()))
                 .displayName(req.getDisplayName())
-                .email(req.getEmail())
+                .email(blankToNull(req.getEmail()))
                 .phone(req.getPhone())
                 .status(req.getStatus() == null ? (short) 1 : req.getStatus())
                 .build();
@@ -83,10 +84,16 @@ public class UserService {
     public void update(Long id, UserUpdateReq req) {
         SysUser u = userRepo.findById(id).orElseThrow(() -> new BizException(404, "User not found"));
         if (req.getDisplayName() != null) u.setDisplayName(req.getDisplayName());
-        if (req.getEmail() != null) u.setEmail(req.getEmail());
+        // 邮箱选填：null = 本次没带这个字段（不动）；空串 = 用户主动清空（置 NULL）。
+        if (req.getEmail() != null) u.setEmail(blankToNull(req.getEmail()));
         if (req.getPhone() != null) u.setPhone(req.getPhone());
         if (req.getStatus() != null) u.setStatus(req.getStatus());
         if (req.getPassword() != null && !req.getPassword().isBlank()) {
+            // 长度下限从 DTO 移到这里（见 UserUpdateReq.password 的注释）：
+            // DTO 上带 min 会把「留空不修改」的请求挡在 service 之前。
+            if (req.getPassword().length() < 6) {
+                throw new BizException(400, "密码长度必须在 6 和 64 之间");
+            }
             u.setPasswordHash(encoder.encode(req.getPassword()));
         }
         userRepo.save(u);
@@ -99,8 +106,20 @@ public class UserService {
 
     @Transactional
     public void delete(Long id) {
-        userRepo.deleteById(id);
+        // 先查后删：既能拿到 username 做预设校验，也顺带把「删一个不存在的 id」
+        // 从 deleteById 抛 EmptyResultDataAccessException（最后会变成 500）
+        // 修正成明确的 404。
+        SysUser u = userRepo.findById(id).orElseThrow(() -> new BizException(404, "User not found"));
+        if (SystemPresets.ADMIN_USERNAME.equals(u.getUsername())) {
+            throw new BizException(409, "系统预设账号 " + SystemPresets.ADMIN_USERNAME + " 不允许删除");
+        }
+        userRepo.delete(u);
         userRoleRepo.deleteByUserId(id);
+    }
+
+    /** 邮箱选填：空白统一落 NULL，避免库里留一堆空串被当成「填过」。 */
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s;
     }
 
     private void bindRoles(Long userId, List<Long> roleIds) {
