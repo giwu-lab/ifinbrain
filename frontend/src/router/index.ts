@@ -113,6 +113,18 @@ const staticRoutes: RouteRecordRaw[] = [
   { path: '/documents/:slug', component: () => import('@/views/documents/list/Index.vue'),
     meta: { title: 'Documents', name: 'Documents', component: 'documents/list/Index', path: '/documents' } },
   // 顶级 DIR (/documents) 不挂路由 —— DIR 只是文件夹容器，点击只展开/收起，不应跳转
+
+  // ==================== BI 大屏（不走 sys_menu 精确路径，静态路由接管） ====================
+  // 设计器 new / :id 两个入口都用同一个组件，id=非数字时视为新建
+  { path: '/bi/dashboard/design/:id', component: () => import('@/views/bi/dashboard/Designer.vue'),
+    meta: { title: 'BI Designer', permission: 'bi:dashboard:update', name: 'BI Designer', component: 'bi/dashboard/Designer', path: '/bi/dashboard/design' } },
+  // 播放页 / 展示墙走 tab 白名单（stores/tab.ts IGNORED_PREFIXES），不进 tab 条
+  // immersive=true → App.vue 用裸 router-view 渲染，脱离 BasicLayout 全屏。
+  // 注意不能用 meta.public（那会连带跳过鉴权守卫）。
+  { path: '/bi/dashboard/view/:id(\\d+)', component: () => import('@/views/bi/dashboard/View.vue'),
+    meta: { title: 'BI View', permission: 'bi:dashboard:view', immersive: true, name: 'BI View', component: 'bi/dashboard/View', path: '/bi/dashboard/view' } },
+  { path: '/bi/dashboard/wall', component: () => import('@/views/bi/dashboard/Wall.vue'),
+    meta: { title: 'BI Wall', permission: 'bi:dashboard:view', immersive: true, name: 'BI Wall', component: 'bi/dashboard/Wall', path: '/bi/dashboard/wall' } },
 ];
 
 const builtInViews: Record<string, () => Promise<unknown>> = {
@@ -134,6 +146,10 @@ const builtInViews: Record<string, () => Promise<unknown>> = {
   'design/flow/Index':           () => import('@/views/design/flow/Index.vue'),
   'design/form/Index':           () => import('@/views/design/form/Index.vue'),
   'todo/task/Index':             () => import('@/views/todo/task/Index.vue'),
+  'bi/dashboard/Index':          () => import('@/views/bi/dashboard/Index.vue'),
+  'bi/dashboard/Designer':       () => import('@/views/bi/dashboard/Designer.vue'),
+  'bi/dashboard/View':           () => import('@/views/bi/dashboard/View.vue'),
+  'bi/dashboard/Wall':           () => import('@/views/bi/dashboard/Wall.vue'),
 };
 
 function buildRoutesFromMenus(menus: MenuNode[]): RouteRecordRaw[] {
@@ -179,6 +195,12 @@ function buildRoutesFromMenus(menus: MenuNode[]): RouteRecordRaw[] {
       if (compKey === 'documents/archive/Index') continue;
       // 表单设计器：精确菜单 path=/design/form 已由下方静态路由接管（new/edit/preview 走参数路由）
       if (compKey === 'design/form/Index') continue;
+      // BI 大屏：Designer / View / Wall 三条菜单行都由静态参数化路由接管
+      // （sys_menu path 带 :id 占位，精确注册会生成非法路由）→ 跳过避免双路由冲突。
+      // `bi/dashboard/Index`（path=/bi/dashboard）正常注册，是侧边栏真正要跳转的入口。
+      if (compKey === 'bi/dashboard/Designer') continue;
+      if (compKey === 'bi/dashboard/View') continue;
+      if (compKey === 'bi/dashboard/Wall') continue;
       const component = builtInViews[compKey] || (() => import('@/views/error/404.vue'));
       routes.push({
         path: m.path,

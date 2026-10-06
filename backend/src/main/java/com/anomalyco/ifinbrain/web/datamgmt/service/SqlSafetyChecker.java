@@ -27,16 +27,19 @@ public class SqlSafetyChecker {
      * 禁词；大小写不敏感；词边界 \b 避免误伤 column 名包含 delete 之类。
      *
      * 覆盖：
-     *  - 写：DML（INSERT/UPDATE/DELETE/REPLACE/MERGE）+ 锁/事务（LOCK/SET/COMMIT/ROLLBACK/BEGIN/START）
+     *  - 写：DML（INSERT/UPDATE/DELETE/MERGE/UPSERT）+ 锁/事务（LOCK/SET/COMMIT/ROLLBACK/BEGIN/START）
      *  - DDL/对象管理（CREATE/DROP/ALTER/TRUNCATE/RENAME/GRANT/REVOKE/COPY）
      *  - 存储/执行（EXEC/EXECUTE/CALL/HANDLER）
-     *  - 元数据泄漏（SHOW/DESCRIBE/EXPLAIN/USE）
+     *  - 元数据泄漏（SHOW/EXPLAIN/USE）
      *  - 文件 I/O（LOAD/OUTFILE/DUMPFILE）
      *  - PG 特有（VACUUM/REINDEX/ANALYZE/CLUSTER）
+     *
+     * 注意 DESC / DESCRIBE / REPLACE **不在这里** —— 它们既是危险语句、又是合法的
+     * 只读语法，放进 \b 全局扫描会误杀日常查询（详见 STATEMENT_ONLY）。
      */
     private static final Set<String> FORBIDDEN = new LinkedHashSet<>(java.util.List.of(
             // DML 写
-            "INSERT", "UPDATE", "DELETE", "REPLACE", "MERGE", "UPSERT",
+            "INSERT", "UPDATE", "DELETE", "MERGE", "UPSERT",
             // 事务 / 锁
             "SET", "COMMIT", "ROLLBACK", "BEGIN", "START", "LOCK", "UNLOCK",
             // DDL / 对象管理
@@ -45,12 +48,15 @@ public class SqlSafetyChecker {
             // 存储 / 执行
             "EXEC", "EXECUTE", "CALL", "HANDLER",
             // 元数据泄漏
-            "SHOW", "DESCRIBE", "DESC", "EXPLAIN", "USE",
+            "SHOW", "EXPLAIN", "USE",
             // 文件 I/O（MySQL: LOAD DATA INFILE / SELECT ... INTO OUTFILE / DUMPFILE）
             "LOAD", "OUTFILE", "DUMPFILE",
             // PG 特有
             "VACUUM", "REINDEX", "ANALYZE", "CLUSTER",
-            // SQLite 特有
+            // SQLite 特有 —— 注意：这里指的是「数据管理」里用户自配的**外部数据源**可能是
+            // SQLite 文件库（本项目自身已弃用 SQLite，主库固定 PostgreSQL）。
+            // ATTACH 尤其危险：能把任意磁盘文件挂进当前连接再读出来，等于任意文件读取。
+            // 所以这三个词不能因为主库换了就删掉。
             "ATTACH", "DETACH", "PRAGMA"
     ));
 
@@ -62,6 +68,29 @@ public class SqlSafetyChecker {
                 "\\b(" + joined + ")\\b",
                 Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     }
+
+    /**
+     * 只能出现在**语句开头**的禁词。
+     *
+     * 这些词在 SELECT 里同时是合法的只读语法，用 \b 全局扫描会误杀：
+     * <ul>
+     *   <li>DESC  → {@code ORDER BY x DESC} 是最普通的排序，BI 查询天天写</li>
+     *   <li>REPLACE → {@code REPLACE(name, 'a', 'b')} 是常用字符串清洗函数</li>
+     * </ul>
+     * 但作为**语句**它们是危险的：
+     * <ul>
+     *   <li>{@code DESC sys_user} / {@code DESCRIBE tbl} —— 元数据泄漏</li>
+     *   <li>{@code REPLACE INTO tbl ...} —— 写操作</li>
+     * </ul>
+     * 二者都只可能作为语句的第一个词出现，所以锚定 ^ 扫描既堵住了危险用法，
+     * 又不误伤只读语法。
+     *
+     * \s* 兼容 stripComments 之后残留的前导空白（注释被替换成空格）；
+     * 多语句 {@code SELECT 1; DESC tbl} 由下面的分号检查拦，消息不同但同样拒绝。
+     */
+    private static final Pattern STATEMENT_ONLY =
+            Pattern.compile("^\\s*(DESC|DESCRIBE|REPLACE)\\b",
+                    Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     /** 多语句检测：忽略首尾空白和 ; 之间的纯注释/空白 */
     private static final Pattern SEMICOLON_PATTERN = Pattern.compile(";");
@@ -80,6 +109,14 @@ public class SqlSafetyChecker {
 
         // 先剥注释（避免注释里写 DROP 触发误报；用户也基本不会把执行语句塞进注释）
         String stripped = stripComments(sql);
+
+        // 语句型禁词：只在开头出现才算（DESC/DESCRIBE/REPLACE）
+        Matcher sm = STATEMENT_ONLY.matcher(stripped);
+        if (sm.find()) {
+            throw new BizException(400,
+                    "SQL 含禁止关键字: " + sm.group(1).toUpperCase()
+                            + "。自定义查询只允许 SELECT（含 WITH ... SELECT）。");
+        }
 
         // 禁词扫描
         Matcher m = KEYWORD_PATTERN.matcher(stripped);

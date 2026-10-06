@@ -200,6 +200,20 @@ public class QueryService {
     @Transactional(readOnly = true)
     public Prepared prepareForRun(Long id) {
         perm.require("data:query:run");
+        return loadForRun(id);
+    }
+
+    /**
+     * prepareForRun 的无鉴权版本：只做 load + 解密 + 解析参数 schema，**不做 perm.require**。
+     *
+     * <p>为什么需要它：`data:query:run` 属于「数据管理 → 查询」模块的权限位，
+     * 而 BI 大屏播放（BiDataService）走的是自己的 `bi:dataset:view` —— viewer 角色
+     * 只看大屏、不碰查询模块，若复用 prepareForRun 会被 403 误伤。
+     *
+     * <p>⚠️ 调用方必须在自己的入口做 `perm.require(...)`，否则等于对所有人放开 SQL 执行。
+     */
+    @Transactional(readOnly = true)
+    public Prepared loadForRun(Long id) {
         SysQuery q = repo.findById(id).orElseThrow(() -> new BizException(404, "查询不存在"));
         SysDatasource ds = dsRepo.findById(q.getDatasourceId())
                 .orElseThrow(() -> new BizException(400, "数据源不存在"));

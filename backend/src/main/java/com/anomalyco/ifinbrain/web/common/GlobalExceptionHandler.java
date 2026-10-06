@@ -4,12 +4,18 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.util.stream.Collectors;
@@ -74,6 +80,60 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Result<Void>> constraint(ConstraintViolationException ex) {
         return ResponseEntity.ok(Result.fail(400, ex.getMessage()));
+    }
+
+    // ===================== 请求绑定 / 路由层的客户端错误 =====================
+    // 这几个以前都没有专属分支，会掉进下面的兜底 handler 变成
+    // 「HTTP 200 + {code:500, message:"服务器内部错误"}」——
+    // 明明是调用方传错了参数，却被报成服务端故障，日志里还会打一整条 Unhandled exception 栈。
+    // 这里统一归位成 4xx。
+
+    /**
+     * 路径变量 / 查询参数类型转换失败。
+     * 例：GET /api/bi/dashboard/abc —— id 声明为 Long，收到的却是 "abc"。
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Result<Void>> typeMismatch(MethodArgumentTypeMismatchException ex) {
+        Class<?> required = ex.getRequiredType();
+        String msg = "参数 " + ex.getName() + " 格式不正确"
+                + (required == null ? "" : "（需要 " + required.getSimpleName() + " 类型）")
+                + "，实际收到: " + ex.getValue();
+        return ResponseEntity.badRequest().body(Result.fail(400, msg));
+    }
+
+    /** 缺少必填的查询参数 */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Result<Void>> missingParam(MissingServletRequestParameterException ex) {
+        return ResponseEntity.badRequest()
+                .body(Result.fail(400, "缺少必填参数: " + ex.getParameterName()));
+    }
+
+    /** 请求体解析失败（JSON 语法错 / 类型对不上） */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Result<Void>> unreadable(HttpMessageNotReadableException ex) {
+        // 只进日志不回前端：Jackson 的 message 含字段路径和原始片段片段，原样透出对用户无意义
+        log.warn("HttpMessageNotReadable: {}", ex.getMessage());
+        return ResponseEntity.badRequest().body(Result.fail(400, "请求体格式不正确"));
+    }
+
+    /** 请求方法不支持（如给只读接口发 POST） */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Result<Void>> methodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(Result.fail(405, "不支持的请求方法: " + ex.getMethod()));
+    }
+
+    /**
+     * 路径没匹配到任何 handler（打错 URL）。
+     * Spring 6 默认把它交给静态资源处理器，最终抛 NoResourceFoundException；
+     * 没有这个分支时它会掉进兜底 handler → code 500 + 整条 ERROR 栈，
+     * 把「地址写错了」报成「服务端炸了」。
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<Result<Void>> notFound(Exception ex) {
+        String path = ex instanceof NoResourceFoundException nrf ? nrf.getResourcePath() : null;
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.fail(404, "接口不存在" + (path == null ? "" : ": /" + path)));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
