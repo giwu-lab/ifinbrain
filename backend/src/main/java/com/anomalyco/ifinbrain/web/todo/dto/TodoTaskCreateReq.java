@@ -28,7 +28,7 @@ public class TodoTaskCreateReq {
     private Integer recurrenceMonth;
 
     /** 接受 yyyy-MM-dd HH:mm:ss；空字符串视作 null。 */
-    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dueAt;
 
     /** 父任务 id（同 assignee + PENDING）。可空。 */

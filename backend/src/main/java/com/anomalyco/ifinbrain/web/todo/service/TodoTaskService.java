@@ -6,13 +6,12 @@ import com.anomalyco.ifinbrain.web.repository.SysUserRepository;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoAssigneeOption;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoDashboardItem;
+import com.anomalyco.ifinbrain.web.todo.dto.TodoDashboardResponse;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoTaskCreateReq;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoTaskDto;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoTaskUpdateReq;
-import com.anomalyco.ifinbrain.web.todo.entity.TodoTag;
 import com.anomalyco.ifinbrain.web.todo.entity.TodoTask;
 import com.anomalyco.ifinbrain.web.todo.entity.TodoTaskTag;
-import com.anomalyco.ifinbrain.web.todo.repository.TodoTagRepository;
 import com.anomalyco.ifinbrain.web.todo.repository.TodoTaskRepository;
 import com.anomalyco.ifinbrain.web.todo.repository.TodoTaskTagRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +31,9 @@ import java.util.stream.Collectors;
 
 /**
  * 任务清单业务逻辑。设计要点：
- * - assignee 隔离：所有读查询按 assigneeId 过滤；admin 持 todo:task:view-all 时跳过过滤。
+ * - assignee 隔离：列表/详情/改删按 assigneeId 过滤；持 todo:task:view-all 的角色跳过过滤。
+ *   该权限属于 admin 角色与「任务管理者」预设角色（见 SystemPresets）。
+ * - 「我的任务」（仪表盘卡片 + widget）**永远**只看 assignee = me，不受 view-all 影响。
  * - 完成态 + 循环任务：complete() 在同一事务里标记当前 + spawn 下一条。
  * - 标签清理：删任务后再扫一次 sys_todo_tag，把没有 task_tag 引用的孤儿标签一并删掉。
  * - 标签所有权：标签记在「任务执行人」名下（admin 创建给 B → 标签归 B）。
@@ -43,7 +44,7 @@ public class TodoTaskService {
 
     private final TodoTaskRepository taskRepo;
     private final TodoTaskTagRepository taskTagRepo;
-    private final TodoTagRepository tagRepo;
+    private final TodoTagService tagService;
     private final SysUserRepository userRepo;
     private final PermissionChecker perm;
 
@@ -86,9 +87,8 @@ public class TodoTaskService {
     public TodoTaskDto detail(Long id) {
         perm.require("todo:task:view");
         TodoTask t = loadAndAuthorize(id, false);
-        List<Long> tagIds = taskTagRepo.findTagIdsByTaskId(t.getId());
-        List<String> tagNames = tagRepo.findAllById(tagIds).stream()
-                .map(TodoTag::getName).toList();
+        List<Long> tagIds = taskTagRepo.findDictItemIdsByTaskId(t.getId());
+        List<String> tagNames = tagService.labelMap(tagIds).values().stream().toList();
         return enrich(attachTagsAndNames(List.of(t)).get(0), tagIds, tagNames);
     }
 
@@ -150,8 +150,8 @@ public class TodoTaskService {
                 .recurrenceMonth(recurrenceCfg[2])
                 .build();
         taskRepo.save(t);
-        // 标签记在 assignee 名下
-        replaceTags(t.getId(), req.getTagNames(), assigneeId);
+        // 标签写入 todo_tag 字典（V43 起全局共享，不再按 assignee 隔离）
+        replaceTags(t.getId(), req.getTagNames());
         log.info("[todo] task created id={} assignee={} createdBy={}", t.getId(), assigneeId, me);
         return t.getId();
     }
@@ -208,7 +208,7 @@ public class TodoTaskService {
             t.setParentId(validateParent(t.getAssigneeId(), req.getParentId(), id));
         }
         if (req.getTagNames() != null) {
-            replaceTags(id, req.getTagNames(), t.getAssigneeId());
+            replaceTags(id, req.getTagNames());
         }
         // status 切回 PENDING 时清空 completed_at
         if (TodoTask.Status.PENDING.name().equals(t.getStatus()) && t.getCompletedAt() != null
@@ -267,10 +267,11 @@ public class TodoTaskService {
                 .recurrenceMonth(t.getRecurrenceMonth())
                 .build();
         taskRepo.save(next);
-        // 复用原任务的标签（标签的 owner 是原 assignee，不会被重复创建）
-        List<Long> oldTagIds = taskTagRepo.findTagIdsByTaskId(t.getId());
+        // 循环任务的下一条直接复用原关联行 —— dict_item_id 指向字典条目，
+        // 条目是全局共享的，不存在「每个执行人一套标签」需要重新 upsert 的问题。
+        List<Long> oldTagIds = taskTagRepo.findDictItemIdsByTaskId(t.getId());
         for (Long tagId : oldTagIds) {
-            taskTagRepo.save(TodoTaskTag.builder().taskId(next.getId()).tagId(tagId).build());
+            taskTagRepo.save(TodoTaskTag.builder().taskId(next.getId()).dictItemId(tagId).build());
         }
         log.info("[todo] recurrence: task={} -> next={} dueAt={}", t.getId(), next.getId(), nextDue);
         return next.getId();
@@ -281,34 +282,44 @@ public class TodoTaskService {
         perm.require("todo:task:delete");
         Long me = perm.currentUserId();
         TodoTask t = loadAndAuthorize(id, true);
-        Long taskAssignee = t.getAssigneeId();
+        // 先记下本任务用过的标签：删完之后只有这几个可能变成无引用。
+        // 必须在 delete 之前取，因为 task_tag 行会被 ON DELETE CASCADE 一起清掉。
+        List<Long> usedTagIds = taskTagRepo.findDictItemIdsByTaskId(t.getId());
         taskRepo.delete(t);
         // 关键：cascade 是数据库层 ON DELETE CASCADE，Hibernate 不知情；
-        // 必须在 deleteOrphanTags 前 flush，让 cascade 真实落到 DB，
+        // 必须在 deleteOrphans 前 flush，让 cascade 真实落到 DB，
         // 否则后续 NOT EXISTS 子查询还会看到旧的 task_tag 行。
         taskRepo.flush();
         // 子任务 SET NULL（FK）—— 不级联删子，符合"删除父任务不级联子"的常识。
-        // 标签关联由 ON DELETE CASCADE 自动清理；这里再扫一遍把孤儿标签一并删除（v1.1.3）。
-        int orphanDeleted = taskRepo.deleteOrphanTags(taskAssignee);
-        if (orphanDeleted > 0) {
-            log.info("[todo] orphan tag cleanup: assignee={} removed={}", taskAssignee, orphanDeleted);
-        }
+        // 标签关联由 ON DELETE CASCADE 自动清理；这里再把「本任务用过、且现已无引用」
+        // 的那几条标签回收掉（v1.1.3）。只回收本任务这几个，不会波及字典里其它未使用的标签。
+        tagService.deleteOrphans(usedTagIds);
     }
 
     // ---- 仪表盘 ----
 
     @Transactional(readOnly = true)
-    public List<TodoDashboardItem> dashboard(int limit) {
+    public TodoDashboardResponse dashboard(int limit) {
         Long me = perm.currentUserId();
         int cap = limit <= 0 ? 10 : Math.min(limit, 50);
+
+        // 「我的任务」恒等于 assignee = me —— 不再因为持有 todo:task:view-all
+        // 就变成全员 PENDING 计数。仪表盘卡片和 widget 都叫「我的任务」，
+        // 混入别人的任务会让数字失去意义（admin 明明只有 5 条却显示 10）。
+        // 全员视图只属于任务列表页 page()：那里有「执行人」列可以对照，
+        // 并且带明确的「执行人: 全员」徽标，不会被误读。
         List<TodoTask> rows = taskRepo.findDashboard(me, LocalDateTime.now(), PageRequest.of(0, cap));
-        return rows.stream().map(t -> TodoDashboardItem.builder()
+        long total = taskRepo.countByAssigneeIdAndStatus(me, TodoTask.Status.PENDING.name());
+
+        List<TodoDashboardItem> items = rows.stream().map(t -> TodoDashboardItem.builder()
                 .id(t.getId())
                 .title(t.getTitle())
                 .priority(t.getPriority())
                 .dueAt(t.getDueAt())
                 .recurrence(t.getRecurrence())
                 .build()).toList();
+
+        return TodoDashboardResponse.builder().items(items).total(total).build();
     }
 
     // ---- 跨模块：附件服务需要校验任务可见性 ----
@@ -362,16 +373,15 @@ public class TodoTaskService {
     private List<TodoTaskDto> attachTagsAndNames(List<TodoTask> tasks) {
         if (tasks.isEmpty()) return List.of();
         List<Long> ids = tasks.stream().map(TodoTask::getId).toList();
-        List<Object[]> tagRows = taskTagRepo.findTagIdsByTaskIds(ids);
+        List<Object[]> tagRows = taskTagRepo.findDictItemIdsByTaskIds(ids);
         Map<Long, List<Long>> byTask = new HashMap<>();
         for (Object[] r : tagRows) {
             byTask.computeIfAbsent((Long) r[0], k -> new ArrayList<>()).add((Long) r[1]);
         }
         Set<Long> allTagIds = tagRows.stream().map(r -> (Long) r[1]).collect(Collectors.toSet());
-        Map<Long, String> tagNameById = new HashMap<>();
-        if (!allTagIds.isEmpty()) {
-            tagRepo.findAllById(allTagIds).forEach(g -> tagNameById.put(g.getId(), g.getName()));
-        }
+        // 标签名从字典条目解析。旧实现查的是 sys_todo_tag_legacy —— V43 后该表恒为空，
+        // 导致所有 tagNames 都是 null，标签列永远不显示。
+        Map<Long, String> tagNameById = tagService.labelMap(allTagIds);
         Set<Long> userIds = new HashSet<>();
         for (TodoTask t : tasks) {
             if (t.getAssigneeId() != null) userIds.add(t.getAssigneeId());
@@ -393,24 +403,32 @@ public class TodoTaskService {
         return out;
     }
 
-    /** 全量替换标签：先按名 upsert 到 sys_todo_tag，再 delete + insert task_tag 行。 */
-    private void replaceTags(Long taskId, List<String> tagNames, Long assigneeId) {
+    /**
+     * 全量替换任务的标签：先清关联行，再按名 upsert 到 todo_tag 字典并写关联。
+     *
+     * <p><b>这里是 V43 遗留 bug 的核心。</b>旧实现是「往 sys_todo_tag 插一条拿 id，
+     * 再把 id 写进 sys_todo_task_tag.dict_item_id」—— 但 V43 已经把
+     * {@code dict_item_id} 的外键改指到 {@code sys_dict_item(id)}，而
+     * {@code sys_todo_tag} 表已被 DROP、由 V44 建的 {@code sys_todo_tag_legacy} 占位。
+     * 于是插进占位表拿到的 id 几乎必然落在 sys_dict_item 的 id 区间之外 →
+     * {@code sys_todo_task_tag_dict_item_id_fkey} 外键违例 → 新建带标签的待办直接 500。
+     *
+     * <p>现在统一走字典 upsert，id 一定落在 sys_dict_item 内，外键成立。
+     *
+     * @param tagNames 标签名列表（前端 el-select 的 value 就是标签名）
+     */
+    private void replaceTags(Long taskId, List<String> tagNames) {
         taskTagRepo.deleteByTaskId(taskId);
         taskTagRepo.flush();
         if (tagNames == null || tagNames.isEmpty()) return;
         Set<String> normalized = tagNames.stream()
                 .filter(s -> s != null && !s.isBlank())
-                .map(s -> s.trim())
+                .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         for (String name : normalized) {
-            // 标签记在 assignee 名下
-            TodoTag tag = tagRepo.findByOwnerIdAndName(assigneeId, name)
-                    .orElseGet(() -> tagRepo.save(TodoTag.builder()
-                            .ownerId(assigneeId)
-                            .name(name)
-                            .build()));
-            taskTagRepo.save(TodoTaskTag.builder().taskId(taskId).tagId(tag.getId()).build());
+            long dictItemId = tagService.upsertIdByName(name);
+            taskTagRepo.save(TodoTaskTag.builder().taskId(taskId).dictItemId(dictItemId).build());
         }
     }
 

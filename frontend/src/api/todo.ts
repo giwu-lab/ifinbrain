@@ -1,10 +1,13 @@
 import { http } from './http';
 
+/**
+ * 任务标签。后端只返回 id + name 两个字段：
+ * 标签实体是 todo_tag 字典下的条目，字典的 code/label/sort 等管理字段不外泄给 todo 模块。
+ * 标签下拉的 value 用的是 **name** 而不是 id（见 views/todo/task/Index.vue 的 el-option）。
+ */
 export interface TodoTag {
   id: number;
-  ownerId: number;
   name: string;
-  createdAt?: string;
 }
 
 export interface TodoTask {
@@ -34,10 +37,10 @@ export interface TodoTask {
   tagNames?: string[];
 }
 
-/** 后端 /dashboard 返回的就是 List<TodoDashboardItem>，不是 wrapper。 */
+/** 后端 /dashboard 返回：{ items, total }。items 受 limit 限制，total 是真实 PENDING 总数。 */
 export interface TodoDashboardResponse {
   items: TodoDashboardItem[];
-  /** 当前用户 PENDING 任务真实总数（与 items.length 无关，徽章用此值） */
+  /** 当前用户（或 admin 全员）PENDING 任务真实总数（与 items.length 解耦） */
   total: number;
 }
 
@@ -127,7 +130,7 @@ export const todoApi = {
     http.get<unknown, TodoParentCandidate[]>('/todo/tasks/parent-candidates', { params: excludeId ? { excludeId } : {} }),
   assignees: () => http.get<unknown, TodoAssigneeOption[]>('/todo/tasks/assignees'),
   dashboard: (limit = 10) =>
-    http.get<unknown, TodoDashboardItem[]>('/todo/tasks/dashboard', { params: { limit } }),
+    http.get<unknown, TodoDashboardResponse>('/todo/tasks/dashboard', { params: { limit } }),
 };
 
 export const todoAttachmentApi = {

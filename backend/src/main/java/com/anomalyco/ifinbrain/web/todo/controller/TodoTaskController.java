@@ -4,6 +4,7 @@ import com.anomalyco.ifinbrain.web.common.PageReq;
 import com.anomalyco.ifinbrain.web.common.Result;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoAssigneeOption;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoDashboardItem;
+import com.anomalyco.ifinbrain.web.todo.dto.TodoDashboardResponse;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoTaskCreateReq;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoTaskDto;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoTaskUpdateReq;
@@ -74,9 +75,12 @@ public class TodoTaskController {
         return Result.ok(service.assigneeOptions());
     }
 
-    /** 仪表盘 widget 数据源：最多 N 条 PENDING，按 due_at 排序。 */
+    /** 仪表盘 widget + 「我的任务」卡片数据源：最多 N 条<b>本人</b>的 PENDING，按 due_at 排序。
+     *  <b>恒按 assigneeId = me 过滤</b>，即使调用方持 todo:task:view-all 也一样 ——
+     *  「我的任务」混入别人的任务会让计数失去意义。全员视图请用列表接口 GET /api/todo/tasks。
+     *  返回 { items: [...], total: N } —— total 是真实总数（与 items.length 解耦） */
     @GetMapping("/dashboard")
-    public Result<List<TodoDashboardItem>> dashboard(@RequestParam(defaultValue = "10") int limit) {
+    public Result<TodoDashboardResponse> dashboard(@RequestParam(defaultValue = "10") int limit) {
         return Result.ok(service.dashboard(limit));
     }
 }

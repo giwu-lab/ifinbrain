@@ -18,6 +18,15 @@ public interface TodoTaskRepository extends JpaRepository<TodoTask, Long> {
 
     boolean existsByIdAndAssigneeId(Long id, Long assigneeId);
 
+    /**
+     * 当前用户的 PENDING 任务数 —— dashboard「我的任务」卡片用。
+     * 与 service.dashboard() 的过滤条件一致。
+     */
+    long countByAssigneeIdAndStatus(Long assigneeId, String status);
+
+    /** 全员某状态任务数（admin view-all 用）。Spring Data 派生查询。 */
+    long countByStatus(String status);
+
     /** 父任务下拉数据源：当前用户的 PENDING 任务。 */
     List<TodoTask> findByAssigneeIdAndStatusOrderByIdDesc(Long assigneeId, String status);
 
@@ -67,17 +76,4 @@ public interface TodoTaskRepository extends JpaRepository<TodoTask, Long> {
     int markCompleted(@Param("id") Long id,
                       @Param("assigneeId") Long assigneeId,
                       @Param("completedAt") LocalDateTime completedAt);
-
-    /**
-     * 删除某 assignee 当前已不在任何 task_tag 上的标签（孤儿标签清理）。
-     * sys_todo_tag.owner_id 列名虽然保留，但语义已对齐为"标签记在 assignee 名下"。
-     * 返回删除行数。
-     */
-    @Modifying
-    @Query("""
-        DELETE FROM TodoTag g
-         WHERE g.ownerId = :assigneeId
-           AND NOT EXISTS (SELECT 1 FROM TodoTaskTag tt WHERE tt.tagId = g.id)
-        """)
-    int deleteOrphanTags(@Param("assigneeId") Long assigneeId);
 }

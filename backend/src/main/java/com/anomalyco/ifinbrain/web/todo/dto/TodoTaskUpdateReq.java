@@ -34,8 +34,8 @@ public class TodoTaskUpdateReq {
     private Integer recurrenceDom;
     private Integer recurrenceMonth;
 
-    /** 接受 yyyy-MM-dd HH:mm:ss。 */
-    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    /** 接受 ISO 8601 格式（yyyy-MM-dd'T'HH:mm:ss），与 TodoTaskDto 输出格式一致。 */
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dueAt;
 
     /** 显式给值；null 表示清空父任务。 */

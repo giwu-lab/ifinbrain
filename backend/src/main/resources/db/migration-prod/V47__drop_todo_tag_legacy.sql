@@ -1,0 +1,19 @@
+-- V47: 删除 V44 建的占位表 sys_todo_tag_legacy
+--
+-- 背景：V43 把任务标签字典化（标签 = sys_dict_type='todo_tag' 下的 sys_dict_item 条目，
+-- sys_todo_task_tag.dict_item_id 外键直指 sys_dict_item.id），并 DROP 了原 sys_todo_tag。
+-- 但 TodoTaskService 还留着引用 TodoTag 实体，V44 建了张占位表让编译通过，
+-- 注释里写明「待用户清理 tagRepo 引用后可删除本表」。
+--
+-- 本次已完成收尾：
+--   - 新增 TodoTagController 补上 GET/POST /api/todo/tags（原先整个接口缺失，
+--     前端一进任务管理页就 404 → 被 GlobalExceptionHandler 兜底成「服务器内部错误」）
+--   - TodoTaskService.replaceTags 改为向 todo_tag 字典 upsert，不再往占位表插 id
+--     （旧写法会拿一个落在 sys_dict_item id 区间外的 id 去写外键列，必 500）
+--   - 标签名解析改从 sys_dict_item.label 取（原先查恒为空的占位表 → 标签列永远空白）
+--   - 孤儿标签清理改由 TodoTagService.deleteOrphans() 全局清扫
+--   - TodoTag 实体 / TodoTagRepository 已删除
+--
+-- 这张表从 V44 起就没有任何真实数据写入（所有 tag 走字典），
+-- 删掉它不会丢标签；真正的标签数据都在 sys_dict_item 里。
+DROP TABLE IF EXISTS sys_todo_tag_legacy;
