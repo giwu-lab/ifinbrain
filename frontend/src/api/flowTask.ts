@@ -70,6 +70,8 @@ export interface ApproveTaskReq {
 
 export const flowTaskApi = {
   pending: () => http.get<any, FlowTaskItem[]>('/design/flow-tasks/pending'),
+  /** 当前用户待办任务数 —— dashboard 卡片用 */
+  pendingCount: () => http.get<any, number>('/design/flow-tasks/pending/count'),
   all: () => http.get<any, FlowTaskItem[]>('/design/flow-tasks/all'),
   detail: (id: number) => http.get<any, FlowTaskItem>(`/design/flow-tasks/${id}`),
   approve: (id: number, body: ApproveTaskReq = {}) =>
@@ -82,4 +84,5 @@ export const flowInstanceApi = {
   list: () => http.get<any, FlowInstanceItem[]>('/design/flow-instances'),
   detail: (id: number) => http.get<any, FlowInstanceItem>(`/design/flow-instances/${id}`),
   start: (body: StartFlowReq) => http.post<any, FlowInstanceItem>('/design/flow-instances/start', body),
+  remove: (id: number) => http.delete<any, null>(`/design/flow-instances/${id}`),
 };

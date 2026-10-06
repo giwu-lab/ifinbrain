@@ -48,14 +48,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive } from 'vue';
+import { computed, ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Close, Refresh, CircleClose, Delete, Histogram } from '@element-plus/icons-vue';
 import { useTabStore, type Tab } from '@/stores/tab';
+import { useArchiveStore } from '@/stores/archive';
 import TabContextMenu from './TabContextMenu.vue';
 
 const { t } = useI18n();
 const tabStore = useTabStore();
+const archiveStore = useArchiveStore();
+
+onMounted(() => {
+  archiveStore.load().catch(() => { /* 静默失败，tab 标签回退到 path */ });
+});
 
 const emit = defineEmits<{
   (e: 'select', id: string): void;
@@ -84,6 +90,12 @@ const ctx = reactive<{
 });
 
 function labelOf(tab: Tab): string {
+  // /documents/:slug —— 按 slug 解析档案库实际名称（admin 在档案库管理里设置的中文名）
+  const m = /^\/documents\/([^/]+)$/.exec(tab.id);
+  if (m && m[1] !== 'archive') {
+    const a = archiveStore.bySlug(m[1]);
+    if (a) return a.name;
+  }
   const v = t(tab.nameKey);
   return v === tab.nameKey ? tab.id : v;
 }

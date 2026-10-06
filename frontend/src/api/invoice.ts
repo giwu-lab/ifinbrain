@@ -110,7 +110,6 @@ export const invoiceApi = {
   commit: (body: CommitBody) =>
     http.post<unknown, InvoiceItem[]>('/invoices/commit', body),
 
-  update: (id: number, data: Partial<InvoiceItem>) => http.put(`/invoices/${id}`, data),
   remove: (id: number) => http.delete(`/invoices/${id}`),
 
   /**
@@ -126,24 +125,6 @@ export const invoiceApi = {
   }>('/invoices/batch-delete', { ids }),
 
   downloadUrl: (key: string) => `/api/files/raw?key=${encodeURIComponent(key)}`,
-
-  /**
-   * 预览文件：fetch + bearer + blob + 新标签页打开
-   * 返回 { blobUrl, contentType, ext }，调用方负责 URL.revokeObjectURL
-   */
-  async preview(key: string): Promise<{ blobUrl: string; contentType: string; ext: string }> {
-    const token = localStorage.getItem('accessToken') || '';
-    const res = await fetch(`/api/files/raw?key=${encodeURIComponent(key)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const contentType = res.headers.get('Content-Type') || 'application/octet-stream';
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const dot = key.lastIndexOf('.');
-    const ext = dot >= 0 ? key.substring(dot + 1).toLowerCase() : '';
-    return { blobUrl, contentType, ext };
-  },
 
   /** 全库查重：按 (invoiceNumber, fileExt) 分组 */
   duplicates: (params: {

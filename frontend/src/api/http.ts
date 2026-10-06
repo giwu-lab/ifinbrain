@@ -66,8 +66,12 @@ http.interceptors.response.use(
     const body = resp.data as Result<unknown>;
     if (body && typeof body === 'object' && 'code' in body) {
       if (body.code === 0) return body.data as any;
-      ElMessage.error(body.message || 'Request failed');
-      return Promise.reject(new Error(body.message || 'Request failed'));
+      const msg = body.message || 'Request failed';
+      // _silent：调用方自己接管错误展示（如 RAG 问答在抽屉内联显示失败原因），不重复弹 toast
+      if (!(resp.config as AxiosRequestConfig & { _silent?: boolean })?._silent) {
+        ElMessage.error(msg);
+      }
+      return Promise.reject(new Error(msg));
     }
     return resp.data;
   },
@@ -121,7 +125,8 @@ http.interceptors.response.use(
 
     // 静默 403：标记 _silent403 的请求（如后台预加载）失败时不弹 toast。
     // 适用于 dict/i18n 缓存预加载等场景 —— 用户没该 perm 时理应静默，不打扰。
-    const silent = (original as any)._silent403;
+    // _silent 覆盖面更广：调用方自行渲染错误（如 RAG 问答抽屉内联展示原因）。
+    const silent = (original as any)._silent || (original as any)._silent403;
 
     const msg = (body && body.message) || err.message || i18n.global.t('error.networkError');
     if (!silent) ElMessage.error(msg);

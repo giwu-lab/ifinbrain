@@ -272,7 +272,7 @@ async function submit() {
   display: flex;
   gap: 64px;
   align-items: center;
-  padding: 32px;
+  padding: 16px;
   max-width: 1080px;
   width: 100%;
 }
@@ -343,7 +343,7 @@ async function submit() {
   padding: 8px 8px;
 }
 .title {
-  margin: 0 0 24px;
+  margin: 0 0 12px;
   font-size: 22px;
   font-weight: 700;
   color: var(--color-text);

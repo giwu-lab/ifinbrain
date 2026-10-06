@@ -310,7 +310,7 @@ onMounted(reload);
 </script>
 
 <style scoped>
-.page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
 .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .page-desc { margin: 4px 0 0; font-size: 13px; }
 .name-cell { display: flex; align-items: center; gap: 8px; }

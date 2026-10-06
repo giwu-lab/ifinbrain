@@ -104,13 +104,13 @@ onMounted(async () => {
 .status-block.off { background: #f0f0eb; color: #8a8a85; }
 
 .preview-wrap {
-  padding: 24px;
+  padding: 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-elev);
   min-height: 200px;
 }
-.loading { padding: 80px 0; text-align: center; }
+.loading { padding: 40px 0; text-align: center; }
 
 .data-preview {
   margin-top: 16px;

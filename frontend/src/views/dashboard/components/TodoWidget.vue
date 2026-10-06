@@ -72,7 +72,9 @@ async function reload() {
   }
   loading.value = true;
   try {
-    items.value = await todoApi.dashboard(10);
+    // 后端 dashboard 现在返回 { items, total }；admin 走 searchAll（看全员 PENDING）。
+    const resp = await todoApi.dashboard(10);
+    items.value = resp.items;
   } catch {
     items.value = [];
   } finally {

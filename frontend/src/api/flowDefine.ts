@@ -94,6 +94,8 @@ export interface FlowDefineUpdateBody {
 
 export const flowDefineApi = {
   list: () => http.get<any, FlowDefineItem[]>('/design/flows'),
+  /** 当前用户「可发起」流程清单：status=1 + 当前用户有流程级 deploy perm */
+  launchable: () => http.get<any, FlowDefineItem[]>('/design/flows/launchable'),
   detail: (id: number) => http.get<any, FlowDefineItem>(`/design/flows/${id}`),
   detailByCode: (code: string) => http.get<any, FlowDefineItem>(`/design/flows/by-code/${code}`),
   create: (body: FlowDefineCreateBody) =>
@@ -103,6 +105,11 @@ export const flowDefineApi = {
   remove: (id: number) => http.delete<any, null>(`/design/flows/${id}`),
   publish: (id: number) => http.post<any, FlowDefineItem>(`/design/flows/${id}/publish`),
   unpublish: (id: number) => http.post<any, FlowDefineItem>(`/design/flows/${id}/unpublish`),
+  /** 流程授权：4 verb（view/update/deploy/delete）的角色绑定 */
+  getPermissions: (id: number) =>
+    http.get<any, Record<string, number[]>>(`/design/flows/${id}/permissions`),
+  updatePermissions: (id: number, grants: Record<string, number[]>) =>
+    http.put<any, null>(`/design/flows/${id}/permissions`, grants),
 };
 
 /** 节点类型展示元数据 */

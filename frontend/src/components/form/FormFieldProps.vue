@@ -113,7 +113,16 @@ watch(() => props.field, (f) => {
   if (!f) return;
   Object.assign(local, JSON.parse(JSON.stringify(f)));
   if (!local.validator) local.validator = { min: undefined, max: undefined, pattern: '', message: '' } as FormFieldValidator;
-  if (!local.options && needsOptions.value) local.options = [] as FormFieldOption[];
+  /*
+   * 内联类型判断，不引用下方 needsOptions —— 因为 watch 用 { immediate: true }
+   * 在 setup 阶段会同步立即执行一次 callback（当 props.field 已非 null 时），
+   * 而 needsOptions 是 const 声明，在 callback 执行时还没初始化（TDZ），
+   * 会抛 "Cannot access 'needsOptions' before initialization"。
+   * 模板里的 v-if="needsOptions" 仍正常使用（computed 在 mount 时已就绪）。
+   */
+  if (!local.options && (local.type === 'SELECT' || local.type === 'RADIO' || local.type === 'CHECKBOX')) {
+    local.options = [] as FormFieldOption[];
+  }
 }, { immediate: true });
 
 const needsOptions = computed(() =>

@@ -503,7 +503,7 @@ onMounted(reload);
 
 <style scoped>
 .ds-page .page-header {
-  display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;
+  display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;
 }
 .ds-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .ds-page .page-desc  { margin: 4px 0 0; font-size: 13px; }
@@ -554,7 +554,7 @@ onMounted(reload);
   display: flex; align-items: center; justify-content: center;
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 64px 24px;
+  padding: 32px 12px;
   margin-top: 16px;
   background: var(--color-bg-elev);
 }

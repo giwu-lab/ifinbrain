@@ -337,7 +337,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
 .header-left { display: flex; align-items: center; gap: 12px; flex: 1; }
 .back-btn {
   background: none; border: 0; cursor: pointer; padding: 0;

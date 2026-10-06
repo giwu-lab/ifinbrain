@@ -14,6 +14,22 @@
         </p>
       </div>
       <div class="header-actions">
+        <!-- RAG 问答：后端 RAG 关闭时整组端点不存在，探测失败即隐藏入口 -->
+        <el-button
+          v-if="ragEnabled"
+          :icon="MagicStick"
+          @click="ragVisible = true"
+        >
+          {{ t('documents.rag.openBtn') }}
+        </el-button>
+        <el-button
+          v-if="ragEnabled && canUpdate && category"
+          :icon="Refresh"
+          :loading="reindexing"
+          @click="confirmReindex"
+        >
+          {{ t('documents.rag.reindexBtn') }}
+        </el-button>
         <el-button
           v-if="canUpload && category"
           :icon="FolderAdd"
@@ -135,12 +151,24 @@
               <el-tooltip v-if="canUpdate" :content="t('documents.rename')" placement="top">
                 <el-button size="small" link :icon="Edit" @click="onCommand('rename', row as DocumentItem)" />
               </el-tooltip>
-              <!-- 删除：保留在 ··· 下拉 -->
-              <el-dropdown v-if="canDelete" trigger="click" @command="(cmd: string) => onCommand(cmd, row as DocumentItem)">
-                <el-button :icon="MoreFilled" size="small" link />
+              <!-- 索引 / 删除：保留在 ··· 下拉 -->
+              <el-dropdown
+                v-if="canUpdate || canDelete"
+                trigger="click"
+                @command="(cmd: string) => onCommand(cmd, row as DocumentItem)"
+              >
+                <el-button
+                  :icon="MoreFilled"
+                  size="small"
+                  link
+                  :loading="indexingId === (row as DocumentItem).id"
+                />
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="delete" divided>
+                    <el-dropdown-item v-if="ragEnabled && canUpdate" command="index">
+                      <el-icon><Search /></el-icon>{{ t('documents.rag.indexBtn') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item v-if="canDelete" command="delete" divided>
                       <span class="danger-text">
                         <el-icon><Delete /></el-icon>{{ t('common.delete') }}
                       </span>
@@ -220,11 +248,44 @@
     <!-- 预览 drawer（多格式预览由 ProjectFileViewer 走 @file-viewer/preset-office） -->
     <el-drawer
       v-model="previewVisible"
-      :title="previewTitle"
+      class="preview-drawer"
       size="80%"
       direction="rtl"
       :destroy-on-close="true"
+      :show-close="false"
     >
+      <!-- 自定义 header：左侧文件名 + 右侧下载 / 关闭快捷按钮。
+           用 #header slot 替换 Element Plus 默认的「title + ×」布局。
+           注意：el-drawer 的 <button v-if="showClose">×</button> 在 slot 之外、
+           是 <header> 的兄弟节点 —— 必须 :show-close="false" 才能彻底隐藏默认 ×。 -->
+      <template #header>
+        <div class="preview-drawer-header">
+          <div class="preview-drawer-title" :title="previewTitle">
+            <el-icon class="preview-title-icon"><Document /></el-icon>
+            <span class="preview-title-text">{{ previewTitle }}</span>
+          </div>
+          <div class="preview-drawer-actions">
+            <el-tooltip :content="t('common.download')" placement="bottom">
+              <el-button
+                :icon="Download"
+                circle
+                plain
+                size="default"
+                @click="onPreviewDownload({ storageKey: previewKey, name: previewTitle })"
+              />
+            </el-tooltip>
+            <el-tooltip :content="t('common.close')" placement="bottom">
+              <el-button
+                :icon="Close"
+                circle
+                plain
+                size="default"
+                @click="previewVisible = false"
+              />
+            </el-tooltip>
+          </div>
+        </div>
+      </template>
       <ProjectFileViewer
         v-if="previewKey"
         :storage-key="previewKey"
@@ -232,6 +293,9 @@
         @download="onPreviewDownload"
       />
     </el-drawer>
+
+    <!-- 档案库问答抽屉：检索范围由后端按 documents:{slug}:view 圈定 -->
+    <RagChatDrawer v-model="ragVisible" @open-document="onRagOpenDocument" />
   </div>
 </template>
 
@@ -240,13 +304,15 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import {
-  ArrowRight, Delete, Download, Edit, Folder, FolderAdd, FolderOpened, InfoFilled, Lock, MoreFilled, UploadFilled, View
+  ArrowRight, Close, Delete, Document, Download, Edit, Folder, FolderAdd, FolderOpened, InfoFilled, Lock, MagicStick, MoreFilled, Refresh, Search, UploadFilled, View
 } from '@element-plus/icons-vue';
 import * as ElIcons from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { archiveApi, documentApi, fileRawUrl, type ArchiveLibrary, type DocumentItem, type FolderItem, type BrowseResult } from '@/api/document';
+import { ragApi } from '@/api/rag';
 import ProjectFileViewer from '@/components/ProjectFileViewer.vue';
+import RagChatDrawer from '@/components/documents/RagChatDrawer.vue';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -484,7 +550,94 @@ async function onCommand(cmd: string, row: DocumentItem) {
     case 'preview':  return preview(row);
     case 'download': return download(row);
     case 'rename':   return openRename(row);
+    case 'index':    return indexOne(row);
     case 'delete':   return confirmDelete(row);
+  }
+}
+
+// ---------- RAG 档案库问答 ----------
+const ragVisible = ref(false);
+/** null = 探测中；false = 后端 RAG 未启用（@ConditionalOnProperty 整组不注册，探测必失败） */
+const ragEnabled = ref<boolean | null>(null);
+const indexingId = ref<number | null>(null);
+const reindexing = ref(false);
+
+/** 探测一次即可：RAG 开关是启动期配置，不会在运行中变化 */
+async function probeRag() {
+  if (ragEnabled.value !== null) return;
+  try {
+    await ragApi.stats();
+    ragEnabled.value = true;
+  } catch {
+    ragEnabled.value = false;
+  }
+}
+
+/** 单档案建立索引。覆盖式写入，重复点击安全。 */
+async function indexOne(row: DocumentItem) {
+  if (indexingId.value != null) return;
+  indexingId.value = row.id;
+  try {
+    const r = await ragApi.indexDocument(row.id);
+    if (r.indexed) {
+      ElMessage.success(t('documents.rag.indexDone', {
+        name: r.filename || row.name, n: r.chunkCount,
+      }));
+    } else {
+      ElMessage.warning(t('documents.rag.indexSkipped', {
+        name: r.filename || row.name, note: r.note || '—',
+      }));
+    }
+  } catch (e: any) {
+    ElMessage.error(t('documents.rag.indexFailed', { msg: e?.message || String(e) }));
+  } finally {
+    indexingId.value = null;
+  }
+}
+
+/** 整库重建。会真实调用 embedding 接口，必须先确认。 */
+async function confirmReindex() {
+  if (!category.value || reindexing.value) return;
+  try {
+    await ElMessageBox.confirm(
+      t('documents.rag.reindexConfirm', { name: category.value.name }),
+      t('documents.rag.reindexBtn'),
+      {
+        type: 'warning',
+        confirmButtonText: t('common.ok'),
+        cancelButtonText: t('common.cancel'),
+      },
+    );
+  } catch {
+    return;
+  }
+  reindexing.value = true;
+  const loading = ElMessageBox.alert(t('documents.rag.reindexing'), '', {
+    type: 'info',
+    showClose: false,
+    closeOnClickModal: false,
+    showCancelButton: false,
+  }).catch(() => undefined);
+  try {
+    const r = await ragApi.reindexLibrary(category.value.id);
+    ElMessage.success(t('documents.rag.reindexDone', {
+      indexed: r.indexed, skipped: r.skipped, failed: r.failed, total: r.total,
+    }));
+  } catch (e: any) {
+    ElMessage.error(t('documents.rag.reindexFailed', { msg: e?.message || String(e) }));
+  } finally {
+    loading.then(() => { /* 关闭 loading 提示 */ });
+    reindexing.value = false;
+  }
+}
+
+/** 点击引用 → 拉档案详情 → 复用已有预览抽屉（引用可能来自其它文件夹，故不能只查当前 rows） */
+async function onRagOpenDocument(documentId: number) {
+  try {
+    const d = await documentApi.detail(documentId);
+    preview(d);
+  } catch (e: any) {
+    ElMessage.error(t('documents.rag.sourceLoadFailed', { msg: e?.message || String(e) }));
   }
 }
 
@@ -598,7 +751,10 @@ async function confirmDelete(row: DocumentItem) {
 // ---------- lifecycle ----------
 const slug = computed(() => route.params.slug as string);
 watch(slug, (v) => loadBySlug(v), { immediate: false });
-onMounted(() => loadBySlug(slug.value));
+onMounted(() => {
+  loadBySlug(slug.value);
+  probeRag();
+});
 </script>
 
 <style scoped>
@@ -721,7 +877,7 @@ onMounted(() => loadBySlug(slug.value));
   background: linear-gradient(135deg, var(--color-primary-softer) 0%, var(--color-bg-elev) 100%);
   border: 2px dashed var(--color-border-strong);
   border-radius: 14px;
-  padding: 16px 24px;
+  padding: 8px 12px;
   transition: all 0.2s ease;
 }
 :deep(.upload-area .el-upload-dragger:hover) {
@@ -778,7 +934,7 @@ onMounted(() => loadBySlug(slug.value));
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 60px 24px;
+  padding: 30px 12px;
   gap: 12px;
 }
 .empty-state .empty-icon {
@@ -803,7 +959,64 @@ onMounted(() => loadBySlug(slug.value));
 .empty-state .empty-desc {
   font-size: 13px;
   max-width: 460px;
-  margin: 0 0 12px;
+  margin: 0 0 6px;
   line-height: 1.55;
+}
+
+/*
+ * 预览抽屉自定义 header
+ *  - 左侧：文件名 + Document 图标
+ *  - 右侧：下载 / 关闭 圆形快捷按钮
+ *  - 与 Element Plus 默认 header 同样的水平 padding（容器已自带），
+ *    这里只管 flex 布局和省略号截断
+ */
+.preview-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.preview-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  color: var(--color-text);
+}
+.preview-title-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--color-primary);
+}
+.preview-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+}
+.preview-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+</style>
+
+<style>
+/*
+ * 关键修复（v1.5.2）：StylePanel.vue:207 的全局规则
+ *   .el-drawer__header { display: none; }
+ * 把所有 el-drawer 的 <header> 都隐藏了 —— 包括我们的预览抽屉，
+ * 所以 #header slot 写进去的内容看不到。
+ *
+ * 用更高的特异性（0,2,0 vs 0,1,0）只对本抽屉恢复显示。
+ * 非 scoped 块：el-drawer 经 <Teleport> 到 body，scoped :deep() 匹配不到。
+ */
+.preview-drawer .el-drawer__header {
+  display: flex;
 }
 </style>

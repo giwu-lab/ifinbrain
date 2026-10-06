@@ -821,7 +821,7 @@ function relTime(s: string) {
 .qe-bar {
   height: 56px;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 10px;
   border-bottom: 1px solid #E5E5E0;
   background: #FFFFFF;
   flex-shrink: 0;
@@ -912,7 +912,7 @@ function relTime(s: string) {
 }
 .qe-ds-row {
   display: flex; align-items: center; gap: 12px;
-  padding: 0 28px;
+  padding: 0 14px;
   border-bottom: 1px solid #E5E5E0;
   font-size: 13px;
   min-height: 0;
@@ -965,7 +965,7 @@ function relTime(s: string) {
 .qe-result {
   background: #FFFFFF;
   display: flex; flex-direction: column;
-  padding: 4px 28px 12px;
+  padding: 4px 14px 6px;
   min-height: 0;
   overflow: hidden;
 }
@@ -986,7 +986,7 @@ function relTime(s: string) {
 .qe-truncated { color: #C76A00; }
 .qe-result-actions { display: flex; gap: 4px; align-items: center; }
 .qe-result-err {
-  padding: 12px 16px; background: #FCF1F1; border-left: 3px solid #B73838;
+  padding: 6px 8px; background: #FCF1F1; border-left: 3px solid #B73838;
   color: #B73838; font-size: 13px; margin: 8px 0;
   font-family: ui-monospace, monospace;
 }
@@ -1017,7 +1017,7 @@ function relTime(s: string) {
 .qe-tab {
   flex: 1;
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 10px 12px;
+  padding: 5px 6px;
   border: none; background: transparent;
   font-size: 13px; font-weight: 500; color: #5C5C5C;
   cursor: pointer;
@@ -1045,7 +1045,7 @@ function relTime(s: string) {
 
 .qe-sidebar-section {
   flex: 1;
-  padding: 14px 16px;
+  padding: 7px 8px;
   overflow: auto;
   min-height: 0;
 }
@@ -1099,7 +1099,7 @@ function relTime(s: string) {
 .qe-table-h .caret.open { transform: rotate(90deg); }
 .qe-table-name { font-family: ui-monospace, monospace; font-weight: 500; color: #1A1A1A; }
 .qe-table-full { font-family: ui-monospace, monospace; }
-.qe-cols { padding: 2px 0 6px 16px; }
+.qe-cols { padding: 1px 0 3px 8px; }
 .qe-col {
   display: flex; align-items: center; justify-content: space-between;
   padding: 3px 8px; cursor: pointer; border-radius: 3px;

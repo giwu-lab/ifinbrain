@@ -74,7 +74,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 .flow-preview-page .page-title { margin: 4px 0 4px; font-size: 22px; font-weight: 700; }
 .flow-preview-page .page-desc  { margin: 0; font-size: 13px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -91,5 +91,5 @@ onMounted(async () => {
   background: var(--color-bg-elev);
   overflow: hidden;
 }
-.loading { padding: 80px 0; text-align: center; }
+.loading { padding: 40px 0; text-align: center; }
 </style>

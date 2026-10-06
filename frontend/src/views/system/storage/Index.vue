@@ -361,7 +361,7 @@ onMounted(reload);
 </script>
 
 <style scoped>
-.page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
 .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .page-desc { margin: 4px 0 0; font-size: 13px; }
 .header-actions { display: flex; gap: 8px; }
@@ -373,7 +373,7 @@ onMounted(reload);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 16px 8px;
+  padding: 12px 8px 4px;
   text-align: center;
 }
 .big-icon {

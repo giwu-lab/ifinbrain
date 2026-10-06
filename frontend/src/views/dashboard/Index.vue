@@ -156,13 +156,12 @@ function goStorage() { router.push('/system/storage'); }
 
 onMounted(async () => {
   /* 两个 count 都是轻量 endpoint，并行拉；权限缺失或失败静默（避免登录后立即 403 toast）。
-   *  - todoApi.dashboard(50) → 拉最多 50 条 PENDING，rows.length 作 count
-   *    （>50 时显示 50，点卡片跳 /todo 看全部；后续可加专用 /count 端点）
+   *  - todoApi.dashboard(1) → 拿到真实 total（admin 走 searchAll，看全员 PENDING 数）
    *  - flowTaskApi.pendingCount() → 真正的 count endpoint
    */
   const tasks = [
     auth.hasPerm('todo:task:view')
-      ? todoApi.dashboard(50).then((rows) => { myTasksCount.value = rows.length; }).catch(() => {})
+      ? todoApi.dashboard(1).then((resp) => { myTasksCount.value = resp.total; }).catch(() => {})
       : Promise.resolve(),
     auth.hasPerm('design:flow:view')
       ? flowTaskApi.pendingCount().then((n) => { flowTodoCount.value = n; }).catch(() => {})

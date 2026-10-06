@@ -619,7 +619,7 @@ onMounted(reload);
 
 /* ===================== 授权对话框 ===================== */
 .auth-header {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 .auth-row {
   display: inline-flex;
@@ -653,7 +653,7 @@ onMounted(reload);
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 60px 24px;
+  padding: 30px 12px;
   gap: 12px;
 }
 .empty-state .empty-icon {
@@ -678,7 +678,7 @@ onMounted(reload);
 .empty-state .empty-desc {
   font-size: 13px;
   max-width: 460px;
-  margin: 0 0 12px;
+  margin: 0 0 6px;
   line-height: 1.55;
 }
 </style>

@@ -70,7 +70,7 @@
           <template #label>
             <span class="nd-tab-label">
               {{ t('header.notifCenter.tabTodos') }}
-              <el-badge v-if="todos.length > 0" :value="todos.length" class="nd-badge" />
+              <el-badge v-if="todoTotal > 0" :value="todoTotal" class="nd-badge" />
             </span>
           </template>
 
@@ -155,6 +155,8 @@ const auth = useAuthStore();
 const activeTab = ref<'messages' | 'todos' | 'announcements'>('messages');
 const flowTasks = ref<FlowTaskItem[]>([]);
 const todos = ref<TodoDashboardItem[]>([]);
+// 待办真实总数（与 items.length 解耦，用于 tab 徽章，避免「最多显示 N 条」误导）
+const todoTotal = ref(0);
 const loadingFlow = ref(false);
 const loadingTodo = ref(false);
 let loadedOnce = false;
@@ -195,13 +197,24 @@ async function loadFlow() {
 }
 
 async function loadTodos() {
-  if (!auth.hasPerm('todo:task:view')) { todos.value = []; return; }
+  if (!auth.hasPerm('todo:task:view')) {
+    todos.value = [];
+    todoTotal.value = 0;
+    return;
+  }
   loadingTodo.value = true;
   try {
-    todos.value = await todoApi.dashboard(10);
+    // dashboard 接口返回 {items: TodoDashboardItem[], total: number}
+    // 之前直接赋给 todos 会让模板把对象当数组迭代（v-for 拿到 'items'/'total' 两个键），
+    // 且 todos.length = undefined > 0 = false，导致 empty state 永远渲染。
+    // 拆分：todos 拿 items（数组）+ todoTotal 拿真实总数（tab 徽章用）
+    const resp = await todoApi.dashboard(10);
+    todos.value = resp.items;
+    todoTotal.value = resp.total;
   } catch (e: any) {
     ElMessage.warning(e?.message || t('header.notifCenter.todoLoadFail'));
     todos.value = [];
+    todoTotal.value = 0;
   } finally {
     loadingTodo.value = false;
   }

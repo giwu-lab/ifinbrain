@@ -121,8 +121,8 @@
                   :class="['fmt-' + f.code, { active: !!row.formats[f.code] }]"
                   :role="row.formats[f.code] ? 'button' : undefined"
                   :tabindex="row.formats[f.code] ? 0 : -1"
-                  @click="row.formats[f.code] && onPreview(row, f.code)"
-                  @keydown.enter="row.formats[f.code] && onPreview(row, f.code)"
+                  @click="row.formats[f.code] && openInvoicePreview(row, f.code)"
+                  @keydown.enter="row.formats[f.code] && openInvoicePreview(row, f.code)"
                 >
                   <el-icon v-if="row.formats[f.code]" class="fmt-check"><Check /></el-icon>
                   <span class="fmt-text">{{ f.label }}</span>
@@ -212,13 +212,9 @@
             <span class="mono-time">{{ ((row.createdAt as unknown as string) || '').slice(0, 10) }}</span>
           </template>
         </el-table-column>
-        <el-table-column column-key="actions" :label="t('common.actions')" :width="widthOf('actions', 120)" align="center" fixed="right">
+        <el-table-column column-key="actions" :label="t('common.actions')" :width="widthOf('actions', 80)" align="center" fixed="right">
           <template #default="{ row }">
-            <!-- 编辑：图标直显 -->
-            <el-tooltip v-if="auth.hasPerm('invoice:edit')" :content="t('common.edit')" placement="top">
-              <el-button size="small" link :icon="Edit" @click="openEdit(row as InvoiceGroupItem)" />
-            </el-tooltip>
-            <!-- 删除：保留在 ··· 下拉 -->
+            <!-- 删除：保留在 ··· 下拉（admin-only，invoice:delete） -->
             <el-dropdown v-if="auth.hasPerm('invoice:delete')" trigger="click" @command="(cmd: string) => onRowCmd(cmd, row as InvoiceGroupItem)">
               <el-button :icon="MoreFilled" size="small" link />
               <template #dropdown>
@@ -246,56 +242,54 @@
       />
     </el-card>
 
-    <el-dialog
-      v-model="dialog"
-      :title="t('invoice.editTitle')"
-      width="640px"
-      append-to-body
-      destroy-on-close
-      align-center
+    <!-- 发票文件预览抽屉（参考 documents/list/Index.vue 档案库预览）：
+         drawer 80% rtl + #header slot 自定义（Document 图标 + 文件名 + 下载 + 关闭）
+         + <ProjectFileViewer> 内嵌渲染 PDF / XML / OFD。
+         :destroy-on-close 保证旧 ArrayBuffer 不堆积；
+         class="invoice-preview-drawer" 用更高特异性恢复 StylePanel.vue:207 的全局隐藏 -->
+    <el-drawer
+      v-model="previewVisible"
+      class="invoice-preview-drawer"
+      size="80%"
+      direction="rtl"
+      :destroy-on-close="true"
+      :show-close="false"
     >
-      <el-form :model="form" label-width="140px">
-        <el-form-item :label="t('invoice.editInvoiceNo')">
-          <el-input v-model="form.invoiceNumber" />
-        </el-form-item>
-        <el-form-item :label="t('invoice.editIssueDate')">
-          <el-date-picker
-            v-model="form.issueDate"
-            type="date"
-            value-format="YYYY-MM-DD"
-            style="width: 100%;"
-          />
-        </el-form-item>
-        <el-form-item :label="t('invoice.editSeller')">
-          <el-input v-model="form.sellerName" />
-        </el-form-item>
-        <el-form-item :label="t('invoice.editSellerTaxId')">
-          <el-input v-model="form.sellerTaxId" />
-        </el-form-item>
-        <el-form-item :label="t('invoice.editBuyer')">
-          <el-input v-model="form.buyerName" />
-        </el-form-item>
-        <el-form-item :label="t('invoice.editBuyerTaxId')">
-          <el-input v-model="form.buyerTaxId" />
-        </el-form-item>
-        <el-form-item :label="t('invoice.editNet')">
-          <el-input-number v-model="form.amountWithoutTax" :precision="2" :step="0.01" style="width: 100%;" />
-        </el-form-item>
-        <el-form-item :label="t('invoice.editTax')">
-          <el-input-number v-model="form.taxAmount" :precision="2" :step="0.01" style="width: 100%;" />
-        </el-form-item>
-        <el-form-item :label="t('invoice.editTotal')">
-          <el-input-number v-model="form.totalAmount" :precision="2" :step="0.01" style="width: 100%;" />
-        </el-form-item>
-        <el-form-item :label="t('invoice.editMessage')">
-          <el-input v-model="form.message" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="save">{{ t('common.save') }}</el-button>
+      <template #header>
+        <div class="preview-drawer-header">
+          <div class="preview-drawer-title" :title="previewTitle">
+            <el-icon class="preview-title-icon"><Document /></el-icon>
+            <span class="preview-title-text">{{ previewTitle }}</span>
+          </div>
+          <div class="preview-drawer-actions">
+            <el-tooltip :content="t('common.download')" placement="bottom">
+              <el-button
+                :icon="Download"
+                circle
+                plain
+                size="default"
+                @click="onInvoicePreviewDownload({ storageKey: previewKey, name: previewTitle })"
+              />
+            </el-tooltip>
+            <el-tooltip :content="t('common.close')" placement="bottom">
+              <el-button
+                :icon="Close"
+                circle
+                plain
+                size="default"
+                @click="previewVisible = false"
+              />
+            </el-tooltip>
+          </div>
+        </div>
       </template>
-    </el-dialog>
+      <ProjectFileViewer
+        v-if="previewKey"
+        :storage-key="previewKey"
+        :filename="previewTitle"
+        @download="onInvoicePreviewDownload"
+      />
+    </el-drawer>
   </div>
 </template>
 
@@ -303,10 +297,11 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search, Refresh, Check, Brush, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
+import { Search, Refresh, Check, Delete, MoreFilled, Document, Download, Close } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { invoiceApi, type InvoiceGroupItem } from '@/api/invoice';
 import CellText from '@/components/CellText.vue';
+import ProjectFileViewer from '@/components/ProjectFileViewer.vue';
 import { useColumnWidths } from '@/composables/useColumnWidths';
 import { useFileFormat, useInvoiceStatus, useDictStore, DICT_INVOICE_STATUS } from '@/stores/dict';
 
@@ -339,11 +334,56 @@ const query = reactive({
   verificationDateRange: [] as string[],
 });
 
-const dialog = ref(false);
-const saving = ref(false);
-const form = reactive<Partial<InvoiceGroupItem>>({});
-
 const { widthOf, onResize: onColumnResize } = useColumnWidths('invoice-list');
+
+/** 文件预览抽屉（参考 documents/list/Index.vue 档案库预览实现） */
+const previewVisible = ref(false);
+const previewKey = ref('');
+const previewTitle = ref('');
+
+/** 打开指定格式的发票预览抽屉（替换原 onPreview 新标签页逻辑） */
+function openInvoicePreview(row: InvoiceGroupItem, ext: string) {
+  const fmt = row.formats[ext as keyof typeof row.formats];
+  if (!fmt) return;
+  previewKey.value = fmt.storageKey;
+  previewTitle.value = fmt.originalFilename;
+  previewVisible.value = true;
+}
+
+/** ProjectFileViewer 内 toolbar 下载按钮 → fetch blob（不走 axios）+ JWT refresh retry */
+async function onInvoicePreviewDownload(payload: { storageKey: string; name: string }) {
+  try {
+    let blob = await fetchInvoiceBlob(payload.storageKey);
+    if (!blob) {
+      await auth.refreshTokens();
+      blob = await fetchInvoiceBlob(payload.storageKey);
+    }
+    if (!blob) throw new Error('refresh+retry failed');
+    saveInvoiceBlob(blob, payload.name);
+  } catch (err: unknown) {
+    ElMessage.error((err instanceof Error ? err.message : String(err)) || t('invoice.exportFail'));
+  }
+}
+
+async function fetchInvoiceBlob(key: string): Promise<Blob | null> {
+  const resp = await fetch(`/api/files/raw?key=${encodeURIComponent(key)}&download=true`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` },
+  });
+  if (resp.ok) return resp.blob();
+  if (resp.status === 403 || resp.status === 401) return null;
+  const body = await resp.json().catch(() => ({}));
+  throw new Error(body?.message || `HTTP ${resp.status}`);
+}
+
+function saveInvoiceBlob(blob: Blob, filename: string) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
 
 async function reload() {
   loading.value = true;
@@ -399,94 +439,6 @@ async function onExport(kind: 'csv' | 'xlsx') {
   }
 }
 
-async function onPreview(row: InvoiceGroupItem, ext: string) {
-  const fmt = row.formats[ext as keyof typeof row.formats];
-  if (!fmt) return;
-  let blobUrl: string | null = null;
-  try {
-    const r = await invoiceApi.preview(fmt.storageKey);
-    blobUrl = r.blobUrl;
-    const realExt = r.ext;
-    // 可预览的格式：读字典 file_format 的 value 字段为「inlinable」，
-    // 当前种子数据：pdf / xml 可内嵌；ofd 走下载
-    const inlineCodes = fileFormats.value
-      .filter((f) => f.code === 'pdf' || f.code === 'xml')
-      .map((f) => f.code);
-    if (inlineCodes.includes(realExt)) {
-      const w = window.open(blobUrl, '_blank');
-      if (!w) {
-        ElMessage.warning(t('common.popupBlocked'));
-        downloadBlob(blobUrl, fmt.originalFilename);
-        return;
-      }
-    } else {
-      ElMessage.info(t('invoice.previewFailOfd'));
-      downloadBlob(blobUrl, fmt.originalFilename);
-    }
-  } catch (e) {
-    ElMessage.error((e instanceof Error ? e.message : String(e)));
-    if (blobUrl) URL.revokeObjectURL(blobUrl);
-  }
-}
-
-function downloadBlob(blobUrl: string, filename: string) {
-  const a = document.createElement('a');
-  a.href = blobUrl;
-  a.download = filename;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  // 给浏览器一点时间处理下载，再回收 blob
-  setTimeout(() => {
-    a.remove();
-    URL.revokeObjectURL(blobUrl);
-  }, 1000);
-}
-
-async function openEdit(row: InvoiceGroupItem) {
-  // 编辑组内最新（id 最大）的一条记录
-  try {
-    const latest = await invoiceApi.detail(row.representativeId);
-    Object.assign(form, {
-      id: latest.id,
-      invoiceNumber: latest.invoiceNumber,
-      issueDate: latest.issueDate,
-      sellerName: latest.sellerName,
-      sellerTaxId: latest.sellerTaxId,
-      buyerName: latest.buyerName,
-      buyerTaxId: latest.buyerTaxId,
-      amountWithoutTax: latest.amountWithoutTax,
-      taxAmount: latest.taxAmount,
-      totalAmount: latest.totalAmount,
-      message: latest.message,
-    });
-    dialog.value = true;
-  } catch (e) {
-    ElMessage.error((e instanceof Error ? e.message : String(e)));
-  }
-}
-
-async function save() {
-  saving.value = true;
-  try {
-    await invoiceApi.update(form.id!, {
-      invoiceNumber: form.invoiceNumber,
-      issueDate: form.issueDate,
-      sellerName: form.sellerName,
-      sellerTaxId: form.sellerTaxId,
-      buyerName: form.buyerName,
-      buyerTaxId: form.buyerTaxId,
-      amountWithoutTax: form.amountWithoutTax,
-      taxAmount: form.taxAmount,
-      totalAmount: form.totalAmount,
-      message: form.message,
-    });
-    ElMessage.success(t('common.updated'));
-    dialog.value = false;
-    reload();
-  } finally { saving.value = false; }
-}
-
 async function remove(row: InvoiceGroupItem) {
   try {
     const r = await invoiceApi.batchDelete(row.ids);
@@ -521,7 +473,7 @@ onMounted(reload);
 </script>
 
 <style scoped>
-.page-header { margin-bottom: 20px; }
+.page-header { margin-bottom: 10px; }
 .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .page-desc { margin: 4px 0 0; font-size: 13px; }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
@@ -569,4 +521,53 @@ onMounted(reload);
   color: #10b981;
 }
 .fmt-chip .fmt-text { font-weight: 600; letter-spacing: 0.02em; }
+
+/* 预览抽屉自定义 header（参考 documents/list/Index.vue 档案库预览） */
+.preview-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.preview-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  color: var(--color-text);
+}
+.preview-title-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--color-primary);
+}
+.preview-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+}
+.preview-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+</style>
+
+<style>
+/*
+ * 关键修复：StylePanel.vue:207 的全局规则
+ *   .el-drawer__header { display: none; }
+ * 把所有 el-drawer 的 <header> 都隐藏了 —— 包括我们的预览抽屉。
+ * 用更高的特异性（0,2,0 vs 0,1,0）只对本抽屉恢复显示。
+ * 非 scoped 块：el-drawer 经 <Teleport> 到 body，scoped :deep() 匹配不到。
+ */
+.invoice-preview-drawer .el-drawer__header {
+  display: flex;
+}
 </style>

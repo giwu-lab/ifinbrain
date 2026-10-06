@@ -361,7 +361,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 10px 16px;
+  padding: 5px 8px;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-elev);
   height: 56px;
@@ -386,7 +386,7 @@ onMounted(async () => {
 
 /* 元数据 */
 .designer-meta {
-  padding: 10px 16px;
+  padding: 5px 8px;
   border-bottom: 1px solid var(--color-border-soft);
   background: var(--color-bg-elev);
 }

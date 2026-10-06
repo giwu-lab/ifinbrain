@@ -705,7 +705,7 @@ watch(
 
 /* 列表区：plain 1px 边框容器；避开 SaaS-card 套娃 */
 .flow-table-wrap {
-  margin-top: 16px;
+  margin-top: 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-elev);
@@ -726,7 +726,7 @@ watch(
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
-  margin: 16px 0 8px;
+margin: 8px 0 4px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -736,7 +736,7 @@ watch(
 /* 空状态：紧凑卡片 */
 .flow-rt-page .empty {
   display: flex; flex-direction: column; align-items: center;
-  padding: 48px 20px; gap: 8px;
+  padding: 24px 10px; gap: 8px;
 }
 .flow-rt-page .empty-icon { font-size: 40px; color: var(--color-text-muted); }
 
@@ -814,11 +814,11 @@ watch(
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-elev);
-  padding: 16px;
+  padding: 8px;
   margin-bottom: 8px;
 }
 .form-empty {
-  padding: 24px 16px;
+  padding: 12px 8px;
   text-align: center;
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-sm);
@@ -828,7 +828,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 16px;
+  padding: 8px;
   color: var(--color-text-secondary);
   font-size: 13px;
 }
