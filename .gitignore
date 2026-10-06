@@ -9,6 +9,12 @@
 logs/
 *.log
 
+# Spring Boot 日志配置误用相对路径时落在这里（org/springframework/http/...）
+org/
+
+# 临时调试脚本
+frontend/test-sfc.mjs
+
 # 后端构建产物
 backend/target/
 backend/data/

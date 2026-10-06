@@ -1,0 +1,39 @@
+# 统一行尾：仓库内与工作区一律 LF。
+#
+# 原因：本项目的 Flyway 迁移脚本（*.sql）与 Java / TypeScript 源码依赖纯 LF。
+# Windows 上 Git 的默认 core.autocrlf=true 会在检出时把 LF 改写成 CRLF，
+# 既破坏该约束，也会让迁移脚本的字节内容在换机器后对不上。
+# 因此这里显式锁定 eol=lf，并把 core.autocrlf 设为 false（见 .git/config）。
+* text=auto eol=lf
+
+# 二进制：禁止任何行尾或文本过滤处理
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.pdf  binary
+*.zip  binary
+*.xlsx binary
+*.docx binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.wasm binary
+
+# 显式声明纯文本类型（部分构建工具据此解析）
+*.sql       text eol=lf
+*.java      text eol=lf
+*.ts        text eol=lf
+*.vue       text eol=lf
+*.js        text eol=lf
+*.mjs       text eol=lf
+*.json      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.xml       text eol=lf
+*.md        text eol=lf
+*.properties text eol=lf
+*.sh        text eol=lf
+*.ps1       text eol=lf
