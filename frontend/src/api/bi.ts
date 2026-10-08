@@ -1,4 +1,5 @@
 import { http } from './http';
+import type { PageResp } from '@/types';
 
 /** 布局 schema 版本；破坏性变更时 +1 并在 utils/bi/layout.ts 补 migrate() */
 export const LAYOUT_VERSION = 1;
@@ -168,7 +169,16 @@ export interface BiQueryOption {
 }
 
 export const biApi = {
-  list: () => http.get<any, BiDashboardDto[]>('/bi/dashboard'),
+  /** 列表页：后端真分页。keyword 命中名称 / 编码 / 描述 */
+  list: (params?: { page?: number; size?: number; keyword?: string }) =>
+    http.get<any, PageResp<BiDashboardDto>>('/bi/dashboard', { params }),
+
+  /**
+   * 已发布大屏全量列表（展示墙轮播用）。
+   * 轮播要把所有已发布大屏排一遍序再挑，不适用分页 —— 后端 /published 已按 sort 排好。
+   */
+  published: () => http.get<any, BiDashboardDto[]>('/bi/dashboard/published'),
+
   detail: (id: number) => http.get<any, BiDashboardDto>(`/bi/dashboard/${id}`),
   create: (body: BiDashboardCreateBody) =>
     http.post<any, BiDashboardDto>('/bi/dashboard', body),

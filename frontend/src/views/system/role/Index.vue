@@ -1,21 +1,17 @@
 <template>
   <div class="page-container fade-in-up">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('system.roleTitle') }}</h1>
-        <p class="page-desc muted">{{ t('system.roleTitleDesc') }}</p>
+    <div class="table-wrap">
+      <div class="table-actions">
+        <el-button
+          v-if="auth.hasPerm('system:role:create')"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          {{ t('system.newRole') }}
+        </el-button>
       </div>
-      <el-button
-        v-if="auth.hasPerm('system:role:create')"
-        type="primary"
-        :icon="Plus"
-        @click="openCreate"
-      >
-        {{ t('system.newRole') }}
-      </el-button>
-    </div>
 
-    <el-card class="card-table" shadow="never">
       <el-table :data="rows" v-loading="loading" border stripe>
         <el-table-column prop="id" :label="t('system.colId')" width="80" />
         <el-table-column :label="t('system.colCode')" prop="code" width="140">
@@ -129,7 +125,7 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
 
     <el-dialog
       v-model="dialog.visible"
@@ -358,9 +354,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
-.page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.page-desc { margin: 4px 0 0; font-size: 13px; }
 
 .perm-by-module {
   max-height: 360px;

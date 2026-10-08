@@ -1,12 +1,5 @@
 <template>
   <div class="page-container fade-in-up">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('invoice.uploadTitle') }}</h1>
-        <p class="page-desc muted">{{ t('invoice.uploadDesc') }}</p>
-      </div>
-    </div>
-
     <el-card class="card-table upload-card" shadow="never">
       <el-form :model="meta" label-width="120px" class="meta-form">
         <el-row :gutter="20">
@@ -659,7 +652,6 @@ const blocking = computed(() => ({
 }));
 const hasBlocking = computed(() => blocking.value.dup || blocking.value.dbDup || blocking.value.err);
 
-
 /**
  * 把后端 tag（如 "OCR_NOT_CONFIGURED"）翻译成 i18n 友好文案。
  * 其它自由文本（连接失败、timeout 等）原样显示，方便定位问题。
@@ -769,9 +761,6 @@ async function saveCommit() {
 </script>
 
 <style scoped>
-.page-header { margin-bottom: 20px; }
-.page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.page-desc { margin: 4px 0 0; font-size: 13px; }
 
 .upload-card { padding: 0; }
 .meta-form { padding: 4px 0 0; }

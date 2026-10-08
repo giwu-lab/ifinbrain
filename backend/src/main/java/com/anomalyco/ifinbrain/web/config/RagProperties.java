@@ -6,9 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * 档案库 RAG（检索增强问答）配置。
  *
- * <p>默认 {@code enabled=false}：RAG 依赖 pgvector，而 dev profile 仍走 SQLite，
- * 打开会让 Spring 尝试连接一个没有 vector 类型的库。等 dev/prod 都切到装了
- * pgvector 的 PostgreSQL 后再置 true。
+ * <p>默认 {@code enabled=false}：RAG 依赖 pgvector，未装 vector 扩展的库打开会直接失败。
+ * 用这个开关把档案库 RAG 整体隔离掉，RAG 不用时不影响应用启动。
  *
  * <p>密钥一律走环境变量（{@code RAG_EMBEDDING_API_KEY} 等），不设默认值 —— 与
  * {@code JwtUtil} 同样的姿态：配置缺失要在启动时炸掉，不能带着占位符跑。

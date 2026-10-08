@@ -6,7 +6,7 @@
 
 ## 1. 项目概览
 
-**技术栈**：Spring Boot 4.1.1 + Java 21 · Vue 3 + Vite 6 + Element Plus · Pinia · vue-i18n v11 · SQLite（开发）/ PostgreSQL（生产）
+**技术栈**：Spring Boot 4.1.1 + Java 21 · Vue 3 + Vite 6 + Element Plus · Pinia · vue-i18n v11 · PostgreSQL（唯一数据库，dev / prod 同库；SQLite 已弃用）
 **包根**：`com.anomalyco.ifinbrain.web`（Service 单类，无 `*Impl.java`）
 **前端根**：`frontend/`
 **默认凭据**：admin / Admin@123（其他角色由 admin 在「系统设置 → 用户管理」创建）
@@ -39,7 +39,7 @@ i18n **单一数据源 = TS 文件**：运行时不再从 `sys_i18n_message` 表
 ## 3. 权限（Permission）
 
 **新功能涉及任何操作必须**：
-1. 在 `backend/src/main/resources/db/migration-{dev,prod}/` **同步**新增 V{n+1}.sql（两份都要）
+1. 在 `backend/src/main/resources/db/migration-prod/` 新增 V{n+1}.sql（**只放这一个目录**，见 §4.1）
 2. 插入 `sys_permission`（type='API'） + `sys_role_perm`（admin 全拿 / operator / viewer 按业务分配）
 3. 插入 `sys_menu`（顶层 DIR 用 `parent_id=0, type='DIR', component=NULL`；子菜单用 `type='MENU', component='<module>/<view>/Index'`）
 4. 前端用 `v-if="auth.hasPerm('<code>')"` 守护每个操作按钮
@@ -60,8 +60,16 @@ i18n **单一数据源 = TS 文件**：运行时不再从 `sys_i18n_message` 表
 
 - 新增表 / 菜单 / 权限必须走 Flyway，不要直接 DDL
 - 文件命名 `V{n}__{snake_case}.sql`，n 递增
-- 必须同时写两份 `migration-dev/` 和 `migration-prod/`，内容除注释外完全一致
-- 列定义 SQLite 兼容：`id INTEGER PRIMARY KEY AUTOINCREMENT`、`VARCHAR(n) NOT NULL`、`SMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`
+- **新迁移只写 `db/migration-prod/`**。`FlywayConfig` 把 `db/migration` + `db/migration-prod`
+  **两个目录一起加载**（不再按方言分支），Flyway 会合并校验版本号 —— 同一个 V{n} 同时出现在
+  两个 location 会直接抛 `Found more than one migration with version {n}`。所以**不能两份都写**。
+- `db/migration/` 是 **V2 / V8 / V9 历史冻结目录**（SQLite 时代残留），不再新增任何脚本。
+  V10 起（含 V54–V61）全部只在 `db/migration-prod/`。SQLite 已弃用，原 `db/migration-dev/`
+  目录已删除（停更于 V44，落后 7 个迁移，且没有 vector 类型跑不了 RAG）。
+- 只写 PG 方言，可直接用 `BIGSERIAL` / `JSONB` / `TIMESTAMPTZ` / `vector` / `TEXT[]`，
+  不必再为 SQLite 绕路
+- 目录名里的 `-prod` 是历史包袱（改名要动 46 个文件的 git 历史）。Flyway checksum 只认版本号
+  不认路径，想改成 `db/migration/` 直接 `git mv` 即可，不会有兼容问题
 - 软删除**未启用**；删除是真 `DELETE FROM`
 - JPA entity 用 `@PrePersist` / `@PreUpdate` 维护 `created_at` / `updated_at`
 
@@ -135,20 +143,20 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 
 ### 7.1 页面骨架（所有管理类页面统一）
 
+**列表页没有页面头部**：标题已由顶部多标签栏 / 面包屑表达，页头重复；操作按钮下沉到表格容器内的第一行 `.table-actions`。
+
 ```vue
 <template>
   <div class="page-container fade-in-up {domain}-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('xxx.title') }}</h1>
-        <p class="page-desc muted">{{ t('xxx.desc') }}</p>
+    <div class="table-wrap">
+      <div class="table-actions">
+        <el-button v-if="auth.hasPerm('xxx:create')" type="primary" :icon="Plus" @click="openCreate">
+          {{ t('xxx.create') }}
+        </el-button>
       </div>
-      <el-button v-if="auth.hasPerm('xxx:create')" type="primary" :icon="Plus" @click="openCreate">
-        {{ t('xxx.create') }}
-      </el-button>
-    </div>
-    <div class="{domain}-table-wrap">
+      <div class="toolbar">...</div>
       <el-table :data="rows" v-loading="loading" border stripe size="small">...</el-table>
+      <el-pagination ... />
     </div>
   </div>
 </template>
@@ -157,12 +165,21 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 | 项 | 标准 |
 |---|---|
 | 根 class | `page-container fade-in-up {domain}-page`（如 `ds` / `cat` / `user`） |
-| 标题字号 / 字重 | `22px` / `700` |
-| 按钮对齐 | 标题左 / 按钮右，底部对齐（`align-items: flex-end`） |
-| 多按钮 | 包 `<div class="header-actions">` |
-| 列表区 | 必须 1px 边框包裹，**禁用 `<el-card>` / `.card-table`** |
+| 页面头部 | **列表页取消**；操作按钮放容器内 `.table-actions`（右对齐） |
+| 列表容器 | `.table-wrap`（全局类：1px 边框 + 圆角 + 12px padding + `overflow: visible`），**禁用 `<el-card>` / `.card-table`** |
+| 容器内分区 | 查询条件 → 表格 → 分页，三段靠「分割线 + 12px 间隙」分隔（见 §8.5.1） |
+| 容器专属布局 | 需要 `flex:1` / `margin-top` 等时叠加自有类：`class="table-wrap docs-table-wrap"`，**只写布局属性**，不重复写 padding / border / background |
+| 表格列宽 | 文本列 `min-width` + 数值列 `width`，**至少留一列 flex**，否则表格不撑满（见 §8.1.2） |
+| 单元格内容 | 单行 + 省略号，全局生效，页面不用写（见 §8.1.1） |
+| 分页 | 放容器内表格下方，标准 layout + page-sizes（见 §8.5） |
 
-**例外**：表单页（创建/详情）按 `el-form` + `el-card`；查询编辑器结果面板（`query/Detail.vue`）保留自有视觉。
+**例外**（这些页面保留 `.page-header`，`global.css` 里有全局默认样式）：
+表单页（创建/详情）、预览页（`design/*/Preview.vue`）、查询编辑器结果面板（`query/Detail.vue`）、带返回按钮 / 动态名称的页面（`query-page/Index.vue`）、配置页（`system/storage`）、解析设置页（`invoice/parser`）。
+
+**例外**（这些页面的表格**不用** `.table-wrap`，维持各自布局）：
+字典管理双栏（`system/dict`，左右分栏）、导入向导三步骤（`import/components/Step*`）、查询结果面板（`query/Detail`）、发票上传表单（`invoice/Upload`）。它们不是标准列表页，硬套容器反而破坏原有布局。
+
+> 新增列表页时，表格的「单行 + 省略号」「容器边框」「容器内分区」「分页间距」都不用写代码 —— 都已在 `global.css` 全局生效（§8.1.1 / §8.5.1）。你只需要关心列宽配的是 `min-width` 还是 `width`。
 
 ### 7.2 双层吸顶（`<el-table>` 列表页默认开启）
 
@@ -186,7 +203,7 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 |---|---|---|
 | Store | `frontend/src/stores/theme.ts` | Pinia setup-store；schema `ThemeSettings`；localStorage 缓存 + DB `sys_user_preference` 双向同步；500ms 节流 PUT；**smart dark switch** |
 | 后端 | `backend/.../preference/{entity,repository,service,controller,dto}` | `GET /api/preference` / `PUT /api/preference` / `DELETE /api/preference` |
-| DB | `migration-{dev,prod}/V39__add_user_preference.sql` | `(user_id PK FK CASCADE, theme_json TEXT, updated_at SMESTAMP)` |
+| DB | `migration-prod/V39__add_user_preference.sql` | `(user_id PK FK CASCADE, theme_json TEXT, updated_at SMESTAMP)` |
 | 抽屉 | `components/layout/StylePanel.vue` | 右侧 `el-drawer` + 两 tab + 重置确认 |
 | 4 布局 | `layouts/SidebarLayout.vue` / `TopNavLayout.vue` / `HeaderSidebarLayout.vue` / `FloatingSidebarLayout.vue` | `BasicLayout` 是壳，`<component :is="layoutComp">` 按 store 切换 |
 | 3 色板 | `components/layout/StylePanelColorPicker.vue` | 颜色 picker + 透明度滑块 + 12 色预设 |
@@ -407,6 +424,53 @@ node scripts/dark-theme-shoot.mjs
 | 表头与单元格字号 | `var(--font-size-sm)` = `13px` |
 | 行底边 | `1px solid var(--color-border-soft)` |
 | Hover | `var(--color-primary-soft)` |
+| **单元格内容** | **单行显示，超出 `...` 截断（全局锁定，见下）** |
+
+### 8.1.1 单元格单行 + 省略号（全局强制）
+
+标准来源：`invoice/List.vue`，已提升到 `global.css` 的「标准表格」区块，**全项目 26 处 `<el-table>` 自动生效**，页面无需重复写样式：
+
+```css
+.el-table th.el-table__cell > .cell,
+.el-table td.el-table__cell > .cell {
+  white-space: nowrap; word-break: normal;
+  overflow: hidden; text-overflow: ellipsis;
+}
+```
+
+**为什么必须全局锁**：EP 默认 `.cell { word-break: break-all; white-space: normal }`，长文本会把行撑高、列宽被内容顶开，行高参差。
+
+**两条配套约定**：
+
+- **确需多行的单元格**（长描述 / JSON / 富文本）加 `class="cell-wrap"` 显式覆盖回 `white-space: normal`
+- **`el-tag` 单元格**：tag 是 `inline-flex`，父级 ellipsis 裁不到内部文本，`global.css` 已单独给 `.el-tag` + `.el-tag__content` 加了截断规则，页面不用管
+- **完整文本查看**：用 `CellText.vue`（点击弹 popover）或 EP 的 `show-overflow-tooltip`
+
+**禁止**：❌ 在 view 里写 `white-space: normal` 覆盖 `.cell`（会破坏行高统一）❌ 靠加宽列宽来「塞下」长文本
+
+### 8.1.2 表格撑满宽度（flex 列模式）
+
+表格右侧留白 = **所有列都绑了 `:width`**。这是 Element Plus 的硬性布局规则，见 `element-plus/es/components/table/src/table-layout.mjs:98-137`：
+
+```js
+const flexColumns = flattenColumns.filter((column) => !isNumber(column.width));
+if (flexColumns.length > 0 && fit) {
+  // 按各列 minWidth 比例瓜分剩余空间 → bodyWidth = max(bodyMinWidth, bodyWidth)
+} else {
+  bodyWidth = bodyMinWidth;   // ← 全固定宽走这里，右侧留白
+}
+```
+
+**规则**：
+
+| 列类型 | 写法 | 理由 |
+|---|---|---|
+| 文本 / 名称 / 描述 | `:min-width="140"` | flex 列，自动吸收剩余空间撑满表格 |
+| 数值 / 日期 / 状态 / 操作 | `:width="120"` | 内容定宽，保持列宽整齐 |
+
+- ✅ 一个表格里**至少要有一列 flex 列**（只有 min-width），否则表格不撑满
+- ✅ 需要记住用户拖拽后的宽度时，用 `useColumnWidths` 的 `minOf(key, fallback)`（语义=最小宽度）而不是 `widthOf`（语义=固定宽度）；`widthOf` 会把列锁死，重新造成留白
+- ❌ 整张表全部 `:width` → 右侧留白（invoice 页踩过这个坑）
 
 ### 8.2 操作列（高频图标直显 + 删除在 `···` 下拉）
 
@@ -516,7 +580,124 @@ async function onCmd(cmd: string, row: T) {
 
 `size="small"` + `label-class-name="extra-info-col"` 让 label 加底色（`var(--color-bg)`），值用等宽数字（已在 `global.css` 全局锁定）。
 
-### 8.5 角色管理权限列归类（按顶级 DIR）
+### 8.5 行高 / 分页 / 容器（全局强制）
+
+| 项 | 标准 | 说明 |
+|---|---|---|
+| **行高** | `padding: 8px 0` + `line-height: 20px` | `global.css` 全局锁死表头与数据行。EP 的 `size="small"` 默认 6px/0，行高随内容浮动；有 tag / chip / 双行文本的表格行高会参差。内容已单行（§8.1.1），固定行高不会截断正常内容 |
+| **容器** | `.table-wrap` | 全局类：1px `--color-border-soft` + `--radius-md` + `--color-bg-elev` + `padding: var(--space-6)`（12px）。**内边距挂在容器上**，子元素不再各写各的 padding —— 表格 / 工具栏 / 操作条 / 分页与边框统一留 12px，不会出现「工具栏有间距、表格却贴边」。**`overflow` 必须是 `visible`** —— 用了 `hidden`/`clip` 会创建滚动容器，§7.2 的 `th` sticky 就只在容器内生效，跨页滚动时表头不吸顶。代价是圆角裁不到子元素，由 `.table-wrap > .el-table` 自身圆角补 |
+| **分页** | `layout="total,sizes,prev,pager,next,jumper"` + `:page-sizes="[10,20,50,100]"` | **放在 `.table-wrap` 内部**（表格下方），右对齐 + `margin-top: 12px`。全局已锁右对齐与间距 |
+
+**分页的两条易错点**：
+
+- `@size-change` 必须把页码重置回 1，否则切每页条数后停在越界页码上，拿到空列表
+- 页面若用 `const size = 20`（常量），绑不了 `v-model:page-size`，要先改成 `ref`
+
+**允许差异的场景**：查询编辑器结果面板（`query/Detail.vue`）、导入向导内嵌小表（`ImportHistory.vue`）可保留精简 layout（无 sizes / jumper）。
+
+### 8.5.1 容器内的分区与间距
+
+容器从上到下是**三段**：查询条件 → 数据表格 → 分页。三段之间靠「**分割线 + 12px 间隙**」双保险分隔，不能只靠一条线（线太弱、留白太紧会糊在一起），也不能只靠留白（没有明确的边界）。
+
+```
+┌─ .table-wrap（1px 边框 + 12px padding）─────────┐
+│  .toolbar / .table-actions                       │  ← 与容器同底色
+│  ─────────── 分割线 ───────────                  │
+│         （12px 间隙）                            │
+│  <el-table>                                      │
+│  ─────────── 分割线 ───────────                  │
+│         （12px 间隙）                            │
+│  .el-pagination（右对齐）                        │
+└──────────────────────────────────────────────────┘
+```
+
+`global.css` 已锁死，页面不用写：
+
+```css
+.table-wrap { padding: var(--space-6); }           /* = 12px，四周统一 */
+.table-wrap > .toolbar,
+.table-actions {
+  border-bottom: 1px solid var(--color-border-soft);
+  margin: -12px -12px 12px;                        /* 负margin让内容铺到容器内边缘 */
+  padding: var(--space-6);
+}
+.table-wrap > .el-pagination {
+  border-top: 1px solid var(--color-border-soft);
+  padding-top: var(--space-6);
+  margin-top: var(--space-6);
+}
+```
+
+**三个容易做错的点**：
+
+- ❌ **别给 `.toolbar` / `.table-actions` 单独设灰底**（`background: var(--color-bg)`）—— 它们和容器是同一块面，用底色差分层等于凭空多出一层级感，像卡片套卡片（违反 §7.1）。层级靠分割线 + 间距表达
+- ❌ **别在页面里重复写 `padding` / `border` / `background`** —— 内边距由容器统一提供；页面专属 wrap 类只写布局属性（`margin-top` / `flex` / `display`）
+- ⚠️ **抽屉内可以覆写 `overflow: auto`**（如 `NoteDrawer.vue`）—— 抽屉是独立滚动容器，sticky 表头在容器内生效是预期行为
+
+### 8.5.2 后端真分页（列表页分页栏的硬性要求）
+
+**分页必须是后端真分页**。❌ 绝不用「一次拉全量 + 前端切片」—— 数据会持续增长，今天只有 30 条不代表三个月后还是 30 条，届时全量拉取会同时撑爆后端堆内存和浏览器响应体。
+
+**后端契约**（`common/PageReq.java` + `common/PageResp.java`）：
+
+```java
+// Controller
+@GetMapping
+public Result<PageResp<XxxDto>> list(PageReq req) {
+    return Result.ok(xxxService.page(req));
+}
+
+// Service：排序必须显式传进去，不能靠 Page 默认主键序兜底
+private static final Sort DEFAULT_SORT = Sort.by(Sort.Order.desc("updatedAt"));
+
+@Transactional(readOnly = true)
+public PageResp<XxxDto> page(PageReq req) {
+    perm.require("xxx:view");
+    String kw = req.getKeyword();
+    Page<XxxEntity> p = (kw == null || kw.isBlank())
+            ? repo.findAllBy(req.toPageable(DEFAULT_SORT))
+            : repo.findByNameContainingIgnoreCase(kw, req.toPageable(DEFAULT_SORT));
+    return PageResp.of(p.getContent().stream().map(this::toDto).toList(),
+            p.getTotalElements(), req.safePage(), req.safeSize());
+}
+```
+
+| 约定 | 说明 |
+|---|---|
+| **返回信封** | `common.PageResp<T>` = `{ items, total, page, size }`。不要直接序列化 Spring 的 `Page` —— 它每次迭代可能触发 lazy load，JSON 结构还会随版本漂移 |
+| **入参** | `common.PageReq`：通用字段 `page` / `size` / `keyword` / `sortBy` / `sortDir`（⚠️ 类里还带着发票专用的 `seller` / `verificationNo` / 核销日期，那是发票模块的历史包袱，其它模块忽略即可） |
+| **size 护栏** | 必须走 `req.toPageable(...)` / `req.safeSize()`：size ≤ 0 会让 `PageRequest.of` 直接抛异常变 500，上限 `MAX_SIZE = 200` |
+| **Repository** | 继承的 `findAllBy(Pageable)` + 一个 `findByXxxContainingIgnoreCase(kw, Pageable)` 就够；不要自己拼 `PageRequest` 再 `findAll` |
+| **全量入口另开** | 下拉选项类（必须看全量才能渲染）走**独立接口**，别和列表页共用一个 `list()`。范例：`GET /datamgmt/datasources/options`、`GET /bi/dashboard/published`（BI 展示墙轮播用） |
+
+**前端契约**（`api/*` + `types/index.ts` 的 `PageResp<T>`）：
+
+```ts
+list: (params?: { page?: number; size?: number; keyword?: string }) =>
+  http.get<unknown, PageResp<XxxItem>>('/xxx', { params }),
+```
+
+```vue
+<!-- 表格下方，.table-wrap 内（§8.5.1 的第三段） -->
+<el-pagination
+  v-model:current-page="query.page"
+  v-model:page-size="query.size"
+  :total="total"
+  :page-sizes="[10,20,50,100]"
+  layout="total,sizes,prev,pager,next,jumper"
+  @current-change="load"
+  @size-change="onSizeChange"
+/>
+```
+
+**分页的四个易错点**：
+
+- `@size-change` 必须重置页码为 1（§8.5）
+- `const size = 20` 绑不了 `v-model:page-size`，必须是 `ref`（§8.5）
+- **空态判定看 `total` 而不是 `rows.length`** —— 分页后「当前页没数据」≠「库里没数据」。写成 `v-if="rows.length === 0"` 会在第 3 页删空时弹出「还没有数据源，请先创建」的首次使用引导，纯属误导
+- **删掉本页最后一条时把页码退一格**，否则停在一个空页上：`if (rows.value.length === 0 && page > 1) page -= 1` 再 reload
+
+### 8.6 角色管理权限列归类（按顶级 DIR）
 
 `views/system/role/Index.vue` 的 `permissionCodes` 列展示按 **sys_menu 顶级 DIR** 归类，不再按 perm code 第一段（`moduleOf`）归类。
 
@@ -554,16 +735,21 @@ i18n 现已统一收口到前端 TS 文件（zh-CN.ts / en-US.ts），无 `defau
 
 Vite 6.4.x 无法解析 `import 'xxx/worker?worker'`（bare-specifier）。`vite-plugin-monaco-editor` 走 CDN 路线，不适合本地部署。
 
-**统一解决**：Monaco 的 5 个 worker（editor / json / css / html / ts）经 Vite dev server 的 `/@fs/<绝对路径>` filesystem 路由加载。配置集中见 `frontend/src/utils/workers.ts`，可用 `VITE_PROJECT_ROOT` / `VITE_MONACO_*_WORKER_URL` 环境变量覆盖。
+**统一解决**：Monaco 的 5 个 worker（editor / json / css / html / ts）走 **根相对 `/node_modules/...`**，配置集中见 `frontend/src/utils/workers.ts`。
 
 ```ts
+// workers.ts
+const ORIGIN = new URL(import.meta.url).origin;   // http://localhost:5173
+return `${ORIGIN}/node_modules/monaco-editor/esm/vs/editor/editor.worker.js`;
+
 self.MonacoEnvironment = {
-  getWorker: () => new Worker(
-    '/@fs/<project>/frontend/node_modules/monaco-editor/esm/vs/editor/editor.worker.js',
-    { type: 'module' }
-  )
+  getWorker: () => new Worker(ORIGIN + '/node_modules/.../editor.worker.js', { type: 'module' })
 };
 ```
+
+origin 从 `import.meta.url` 取，换机器、换盘符、走 LAN IP 访问都自适应，**不需要任何配置**。单个 worker 仍可用 `VITE_MONACO_*_WORKER_URL` 覆盖（改完要重启 vite）。
+
+**❌ 绝对不要硬编码绝对路径**（踩过的坑）：曾经写死 `/home/coder/workspace/ifinbrain/frontend`，那是某台 Linux 机器的目录。换到 Windows 上该路径不存在 → Vite 走 SPA 兜底返回 `index.html` → worker 请求拿到 `Content-Type: text/html` → 浏览器按 HTML spec 拒绝执行，只报一句看不出真相的 `non-JavaScript MIME type of "text/html"`。实际后果是 Monaco 静默降级到主线程：编辑器还能用，但**没有补全、没有诊断**，很容易被当成「本来就这样」而没人查。
 
 **限制**：当前项目 dev-only（无 prod build 配置）。
 
@@ -610,7 +796,9 @@ documents/list/Index.vue
 - vue-i18n v11 用 `.` 作路径分隔符
 - 多数据源自建 `DatasourceConnectionService`，**不用** `dynamic-datasource-spring-boot-starter` / `AbstractRoutingDataSource`
 - JD 驱动：mysql-connector-j、mssql-jdbc、postgresql（HikariCP 由 starter 间接带入）
-- SQLite 默认开发库；生产支持 PG / H2；FK CASCADE 需 `PRAGMA foreign_keys = ON`
+- PostgreSQL 是唯一数据库；`org.xerial:sqlite-jdbc` 依赖与 SQLite 迁移目录均已移除。
+  外部数据源（数据管理模块）仍可能连 MySQL / MSSQL / SQLite 文件库 —— 那是**用户配的业务库**，
+  与本项目主库是两回事，`SqlSafetyChecker` 的 `ATTACH`/`DETACH`/`PRAGMA` 黑名单正是为此保留
 
 ---
 
@@ -618,7 +806,7 @@ documents/list/Index.vue
 
 - 不要直接 `git commit` / `git push`（除非用户明确要求）
 - 不要写 `*Impl.java` 后缀的 Service
-- 不要在迁移里写方言特定语法（保持 SQLite/PG 兼容）
+- 不要在迁移里写 SQLite 方言（已弃用）；但**可以**写 PG 专属语法（`JSONB` / `TIMESTAMPTZ` / `vector` / `TEXT[]` / `BIGSERIAL`）
 - 不要把硬编码中文 / 英文放进 Vue 模板的 `<template>` 文本节点
 - 不要绕过 `PermissionChecker` 直接用 `@PreAuthorize` 字符串权限码
 - 不要在 `<el-table>` 操作列里用文字按钮（必须图标 + ···）

@@ -1,6 +1,8 @@
 package com.anomalyco.ifinbrain.web.bi.repository;
 
 import com.anomalyco.ifinbrain.web.bi.entity.BiDashboardEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -8,8 +10,12 @@ import java.util.Optional;
 
 public interface BiDashboardRepository extends JpaRepository<BiDashboardEntity, Long> {
 
-    /** 列表页默认排序：sort 升序（轮播序），同 sort 时最近改的排前面 */
-    List<BiDashboardEntity> findAllByOrderBySortAscUpdatedAtDesc();
+    /** 列表页分页；排序由 Service 传进来的 Pageable 决定（默认 sort 升序 + updatedAt 降序） */
+    Page<BiDashboardEntity> findAllBy(Pageable pageable);
+
+    /** 列表页关键字搜索：名称 / 编码 / 描述任一命中即算 */
+    Page<BiDashboardEntity> findByNameContainingIgnoreCaseOrCodeContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
+            String name, String code, String description, Pageable pageable);
 
     Optional<BiDashboardEntity> findByCode(String code);
 

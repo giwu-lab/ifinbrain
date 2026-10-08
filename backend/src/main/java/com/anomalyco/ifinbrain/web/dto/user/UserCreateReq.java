@@ -29,6 +29,13 @@ public class UserCreateReq {
 
     private String phone;
 
+    /**
+     * 所属部门 id。null 或 0 = 不归属任何部门（落 NULL）。
+     * 用 0 而不是 null 表示「清空」，与 sys_dept.parent_id=0 的约定一致 ——
+     * 见 {@code UserUpdateReq.deptId}。
+     */
+    private Long deptId;
+
     private Short status;
 
     private List<Long> roleIds;

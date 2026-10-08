@@ -92,19 +92,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { ArrowUp, ArrowDown, DocumentCopy, Delete, Document, CopyDocument } from '@element-plus/icons-vue';
-import TextField from './fields/TextField.vue';
-import TextareaField from './fields/TextareaField.vue';
-import NumberField from './fields/NumberField.vue';
-import SelectField from './fields/SelectField.vue';
-import RadioField from './fields/RadioField.vue';
-import CheckboxField from './fields/CheckboxField.vue';
-import DateField from './fields/DateField.vue';
-import DatetimeField from './fields/DatetimeField.vue';
-import UserField from './fields/UserField.vue';
-import DeptField from './fields/DeptField.vue';
-import FileField from './fields/FileField.vue';
-import RichTextField from './fields/RichTextField.vue';
-import DividerField from './fields/DividerField.vue';
+import { resolveField } from './fieldRegistry';
 import DynamicFormRenderer from './FormRenderer.vue';
 import type { FormFieldSchema, FieldType } from '@/api/formDesign';
 import type { DesignerMode } from '@/stores/formDesign';
@@ -137,17 +125,6 @@ function duplicate(id: string) { emit('duplicate', id); }
 
 function typeLabel(type: FieldType): string {
   return t(`formDesigner.type.${type}`);
-}
-
-function resolveField(type: FieldType) {
-  const map: Record<FieldType, any> = {
-    TEXT: TextField, TEXTAREA: TextareaField, NUMBER: NumberField,
-    SELECT: SelectField, RADIO: RadioField, CHECKBOX: CheckboxField,
-    DATE: DateField, DATETIME: DatetimeField,
-    USER: UserField, DEPT: DeptField,
-    FILE: FileField, RICH_TEXT: RichTextField, DIVIDER: DividerField,
-  };
-  return map[type] || TextField;
 }
 
 async function copyJson() {

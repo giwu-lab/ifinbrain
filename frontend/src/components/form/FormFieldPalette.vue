@@ -33,7 +33,7 @@
               @click="onAdd(item.type)"
             >
               <el-icon class="component-icon"><component :is="resolveIcon(item.icon)" /></el-icon>
-              <span class="component-label">{{ item.label }}</span>
+              <span class="component-label">{{ typeLabel(item.type) }}</span>
             </button>
           </div>
         </el-collapse-item>
@@ -56,13 +56,14 @@ const search = ref('');
 const activeNames = ref<string[]>([]);
 
 const grouped = computed(() => {
-  const g: Record<string, { type: FieldType; icon: string; label: string }[]> = {};
+  const g: Record<string, { type: FieldType; icon: string }[]> = {};
   const kw = search.value.trim().toLowerCase();
   for (const type of FIELD_TYPE_LIST) {
     const meta = FIELD_TYPE_META[type];
-    if (kw && !(t(meta.label).toLowerCase().includes(kw) || type.toLowerCase().includes(kw))) continue;
+    // 匹配当前语言的显示名 + 枚举名（RICH_TEXT 这类写法仍能搜到）
+    if (kw && !(typeLabel(type).toLowerCase().includes(kw) || type.toLowerCase().includes(kw))) continue;
     if (!g[meta.category]) g[meta.category] = [];
-    g[meta.category].push({ type, icon: meta.icon, label: meta.label });
+    g[meta.category].push({ type, icon: meta.icon });
   }
   // 初始化默认展开所有分组
   if (activeNames.value.length === 0) {
@@ -70,6 +71,11 @@ const grouped = computed(() => {
   }
   return g;
 });
+
+/** 字段类型显示名 —— 与 FormCanvas / FormFieldProps 走同一组 i18n 键 */
+function typeLabel(type: FieldType): string {
+  return t(`formDesigner.type.${type}`);
+}
 
 function onAdd(type: FieldType) {
   emit('add', type);

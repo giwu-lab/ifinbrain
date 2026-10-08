@@ -36,19 +36,24 @@ public class FlywayConfig {
     @PostConstruct
     public void migrate() {
         String[] activeProfiles = env.getActiveProfiles();
-        // 迁移目录按**数据源方言**选，而不是按 profile 名选。
-        // 旧实现是 isProd ? migration-prod : migration-dev —— 但 dev 现在也连 PostgreSQL
-        // （RAG 需要 pgvector，SQLite 没有 vector 类型）。按 profile 选会让 dev 跑去执行
-        // migration-dev 里的 SQLite 方言 DDL（AUTOINCREMENT / TINYINT / strftime），
-        // 在 PG 上必然失败。方言才是真正的判据。
+        // 唯一数据库是 PostgreSQL，迁移目录固定，不再按方言分支。
+        //
+        // 历史：曾按方言在 migration-dev（SQLite）/ migration-prod（PG）之间二选一。
+        //   1) 先改成按 profile 选（isProd）—— 但 dev 也连 PG（RAG 需要 pgvector），
+        //      按 profile 选会让 dev 去跑 SQLite 方言 DDL（AUTOINCREMENT / strftime），在 PG 上必失败。
+        //   2) 再改成按方言选 —— 同样有问题：SQLite 目录停更于 V44，落后 7 个迁移，
+        //      且 SQLite 没有 vector 类型，RAG 根本跑不起来。
+        //   3) 现在：SQLite 已弃用，migration-dev 整个目录删除，只剩 PG 一条路径。
+        //
+        // 目录名仍保留 "migration-prod"：改名要动 46 个文件的 git 历史，收益仅是名字好看。
+        // Flyway 的 checksum 只认版本号不认路径，重命名是安全的 —— 想改随时可做。
         String dsUrl = env.getProperty("spring.datasource.url", "");
-        boolean sqlite = dsUrl.startsWith("jdbc:sqlite");
+        if (!dsUrl.startsWith("jdbc:postgresql")) {
+            log.warn("Flyway: 数据源不是 PostgreSQL（{}），迁移脚本按 PG 方言编写，可能失败", dsUrl);
+        }
         List<String> locations = new ArrayList<>();
         locations.add("classpath:db/migration");
-        locations.add(sqlite ? "classpath:db/migration-dev" : "classpath:db/migration-prod");
-        if (!sqlite) {
-            log.info("Flyway: non-SQLite datasource detected ({}), using PostgreSQL migrations", dsUrl);
-        }
+        locations.add("classpath:db/migration-prod");
 
         ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
         List<String> effective = new ArrayList<>();
@@ -70,8 +75,8 @@ public class FlywayConfig {
         // Allow checksum fixes after V2 edits without manual repair step.
         flyway.repair();
         var result = flyway.migrate();
-        log.info("Flyway: applied {} migrations (now at schema v{}) [profile={}, dialect={}, locations={}]",
+        log.info("Flyway: applied {} migrations (now at schema v{}) [profile={}, dialect=postgresql, locations={}]",
                 result.migrationsExecuted, result.targetSchemaVersion,
-                Arrays.toString(activeProfiles), sqlite ? "sqlite" : "postgresql", effective);
+                Arrays.toString(activeProfiles), effective);
     }
 }

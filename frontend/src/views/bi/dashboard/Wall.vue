@@ -366,10 +366,10 @@ async function onRefresh() {
 onMounted(async () => {
   window.addEventListener('resize', syncViewport);
   try {
-    const all = await biApi.list();
-    published.value = all
-      .filter((b) => b.status === 1)
-      .sort((a, b) => (a.sort - b.sort) || (a.id - b.id));
+    // 轮播要排一遍所有已发布大屏，用 /published：后端已按 sort 升序排好并过滤掉草稿，
+    // 不用像以前那样 list() 全量拉回来再前端 filter + sort。
+    const all = await biApi.published();
+    published.value = all;
     picked.value = initialPicked();
     if (boards.value.length) switchTo();
   } finally {

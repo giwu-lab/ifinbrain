@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class QueryParamSchema {
 
-    /** 参数名（与 SQL 里的 :name 对应，必填且全 SQL 唯一） */
+    /** 参数名（与 SQL 里的 {{name}} 对应，必填且全 SQL 唯一） */
     private String name;
 
     /** 显示标签（如 "开始日期"） */

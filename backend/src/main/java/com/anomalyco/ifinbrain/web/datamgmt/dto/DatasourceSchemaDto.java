@@ -34,5 +34,25 @@ public class DatasourceSchemaDto {
         /** 'string' | 'number' | 'date' | 'datetime' | 'boolean' | 'unknown' */
         private String type;
         private Boolean nullable;
+
+        // ---- 以下三字段为数据导入模块（ImportTypeConverter）新增 ----
+        // 没有它们就无法在预检阶段发现「varchar(50) 会被截断」，只能等写库时 DB 才报错。
+        // 非字符串列为 null（character_maximum_length 只对 char/varchar 有值）；
+        // numeric 列 precision/scale 有值、字符串列为 null。
+
+        /** 字符串最大长度；非字符串列为 null */
+        private Integer maxLength;
+        /** 数值精度；非数值列为 null */
+        private Integer precision;
+        /** 数值小数位；非数值列为 null */
+        private Integer scale;
+
+        /**
+         * 是否为自增 / 生成列（serial、auto_increment、IDENTITY、generated column）。
+         * 数据导入页面据此把这类列置灰并从可映射列中排除 ——
+         * 往 PG 的 {@code GENERATED ALWAYS AS IDENTITY} 列显式写值会直接报错，
+         * 让用户在界面上就选不到它，比在后端报 SQL 错误友好得多。
+         */
+        private Boolean generated;
     }
 }

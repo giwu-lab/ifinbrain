@@ -1,4 +1,5 @@
 import { http } from './http';
+import type { PageResp } from '@/types';
 
 export type ParamType = 'string' | 'text' | 'number' | 'date' | 'datetime';
 
@@ -56,7 +57,9 @@ export interface QueryResult {
 }
 
 export const queryApi = {
-  list: () => http.get<any, QueryItem[]>('/datamgmt/queries'),
+  /** 列表页：后端真分页。keyword 命中名称 / 描述 */
+  list: (params?: { page?: number; size?: number; keyword?: string }) =>
+    http.get<any, PageResp<QueryItem>>('/datamgmt/queries', { params }),
   detail: (id: number) => http.get<any, QueryItem>(`/datamgmt/queries/${id}`),
   create: (body: Partial<QueryItem>) => http.post<any, QueryItem>('/datamgmt/queries', body),
   update: (id: number, body: Partial<QueryItem>) => http.put<any, QueryItem>(`/datamgmt/queries/${id}`, body),

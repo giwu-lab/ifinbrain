@@ -1,6 +1,8 @@
 package com.anomalyco.ifinbrain.web.datamgmt.controller;
 
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.PageResp;
 import com.anomalyco.ifinbrain.web.common.Result;
 import com.anomalyco.ifinbrain.web.datamgmt.common.QueryExport;
 import com.anomalyco.ifinbrain.web.datamgmt.dto.*;
@@ -35,9 +37,10 @@ public class QueryController {
     private final QueryPageService queryPageService;
     private final PermissionChecker perm;
 
+    /** 列表页：真分页，支持 keyword（名称 / 描述）与 sortBy+sortDir */
     @GetMapping
-    public Result<List<QueryDto>> list() {
-        return Result.ok(queryService.list());
+    public Result<PageResp<QueryDto>> list(PageReq req) {
+        return Result.ok(queryService.page(req));
     }
 
     @GetMapping("/{id}")

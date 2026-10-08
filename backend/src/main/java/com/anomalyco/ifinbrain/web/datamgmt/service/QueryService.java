@@ -1,6 +1,8 @@
 package com.anomalyco.ifinbrain.web.datamgmt.service;
 
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.PageResp;
 import com.anomalyco.ifinbrain.web.datamgmt.dto.*;
 import com.anomalyco.ifinbrain.web.datamgmt.entity.SysDatasource;
 import com.anomalyco.ifinbrain.web.datamgmt.entity.SysQuery;
@@ -12,6 +14,8 @@ import com.anomalyco.ifinbrain.web.security.CryptoUtil;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +28,9 @@ import java.util.*;
 @RequiredArgsConstructor
 public class QueryService {
 
+    /** 列表页默认排序：id 升序（与改版前 findAllByOrderByIdAsc 一致） */
+    private static final Sort DEFAULT_SORT = Sort.by(Sort.Order.asc("id"));
+
     private final SysQueryRepository repo;
     private final SysDatasourceRepository dsRepo;
     private final SysMenuRepository menuRepo;
@@ -34,33 +41,58 @@ public class QueryService {
 
     // ===================== 查询 =====================
 
+    /**
+     * 列表页分页。
+     *
+     * <p>排序沿用改版前的全量查询：id 升序。
+     */
     @Transactional(readOnly = true)
-    public List<QueryDto> list() {
+    public PageResp<QueryDto> page(PageReq req) {
         perm.require("data:query:view");
+        String kw = req.getKeyword();
+        Page<SysQuery> p = (kw == null || kw.isBlank())
+                ? repo.findAllBy(req.toPageable(DEFAULT_SORT))
+                : repo.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(kw, kw, req.toPageable(DEFAULT_SORT));
+
         // 用 datasourceId / queryId 缓存避免 N+1
         Map<Long, SysDatasource> dsCache = new HashMap<>();
-        Map<Long, SysMenu> menuCache = new HashMap<>();
-        return repo.findAllByOrderByIdAsc().stream().map(q -> toDto(q, dsCache, menuCache)).toList();
+        // 已发布页面一次性建索引：改版前这里是「每行扫一遍全部已发布页面」，
+        // 行数一多就是 N×M；建一次 Map 之后每行只做一次 get。
+        Map<Long, SysMenu> menus = publishedMenusByQueryId();
+        return PageResp.of(p.getContent().stream().map(q -> toDto(q, dsCache, menus)).toList(),
+                p.getTotalElements(), req.safePage(), req.safeSize());
     }
 
     @Transactional(readOnly = true)
     public QueryDto detail(Long id) {
         perm.require("data:query:view");
         SysQuery q = repo.findById(id).orElseThrow(() -> new BizException(404, "查询不存在"));
-        return toDto(q, new HashMap<>(), new HashMap<>());
+        return toDto(q, new HashMap<>(), publishedMenusByQueryId());
     }
 
-    private QueryDto toDto(SysQuery q, Map<Long, SysDatasource> dsCache, Map<Long, SysMenu> menuCache) {
+    /** queryId → 已发布的查询页面；同一 query 发了多个页面时取 sort 最小的一个 */
+    private Map<Long, SysMenu> publishedMenusByQueryId() {
+        Map<Long, SysMenu> out = new HashMap<>();
+        for (SysMenu m : menuRepo.findAllPublishedPages()) {
+            if (m.getQueryId() == null) continue;
+            SysMenu old = out.get(m.getQueryId());
+            if (old == null || nz(m.getSort()) < nz(old.getSort())) out.put(m.getQueryId(), m);
+        }
+        return out;
+    }
+
+    private static int nz(Integer v) {
+        return v == null ? Integer.MAX_VALUE : v;
+    }
+
+    private QueryDto toDto(SysQuery q, Map<Long, SysDatasource> dsCache, Map<Long, SysMenu> menusByQueryId) {
         SysDatasource ds = dsCache.computeIfAbsent(q.getDatasourceId(),
-                did -> dsRepo.findById(did).orElse(null));
+                did -> did == null ? null : dsRepo.findById(did).orElse(null));
         QueryDto dto = QueryDto.from(q, ds == null ? "?" : ds.getName(), ds == null ? "?" : ds.getDbType());
         dto.setParamsSchema(parseParamsSchema(q.getParamsSchemaJson()));
 
         // 关联已发布的查询页面（如有）
-        SysMenu menu = menuCache.computeIfAbsent(q.getId(),
-                qid -> menuRepo.findAllPublishedPages().stream()
-                        .filter(m -> qid.equals(m.getQueryId()))
-                        .findFirst().orElse(null));
+        SysMenu menu = menusByQueryId.get(q.getId());
         if (menu != null) {
             dto.setPublishedMenuId(menu.getId());
             dto.setPublishedMenuName(menu.getName());
@@ -110,7 +142,7 @@ public class QueryService {
                 .createdBy(createdBy == null ? "system" : createdBy)
                 .build();
         e = repo.save(e);
-        return toDto(e, new HashMap<>(), new HashMap<>());
+        return toDto(e, new HashMap<>(), publishedMenusByQueryId());
     }
 
     // ===================== 更新 =====================
@@ -151,7 +183,7 @@ public class QueryService {
         if (req.getStatus() != null) e.setStatus(req.getStatus());
 
         e = repo.save(e);
-        return toDto(e, new HashMap<>(), new HashMap<>());
+        return toDto(e, new HashMap<>(), publishedMenusByQueryId());
     }
 
     // ===================== 删除 =====================

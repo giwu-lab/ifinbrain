@@ -56,4 +56,24 @@ public class FormFieldSchema {
      * 前端按此控制布局。
      */
     private Boolean fullWidth;
+
+    /**
+     * 表格列定义（仅 {@link FieldType#TABLE}）。
+     *
+     * <p><b>必须在本 DTO 上声明</b>：Jackson 默认静默丢弃未知字段，前端多传一个
+     * columns 而后端不加，保存时列配置会被吃掉且接口照样返回 200。
+     */
+    private List<FormFieldColumn> columns;
+
+    /**
+     * 表格「每行填满必填列」开关（仅 TABLE，与字段级 {@code required} 正交）。
+     *
+     * <ul>
+     *   <li>{@code required=false, requireAllCells=false} → 不校验</li>
+     *   <li>{@code required=true,  requireAllCells=false} → 至少填一行，行内不校验</li>
+     *   <li>{@code required=false, requireAllCells=true}  → 可留空，但填了就必须填完整</li>
+     *   <li>{@code required=true,  requireAllCells=true}  → 至少一行，且每行填满必填列</li>
+     * </ul>
+     */
+    private Boolean requireAllCells;
 }

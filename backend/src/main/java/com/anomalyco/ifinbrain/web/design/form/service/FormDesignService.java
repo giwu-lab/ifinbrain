@@ -4,6 +4,7 @@ import com.anomalyco.ifinbrain.web.common.BizException;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormDesignCreateReq;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormDesignDto;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormDesignUpdateReq;
+import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldColumn;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldSchema;
 import com.anomalyco.ifinbrain.web.design.form.entity.SysFormDesign;
 import com.anomalyco.ifinbrain.web.design.form.enums.FieldType;
@@ -163,6 +164,40 @@ public class FormDesignService {
                 if (f.getOptions() == null || f.getOptions().isEmpty()) {
                     throw new BizException(400, "字段 type=" + f.getType() + " 必须配置 options（key=" + f.getKey() + "）");
                 }
+            }
+            if (f.getType() == FieldType.TABLE) {
+                validateColumns(f);
+            }
+        }
+    }
+
+    /**
+     * 表格列校验：必须有列、列 key 唯一、列 type 合法且能做列（排除 DIVIDER）、
+     * select/radio/checkbox 列必须配 options。
+     *
+     * <p>这几条都是「保存时兜住」——漏了不会在运行时炸，只会让填表人看到一个
+     * 渲染不出来的表格，或者一个永远选不出东西的下拉。
+     */
+    private void validateColumns(FormFieldSchema f) {
+        List<FormFieldColumn> cols = f.getColumns();
+        if (cols == null || cols.isEmpty()) {
+            throw new BizException(400, "表格字段必须至少配置一列（key=" + f.getKey() + "）");
+        }
+        Set<String> colKeys = new HashSet<>();
+        for (FormFieldColumn c : cols) {
+            String ck = c.getKey() == null ? "" : c.getKey().trim();
+            if (ck.isBlank()) {
+                throw new BizException(400, "表格列 key 不能为空（key=" + f.getKey() + "）");
+            }
+            if (!colKeys.add(ck)) {
+                throw new BizException(400, "表格列 key 重复: " + ck + "（key=" + f.getKey() + "）");
+            }
+            FieldType ct = c.getType() == null ? FieldType.TEXT : c.getType();
+            if (!ct.usableAsColumn()) {
+                throw new BizException(400, ct + " 不能作为表格列类型（列 key=" + ck + "，字段 key=" + f.getKey() + "）");
+            }
+            if (ct.needsOptions() && (c.getOptions() == null || c.getOptions().isEmpty())) {
+                throw new BizException(400, "表格列 type=" + ct + " 必须配置 options（列 key=" + ck + "）");
             }
         }
     }

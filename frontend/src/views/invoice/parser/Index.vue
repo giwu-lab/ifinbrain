@@ -338,28 +338,19 @@ onMounted(reload);
 
 /* ============================================================
    Page header — 左对齐 + 间距克制
+   本页是解析设置页（表单 + 配置区，非表格列表），
+   按 AGENTS §7.1 例外保留页面头部。
    ============================================================ */
 .page-header {
   display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  text-align: left;
+  gap: 16px;
+  margin-bottom: 10px;
 }
+.page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.page-desc { margin: 4px 0 0; font-size: 13px; }
 .page-header-text { min-width: 0; }
-.page-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--ink);
-  letter-spacing: -0.01em;
-}
-.page-desc {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--ink-2);
-  max-width: 720px;
-}
 .page-header-actions {
   display: flex;
   gap: 8px;

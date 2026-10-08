@@ -33,6 +33,10 @@ public class SysUser {
     @Column(length = 32)
     private String phone;
 
+    /** 所属部门（sys_dept.id）；NULL = 未归属任何部门。无外键，删部门由 SysDeptService 拦。 */
+    @Column(name = "dept_id")
+    private Long deptId;
+
     @Column(nullable = false)
     private Short status;
 

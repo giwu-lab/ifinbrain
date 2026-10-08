@@ -11,26 +11,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage } from 'element-plus';
+import { useDeptOptions } from '@/composables/useOptionsCache';
 import type { FormFieldSchema } from '@/api/formDesign';
 
 const props = defineProps<{ field: FormFieldSchema; modelValue?: string; readonly?: boolean }>();
 const emit = defineEmits<{ 'update:modelValue': [string] }>();
 const { t } = useI18n();
 
-const deptOptions = ref<any[]>([]);
-
-onMounted(async () => {
-  try {
-    const { http } = await import('@/api/http');
-    const data = await http.get<any, any>('/system/depts/tree');
-    deptOptions.value = Array.isArray(data) ? data : [];
-  } catch {
-    ElMessage.warning(t('formDesigner.warning.deptLoadFailed'));
-  }
-});
+const deptOptions = useDeptOptions();
 
 const model = computed<string>({
   get: () => props.modelValue ?? props.field.defaultValue ?? '',

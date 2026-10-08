@@ -1,21 +1,16 @@
 <template>
   <div class="page-container fade-in-up">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('system.menuTitle') }}</h1>
-        <p class="page-desc muted">{{ t('system.menuTitleDesc') }}</p>
+    <div class="table-wrap">
+      <div class="table-actions">
+        <el-button
+          v-if="auth.hasPerm('system:menu:create')"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate()"
+        >
+          {{ t('system.newMenu') }}
+        </el-button>
       </div>
-      <el-button
-        v-if="auth.hasPerm('system:menu:create')"
-        type="primary"
-        :icon="Plus"
-        @click="openCreate()"
-      >
-        {{ t('system.newMenu') }}
-      </el-button>
-    </div>
-
-    <el-card class="card-table" shadow="never">
       <el-table
         ref="tableRef"
         :data="tree"
@@ -116,7 +111,7 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
 
     <el-dialog
       v-model="dialog.visible"
@@ -192,7 +187,7 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { Plus, ArrowDown, ArrowRight, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
-import * as ElIcons from '@element-plus/icons-vue';
+import { resolveElIcon } from '@/utils/icon';
 import IconPicker from '@/components/IconPicker.vue';
 import PermissionSelect from '@/components/PermissionSelect.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -207,7 +202,8 @@ const tableRef = ref<any>(null);
 const expandedIds = ref<Set<number>>(new Set());
 const knownComponents = [
   'dashboard/Index','invoice/Upload','invoice/List',
-  'system/user/Index','system/role/Index','system/menu/Index','system/storage/Index'
+  'system/user/Index','system/role/Index','system/menu/Index','system/storage/Index',
+  'system/dict/Index','system/dept/Index'
 ];
 
 const dialog = reactive({ visible: false, mode: 'create' as 'create' | 'edit', title: '', loading: false });
@@ -218,8 +214,7 @@ const parentOpts = computed(() => [{ id: 0, name: t('system.parentRoot'), childr
 const treeProps = { value: 'id' as const, label: 'name' as const, children: 'children' as const };
 
 function iconOf(name?: string) {
-  if (!name) return ElIcons.Document;
-  return (ElIcons as Record<string, unknown>)[name] as any || ElIcons.Document;
+  return resolveElIcon(name);
 }
 
 /** 权限码 → 中文名映射（用于列表展示 code 旁的中文说明） */
@@ -310,9 +305,6 @@ onMounted(reload);
 </script>
 
 <style scoped>
-.page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
-.page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.page-desc { margin: 4px 0 0; font-size: 13px; }
 .name-cell { display: flex; align-items: center; gap: 8px; }
 .name-icon { color: var(--color-primary); font-size: 16px; }
 .strong { font-weight: 600; color: var(--color-text); }

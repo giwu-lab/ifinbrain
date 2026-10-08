@@ -34,6 +34,21 @@ export function useColumnWidths(tableId: string) {
     return slot[columnKey] ?? fallback;
   }
 
+  /**
+   * flex 列用：只传 :min-width、不传 :width。
+   *
+   * 背景：element-plus `table-layout.mjs:98-127` 只有在存在「没绑 width 的列」
+   * （flexColumns.length > 0）时才会把表格撑到容器宽度：
+   *   bodyWidth = max(bodyMinWidth, bodyWidth)
+   * 若所有列都绑了 width，则走 else 分支 bodyWidth = 列宽之和，右侧会留白。
+   *
+   * 用户拖拽后的值在这里仍然生效，但语义是「最小宽度」而非「固定宽度」——
+   * 既记住了用户偏好，又不会把列锁死、把表格重新压回留白状态。
+   */
+  function minOf(columnKey: string, fallback: number): number {
+    return slot[columnKey] ?? fallback;
+  }
+
   /** element-plus 列宽变化事件回调 */
   function onResize(newWidth: number, _oldWidth: number, column: { columnKey?: string; property?: string; type?: string }) {
     const key = column.columnKey || column.property;
@@ -43,7 +58,7 @@ export function useColumnWidths(tableId: string) {
     saveAll(all);
   }
 
-  return { widthOf, onResize };
+  return { widthOf, minOf, onResize };
 }
 
 export function clearColumnWidths(tableId?: string) {

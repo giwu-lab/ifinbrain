@@ -1,22 +1,16 @@
 <template>
   <div class="page-container fade-in-up cat-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('documents.archiveTitle') }}</h1>
-        <p class="page-desc muted">{{ t('documents.archiveDesc') }}</p>
+    <div class="table-wrap cat-table-wrap">
+      <div class="table-actions">
+        <el-button
+          v-if="auth.hasPerm('documents:upload')"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate()"
+        >
+          {{ t('documents.createArchive') }}
+        </el-button>
       </div>
-      <el-button
-        v-if="auth.hasPerm('documents:upload')"
-        type="primary"
-        :icon="Plus"
-        @click="openCreate()"
-      >
-        {{ t('documents.createArchive') }}
-      </el-button>
-    </div>
-
-    <!-- 列表区：plain 1px 边框容器，避开 SaaS-card 套娃 -->
-    <div class="cat-table-wrap">
       <el-table
         v-if="rows.length > 0"
         :data="rows"
@@ -547,10 +541,6 @@ onMounted(reload);
 
 /* ===== 列表区：plain 1px 边框容器（与数据源页对齐） ===== */
 .cat-table-wrap {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elev);
-  overflow: visible;
   margin-top: 0;
   flex: 1;
   display: flex;

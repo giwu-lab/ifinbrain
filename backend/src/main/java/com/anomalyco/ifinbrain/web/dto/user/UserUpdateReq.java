@@ -41,6 +41,19 @@ public class UserUpdateReq {
 
     private String phone;
 
+    /**
+     * 所属部门 id。
+     *
+     * <p>三态语义（与本项目 parent_id=0 的约定一致，避开 Long 的 null 二义）：
+     * <ul>
+     *   <li>null（字段没带）= 不动，保持原部门</li>
+     *   <li>0 = <b>清空</b>部门归属，落 NULL</li>
+     *   <li>&gt;0 = 改挂到该部门；部门不存在时 service 抛 400</li>
+     * </ul>
+     * 前端 el-tree-select 清空后是 undefined，提交前统一 {@code ?? 0}。
+     */
+    private Long deptId;
+
     private Short status;
 
     private List<Long> roleIds;

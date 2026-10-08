@@ -9,6 +9,7 @@ import com.anomalyco.ifinbrain.web.design.flow.dto.FlowJson;
 import com.anomalyco.ifinbrain.web.design.flow.dto.FlowNode;
 import com.anomalyco.ifinbrain.web.design.flow.dto.NodeData;
 import com.anomalyco.ifinbrain.web.design.flow.entity.SysFlowDefine;
+import com.anomalyco.ifinbrain.web.design.flow.engine.ConditionEvaluator;
 import com.anomalyco.ifinbrain.web.design.flow.enums.NodeType;
 import com.anomalyco.ifinbrain.web.design.flow.repository.SysFlowDefineRepository;
 import com.anomalyco.ifinbrain.web.entity.SysPermission;
@@ -58,6 +59,7 @@ public class FlowDefineService {
     private final SysPermissionRepository permRepo;
     private final SysRolePermRepository rolePermRepo;
     private final SysRoleRepository roleRepo;
+    private final ConditionEvaluator conditionEvaluator;
 
     // ===================== 查询 =====================
 
@@ -244,7 +246,14 @@ public class FlowDefineService {
 
     // ===================== 工具 =====================
 
-    /** 校验 FlowJson：节点 id 唯一 / 节点 type 合法 / 边 source/target 都存在 / 仅 1 个 START、1 个 END */
+    /**
+     * 校验 FlowJson：节点 id 唯一 / 节点 type 合法 / 边 source、target 都存在 /
+     * 仅 1 个 START、1 个 END / 每条边的条件表达式可被 SpEL 解析。
+     *
+     * <p>条件校验是必须的：引擎求值失败时只 log.warn 并按 false 处理（避免流程卡死），
+     * 于是写错的表达式能一路保存成功，只在运行到该分支时静默走错路。放到保存这一步
+     * 拦下来，用户至少能立刻看到是哪条线写错了。
+     */
     private void validateFlowJson(FlowJson json) {
         if (json == null) return;
         List<FlowNode> nodes = json.getNodes();
@@ -286,6 +295,16 @@ public class FlowDefineService {
                 }
                 if (!nodeIds.contains(e.getTarget())) {
                     throw new BizException(400, "连线 target 节点不存在: " + e.getTarget());
+                }
+                String cond = e.getData() == null ? null : e.getData().getCondition();
+                if (cond != null && !cond.isBlank()) {
+                    try {
+                        conditionEvaluator.validate(cond);
+                    } catch (BizException ex) {
+                        throw new BizException(400,
+                                "连线 " + e.getId() + "（" + e.getSource() + " → " + e.getTarget()
+                                        + "）的条件不合法: " + ex.getMessage());
+                    }
                 }
             }
         }

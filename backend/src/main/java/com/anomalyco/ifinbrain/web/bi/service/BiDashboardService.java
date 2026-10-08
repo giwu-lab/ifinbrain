@@ -7,9 +7,13 @@ import com.anomalyco.ifinbrain.web.bi.dto.DashboardLayout;
 import com.anomalyco.ifinbrain.web.bi.entity.BiDashboardEntity;
 import com.anomalyco.ifinbrain.web.bi.repository.BiDashboardRepository;
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.PageResp;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -30,15 +34,34 @@ public class BiDashboardService {
     private static final String COPY_SUFFIX = "_copy";
     private static final int CODE_MAX_LEN = 64;
 
+    /** 列表页默认排序：sort 升序（轮播序），同 sort 时最近改的排前面 */
+    private static final Sort DEFAULT_SORT = Sort.by(
+            Sort.Order.asc("sort"), Sort.Order.desc("updatedAt"));
+
     private final BiDashboardRepository repo;
     private final PermissionChecker perm;
 
     // ===================== 查询 =====================
 
+    /**
+     * 列表页分页。
+     *
+     * <p>排序沿用改版前的全量查询：sort 升序（轮播序），同 sort 时最近改的排前面。
+     * 用 Pageable 显式传进去，不能靠 Page 默认的主键序兜底。
+     *
+     * <p>每行都要解析 layout_json / theme_json（{@link #toDto}），全量返回时这里是列表页
+     * 最重的一段；分页后单次最多解析 size 行，内存与响应体都有上界。
+     */
     @Transactional(readOnly = true)
-    public List<BiDashboardDto> list() {
+    public PageResp<BiDashboardDto> page(PageReq req) {
         perm.require("bi:dashboard:view");
-        return repo.findAllByOrderBySortAscUpdatedAtDesc().stream().map(this::toDto).toList();
+        String kw = req.getKeyword();
+        Page<BiDashboardEntity> p = (kw == null || kw.isBlank())
+                ? repo.findAllBy(req.toPageable(DEFAULT_SORT))
+                : repo.findByNameContainingIgnoreCaseOrCodeContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
+                        kw, kw, kw, req.toPageable(DEFAULT_SORT));
+        return PageResp.of(p.getContent().stream().map(this::toDto).toList(),
+                p.getTotalElements(), req.safePage(), req.safeSize());
     }
 
     /** 只看已发布（轮播 / 展示墙用） */

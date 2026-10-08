@@ -1,6 +1,7 @@
 package com.anomalyco.ifinbrain.web.datamgmt.service;
 
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.datamgmt.common.ColumnTypes;
 import com.anomalyco.ifinbrain.web.datamgmt.dto.DatasourceSchemaDto;
 import com.anomalyco.ifinbrain.web.datamgmt.entity.SysDatasource;
 import com.anomalyco.ifinbrain.web.security.CryptoUtil;
@@ -14,31 +15,23 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 /**
  * 数据源元数据浏览（schema / tables / columns）。
  * 复用 DatasourceConnectionService，但不走缓存——一次性建池连完即关。
+ *
+ * <p>类型推断与「自增列」判定抽到了 common/ColumnTypes，供数据导入模块
+ * （ImportTargetResolver，执行期重查元数据）复用同一口径。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class DatasourceSchemaService {
-
-    private static final Set<String> NUMERIC_TYPES = Set.of(
-            "int", "int2", "int4", "int8", "smallint", "integer", "bigint",
-                    "tinyint", "mediumint",
-                    "decimal", "numeric", "real", "double", "float",
-                    "money", "smallmoney");
-    private static final Set<String> DATETIME_TYPES = Set.of(
-            "date", "time", "datetime", "timestamp", "timestamptz",
-                    "smalldatetime", "datetime2", "datetimeoffset");
-    private static final Set<String> BOOL_TYPES = Set.of("bool", "boolean", "bit");
 
     private final DatasourceConnectionService connService;
     private final DatasourceService datasourceService;
@@ -47,10 +40,16 @@ public class DatasourceSchemaService {
 
     @Transactional(readOnly = true)
     public DatasourceSchemaDto fetch(Long id) {
+        // 权限：只看元数据，**不该**要求 data:datasource:test。
+        // 历史问题：这里原先走 datasourceService.loadDecrypted(id)，而它内部
+        // perm.require("data:datasource:test") —— 按 V10 的分配，viewer 只有 view，
+        // 于是「浏览表结构」对 viewer 直接 403。改用 loadDecrypted(id, permCode) 重载，
+        // 让「看元数据」与「测连通」两个权限位彻底分开。
         perm.require("data:datasource:view");
 
-        // 直接复用 datasourceService.loadDecrypted（它会解密 + 探测）
-        DatasourceService.DecryptedDatasource dec = datasourceService.loadDecrypted(id);
+        // 复用 datasourceService.loadDecrypted（它会解密 + 探测）
+        DatasourceService.DecryptedDatasource dec =
+                datasourceService.loadDecrypted(id, "data:datasource:view");
         SysDatasource ds = dec.entity();
         String plain = dec.plainPassword();
 
@@ -98,7 +97,8 @@ public class DatasourceSchemaService {
     private DatasourceSchemaDto.TableSchema loadColumnsPg(Connection conn, String schema, String table) throws Exception {
         List<DatasourceSchemaDto.ColumnSchema> cols = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT column_name, data_type, is_nullable FROM information_schema.columns "
+                "SELECT column_name, data_type, is_nullable, character_maximum_length, "
+                        + "numeric_precision, numeric_scale, is_identity, is_generated FROM information_schema.columns "
                         + "WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position")) {
             ps.setString(1, schema);
             ps.setString(2, table);
@@ -107,8 +107,14 @@ public class DatasourceSchemaService {
                     cols.add(DatasourceSchemaDto.ColumnSchema.builder()
                             .name(rs.getString(1))
                             .dataType(rs.getString(2))
-                            .type(guessType(rs.getString(2)))
+                            .type(ColumnTypes.guess(rs.getString(2)))
                             .nullable("YES".equalsIgnoreCase(rs.getString(3)))
+                            .maxLength(getInt(rs, 4))
+                            .precision(getInt(rs, 5))
+                            .scale(getInt(rs, 6))
+                            // serial / GENERATED ALWAYS AS IDENTITY / 生成列
+                            .generated("YES".equalsIgnoreCase(rs.getString(7))
+                                    || "ALWAYS".equalsIgnoreCase(rs.getString(8)))
                             .build());
                 }
             }
@@ -148,7 +154,8 @@ public class DatasourceSchemaService {
     private DatasourceSchemaDto.TableSchema loadColumnsMysql(Connection conn, String schema, String table) throws Exception {
         List<DatasourceSchemaDto.ColumnSchema> cols = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT column_name, data_type, is_nullable FROM information_schema.columns "
+                "SELECT column_name, data_type, is_nullable, character_maximum_length, "
+                        + "numeric_precision, numeric_scale, extra FROM information_schema.columns "
                         + "WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position")) {
             ps.setString(1, schema);
             ps.setString(2, table);
@@ -157,8 +164,12 @@ public class DatasourceSchemaService {
                     cols.add(DatasourceSchemaDto.ColumnSchema.builder()
                             .name(rs.getString(1))
                             .dataType(rs.getString(2))
-                            .type(guessType(rs.getString(2)))
+                            .type(ColumnTypes.guess(rs.getString(2)))
                             .nullable("YES".equalsIgnoreCase(rs.getString(3)))
+                            .maxLength(getInt(rs, 4))
+                            .precision(getInt(rs, 5))
+                            .scale(getInt(rs, 6))
+                            .generated(isMysqlGenerated(rs.getString(7)))
                             .build());
                 }
             }
@@ -195,7 +206,8 @@ public class DatasourceSchemaService {
     private DatasourceSchemaDto.TableSchema loadColumnsMssql(Connection conn, String schema, String table) throws Exception {
         List<DatasourceSchemaDto.ColumnSchema> cols = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS "
+                "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, CHARACTER_MAXIMUM_LENGTH, "
+                        + "NUMERIC_PRECISION, NUMERIC_SCALE, IS_IDENTITY FROM INFORMATION_SCHEMA.COLUMNS "
                         + "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION")) {
             ps.setString(1, schema);
             ps.setString(2, table);
@@ -204,8 +216,12 @@ public class DatasourceSchemaService {
                     cols.add(DatasourceSchemaDto.ColumnSchema.builder()
                             .name(rs.getString(1))
                             .dataType(rs.getString(2))
-                            .type(guessType(rs.getString(2)))
+                            .type(ColumnTypes.guess(rs.getString(2)))
                             .nullable("YES".equalsIgnoreCase(rs.getString(3)))
+                            .maxLength(getInt(rs, 4))
+                            .precision(getInt(rs, 5))
+                            .scale(getInt(rs, 6))
+                            .generated("YES".equalsIgnoreCase(rs.getString(7)))
                             .build());
                 }
             }
@@ -218,15 +234,27 @@ public class DatasourceSchemaService {
                 .build();
     }
 
-    private String guessType(String dataType) {
-        if (dataType == null) return "unknown";
-        String t = dataType.toLowerCase(Locale.ROOT);
-        // 去掉括号参数 (varchar(64) → varchar)
-        int paren = t.indexOf('(');
-        if (paren > 0) t = t.substring(0, paren).trim();
-        if (NUMERIC_TYPES.contains(t)) return "number";
-        if (DATETIME_TYPES.contains(t)) return "date".equals(t) ? "date" : "datetime";
-        if (BOOL_TYPES.contains(t)) return "boolean";
-        return "string";
+    /**
+     * 读一列 int 值；SQL NULL / 类型不符一律给 null 而不是抛异常。
+     *
+     * character_maximum_length / numeric_precision 在 information_schema 里是 nullable 的
+     * （非字符串列前者为 NULL），驱动对 NULL 的行为也不统一（getInt 会给 0），
+     * 所以必须先 wasNull() 判断 —— 否则 varchar 列会拿到 maxLength=0，
+     * 导入预检就会把所有字符串都误判成「超长」。
+     */
+    private Integer getInt(ResultSet rs, int idx) {
+        try {
+            int v = rs.getInt(idx);
+            return rs.wasNull() ? null : v;
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    /** MySQL 的 EXTRA 列：auto_increment / VIRTUAL GENERATED / STORED GENERATED */
+    private boolean isMysqlGenerated(String extra) {
+        if (extra == null) return false;
+        String e = extra.toUpperCase(Locale.ROOT);
+        return e.contains("AUTO_INCREMENT") || e.contains("GENERATED");
     }
 }

@@ -128,8 +128,14 @@ export function useInvoiceStatus() {
     isError: (msg?: string) => {
       const items = get(DICT_INVOICE_STATUS);
       const errorItem = items.find((i) => i.value === 'error');
-      if (!errorItem || !msg) return false;
-      return msg === errorItem.value || msg.startsWith(errorItem.value);
+      // 提取成局部量是为了让类型收口：DictItem.value 声明为可选（value?: string），
+      // TS 无法穿过 find 的谓词推出「命中的那一项 value 必然等于 'error'」，
+      // 于是后面的 startsWith 收到的是 string | undefined。
+      // 运行时其实不存在 undefined（能匹配上就说明 value === 'error'），
+      // 这里只是把这条不变量写进代码，让类型检查和阅读者看到的是同一件事。
+      const token = errorItem?.value;
+      if (!token || !msg) return false;
+      return msg === token || msg.startsWith(token);
     },
   };
 }

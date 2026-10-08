@@ -117,7 +117,10 @@
             <ExclusiveNodeConfig
               v-else-if="store.selectedNode.data.type === 'CONDITION'"
               :data="store.selectedNode.data"
+              :out-edges="selectedOutEdges"
               @patch="onPatchNode"
+              @patch-edge="onPatchEdgeById"
+              @remove-edge="onRemoveEdge"
             />
             <el-form v-else label-position="top" size="small">
               <el-form-item :label="t('flowDesigner.node.label')">
@@ -204,6 +207,11 @@ const jsonText = computed(() =>
   JSON.stringify({ nodes: store.nodes, edges: store.edges }, null, 2)
 );
 
+/** 条件分支节点的出线：分支编辑器按这些边渲染，条件直接写在边上 */
+const selectedOutEdges = computed(() =>
+  store.selectedNodeId ? store.edges.filter(e => e.source === store.selectedNodeId) : []
+);
+
 function resolveIcon(name?: string) {
   if (!name) return ElIcons.Grid;
   return (ElIcons as Record<string, unknown>)[name] as any || ElIcons.Grid;
@@ -225,6 +233,10 @@ function onPatchNode(patch: any) {
 }
 function onPatchEdge(patch: any) {
   if (store.selectedEdgeId) store.updateEdge(store.selectedEdgeId, patch);
+}
+/** 条件分支节点里按边 id 直接改条件（不走 selectedEdgeId） */
+function onPatchEdgeById(id: string, patch: any) {
+  store.updateEdge(id, patch);
 }
 function onRemoveNode(id: string) { store.removeNode(id); }
 function onRemoveEdge(id: string) { store.removeEdge(id); }

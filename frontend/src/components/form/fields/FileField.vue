@@ -5,19 +5,40 @@
     :on-change="onChange"
     :on-remove="onRemove"
     :before-upload="beforeUpload"
-    drag
+    :drag="!compact"
+    :show-file-list="!compact"
+    class="file-field"
+    :class="{ 'is-compact': compact }"
   >
-    <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
-    <div class="el-upload__text">{{ t('formDesigner.upload.dropOrClick') }}</div>
+    <!-- compact：表格单元格内用，避免 drag 大块撑爆行高 -->
+    <el-button v-if="compact" size="small" :icon="Paperclip" link type="primary">
+      {{ fileList.length ? t('formDesigner.upload.replace') : t('formDesigner.upload.choose') }}
+    </el-button>
+    <template v-else>
+      <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+      <div class="el-upload__text">{{ t('formDesigner.upload.dropOrClick') }}</div>
+    </template>
   </el-upload>
+  <div v-if="compact && fileList.length" class="compact-files">
+    <span v-for="(f, i) in fileList" :key="i" class="compact-file" :title="f.name">
+      <el-icon><Document /></el-icon>{{ f.name }}
+    </span>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Paperclip, Document } from '@element-plus/icons-vue';
 import type { FormFieldSchema } from '@/api/formDesign';
 
-const props = defineProps<{ field: FormFieldSchema; modelValue?: string; readonly?: boolean }>();
+const props = defineProps<{
+  field: FormFieldSchema;
+  modelValue?: string;
+  readonly?: boolean;
+  /** 表格单元格内渲染：单行按钮 + 文件名列表，而不是整块拖拽区 */
+  compact?: boolean;
+}>();
 const emit = defineEmits<{ 'update:modelValue': [string] }>();
 const { t } = useI18n();
 
@@ -52,3 +73,25 @@ function emitValue() {
   emit('update:modelValue', JSON.stringify(fileList.value));
 }
 </script>
+
+<style scoped>
+/* compact 模式：整块不换行，文件名单行省略，避免多行时把表格行撑高 */
+.is-compact :deep(.el-upload),
+.is-compact :deep(.el-upload-dragger) { display: inline-flex; }
+.compact-files {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.compact-file {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

@@ -1,11 +1,7 @@
 <template>
   <div class="page-container fade-in-up bi-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('bi.dash.title') }}</h1>
-        <p class="page-desc muted">{{ t('bi.dash.desc') }}</p>
-      </div>
-      <div class="header-actions">
+    <div class="table-wrap bi-table-wrap">
+      <div class="table-actions">
         <el-button
           v-if="auth.hasPerm('bi:dashboard:view')"
           :icon="Files"
@@ -18,9 +14,6 @@
           @click="openCreate"
         >{{ t('bi.dash.create') }}</el-button>
       </div>
-    </div>
-
-    <div class="bi-table-wrap">
       <el-table :data="rows" v-loading="loading" border stripe size="small">
         <el-table-column :label="t('bi.dash.name')" min-width="200">
           <template #default="{ row }">
@@ -129,12 +122,22 @@
           <el-empty :description="t('bi.dash.empty')" />
         </template>
       </el-table>
+
+      <el-pagination
+        v-model:current-page="query.page"
+        v-model:page-size="query.size"
+        :total="total"
+        :page-sizes="[10,20,50,100]"
+        layout="total,sizes,prev,pager,next,jumper"
+        @current-change="load"
+        @size-change="onSizeChange"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -144,6 +147,7 @@ import {
 import { useAuthStore } from '@/stores/auth';
 import { biApi, type BiDashboardDto } from '@/api/bi';
 import { formatDateTime } from '@/utils/time';
+import { openInNewTab } from '@/utils/openInNewTab';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -151,16 +155,38 @@ const auth = useAuthStore();
 
 const rows = ref<BiDashboardDto[]>([]);
 const loading = ref(false);
+const total = ref(0);
+
+/** 分页状态：后端真分页，size 必须是 ref（const 无法 v-model:page-size） */
+const query = reactive({ page: 1, size: 20 });
 
 function formatTime(s?: string) { return formatDateTime(s); }
 
 async function load() {
   loading.value = true;
   try {
-    rows.value = await biApi.list();
+    const r = await biApi.list(query);
+    rows.value = r.items;
+    total.value = r.total;
   } finally {
     loading.value = false;
   }
+}
+
+/** 切每页条数必须回到第 1 页：停在后面的页码改 size 会落到一个可能已不存在的页 */
+function onSizeChange() {
+  query.page = 1;
+  load();
+}
+
+/**
+ * 删掉本页最后一条时把页码退一格，否则停在一个空页上。
+ *
+ * <p>判断用 `<= 1` 而不是 `=== 0`：remove 返回后，被删的那一行还留在内存数组里。
+ */
+function reloadAfterDelete() {
+  if (rows.value.length <= 1 && query.page > 1) query.page -= 1;
+  load();
 }
 
 function openCreate() {
@@ -169,8 +195,14 @@ function openCreate() {
 function openEdit(row: BiDashboardDto) {
   router.push(`/bi/dashboard/design/${row.id}`);
 }
+/**
+ * 「预览」在新标签页打开，不把当前列表页换掉 ——
+ * 预览的典型动作是「边看边回到列表继续挑」，同 tab 跳走会丢掉列表的滚动位置和筛选态。
+ * 弹窗被浏览器拦截时退回当前 tab，功能不中断。
+ */
 function openView(row: BiDashboardDto) {
-  router.push(`/bi/dashboard/view/${row.id}`);
+  const path = `/bi/dashboard/view/${row.id}`;
+  openInNewTab(path, { onBlocked: () => router.push(path) }, router);
 }
 function openWall() {
   router.push('/bi/dashboard/wall');
@@ -203,7 +235,7 @@ async function onDelete(row: BiDashboardDto) {
     );
     await biApi.remove(row.id);
     ElMessage.success(t('bi.dash.deleted'));
-    load();
+    reloadAfterDelete();
   } catch { /* 用户取消 */ }
 }
 
@@ -220,10 +252,6 @@ onMounted(load);
 }
 .bi-table-wrap {
   margin-top: 16px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  overflow: visible;
-  background: var(--color-bg-elev);
 }
 :deep(.bi-table-wrap th.el-table__cell) {
   position: sticky;

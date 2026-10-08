@@ -27,9 +27,19 @@ public class TodoTaskCreateReq {
     private Integer recurrenceDom;
     private Integer recurrenceMonth;
 
-    /** 接受 yyyy-MM-dd HH:mm:ss；空字符串视作 null。 */
+    /**
+     * 截止时间。只接受 ISO 8601 带 T 的格式：{@code 2026-10-07T18:00:00}。
+     *
+     * <p>注意这里曾写着"接受 yyyy-MM-dd HH:mm:ss"（空格），而 pattern 实际是 T ——
+     * 注释与实现不符，前端照着注释写了空格格式，导致新建带截止时间的任务必然 400。
+     * 已按 pattern 校正，别再改回去。
+     */
     @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dueAt;
+
+    /** 预估投入时长（分钟）。可空 = 未估；0 = 已估但为 0。 */
+    @jakarta.validation.constraints.Min(0)
+    private Integer estimateMinutes;
 
     /** 父任务 id（同 assignee + PENDING）。可空。 */
     private Long parentId;

@@ -1,25 +1,16 @@
 <template>
   <div class="page-container fade-in-up ds-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('dataMgmt.dsTitle') }}</h1>
-        <p class="page-desc muted">{{ t('dataMgmt.dsDesc') }}</p>
+    <div class="table-wrap ds-table-wrap">
+      <div class="table-actions">
+        <el-button
+          v-if="auth.hasPerm('data:datasource:update')"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          {{ t('dataMgmt.colName') }}
+        </el-button>
       </div>
-      <el-button
-        v-if="auth.hasPerm('data:datasource:update')"
-        type="primary"
-        :icon="Plus"
-        @click="openCreate"
-      >
-        {{ t('dataMgmt.colName') }}
-      </el-button>
-    </div>
-
-    <!--
-      主列表区：plain 1px 边框容器，避开 .card-table 套娃。
-      头部留 12px 边距给表头；行内不重复 padding。
-    -->
-    <div class="ds-table-wrap">
       <el-table
         :data="rows"
         v-loading="loading"
@@ -104,9 +95,20 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <el-pagination
+        v-model:current-page="query.page"
+        v-model:page-size="query.size"
+        :total="total"
+        :page-sizes="[10,20,50,100]"
+        layout="total,sizes,prev,pager,next,jumper"
+        @current-change="reload"
+        @size-change="onSizeChange"
+      />
     </div>
 
-    <div v-if="!loading && rows.length === 0" class="ds-empty">
+    <!-- 空状态看 total 而不是当前页行数：翻到后面的空页 ≠ 库里没数据源 -->
+    <div v-if="!loading && total === 0" class="ds-empty">
       <div class="empty-inner">
         <el-icon class="empty-icon"><Coin /></el-icon>
         <h3 class="empty-title">{{ t('dataMgmt.emptyTitle') }}</h3>
@@ -157,7 +159,17 @@
         </el-form-item>
 
         <el-form-item :label="t('dataMgmt.fieldPort')" prop="port">
-          <el-input-number v-model="form.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+          <el-input-number
+            v-model="form.port"
+            :min="1"
+            :max="65535"
+            align="left"
+            controls-position="right"
+            class="ds-port-input"
+            style="width: 100%"
+            @input="markPortTouched"
+            @change="markPortTouched"
+          />
         </el-form-item>
 
         <el-form-item :label="t('dataMgmt.fieldDatabase')" prop="databaseName">
@@ -247,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import { CircleCheckFilled, Coin, Connection, Plus, WarningFilled, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
@@ -260,6 +272,10 @@ const auth = useAuthStore();
 
 const rows = ref<Datasource[]>([]);
 const loading = ref(false);
+const total = ref(0);
+
+/** 分页状态：后端真分页，size 必须是 ref（const 无法 v-model:page-size） */
+const query = reactive({ page: 1, size: 20 });
 
 const dialog = reactive({
   visible: false,
@@ -287,6 +303,29 @@ const form = reactive({
 
 const formRef = ref<FormInstance>();
 const pwdInputRef = ref<{ focus: () => void }>();
+
+/** 各数据库类型默认端口：切换类型时自动带出 */
+const DEFAULT_PORT: Record<DbType, number> = {
+  mysql: 3306,
+  postgresql: 5432,
+  mssql: 1433,
+};
+
+/** 用户手动改过端口后，切类型不再覆盖（尊重自定义端口） */
+let portTouched = false;
+
+function markPortTouched() {
+  portTouched = true;
+}
+
+watch(
+  () => form.dbType,
+  (next, prev) => {
+    // 端口仍是「上一种类型的默认值」或从未手动改过 → 跟随新类型切换
+    if (portTouched && form.port !== DEFAULT_PORT[prev]) return;
+    form.port = DEFAULT_PORT[next];
+  },
+);
 
 const rules = computed<FormRules>(() => ({
   name:         [{ required: true, message: t('common.required') }],
@@ -325,19 +364,38 @@ function formatTime(s?: string | null) {
 async function reload() {
   loading.value = true;
   try {
-    rows.value = await datasourceApi.list();
+    const r = await datasourceApi.list(query);
+    rows.value = r.items;
+    total.value = r.total;
   } finally {
     loading.value = false;
   }
 }
 
+/** 切每页条数必须回到第 1 页：停在后面的页码改 size 会落到一个可能已不存在的页 */
+function onSizeChange() {
+  query.page = 1;
+  reload();
+}
+
+/**
+ * 删掉本页最后一条时把页码退一格，否则停在一个空页上。
+ *
+ * <p>判断用 `<= 1` 而不是 `=== 0`：remove 返回后，被删的那一行还留在内存数组里。
+ */
+async function reloadAfterDelete() {
+  if (rows.value.length <= 1 && query.page > 1) query.page -= 1;
+  await reload();
+}
+
 function resetForm() {
   Object.assign(form, {
-    id: 0, name: '', dbType: 'mysql', host: '', port: 3306,
+    id: 0, name: '', dbType: 'mysql', host: '', port: DEFAULT_PORT.mysql,
     databaseName: '', username: '', password: '',
     passwordStatus: 'missing', editingPassword: false,
     remark: '', status: 1,
   });
+  portTouched = false;
 }
 
 function openCreate() {
@@ -365,6 +423,8 @@ function openEdit(row: Datasource) {
     remark: row.remark || '',
     status: row.status,
   });
+  // 编辑态：端口视为已定制（存量数据不因切类型被改写，除非它正好是旧类型默认值）
+  portTouched = true;
   dialog.testResult = null;
   dialog.visible = true;
 }
@@ -409,7 +469,7 @@ async function remove(row: Datasource) {
   try {
     await datasourceApi.remove(row.id);
     ElMessage.success(t('common.deleted'));
-    await reload();
+    await reloadAfterDelete();
   } catch (e: any) {
     ElMessage.error(e?.message || String(e));
   }
@@ -509,12 +569,6 @@ onMounted(reload);
 .ds-page .page-desc  { margin: 4px 0 0; font-size: 13px; }
 
 /* 列表区：plain 1px 边框容器；避开 SaaS-card 套娃 */
-.ds-table-wrap {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elev);
-  overflow: hidden;
-}
 .ds-table { width: 100%; }
 .ds-name { font-weight: 500; color: var(--color-text); }
 .type-tag { font-family: ui-monospace, 'JetBrains Mono', monospace; }
@@ -533,6 +587,10 @@ onMounted(reload);
 }
 .pwd-row :deep(.el-input) { flex: 1 1 auto; }
 .pwd-state { font-size: 12px; }
+
+/* 端口：el-input-number 默认居中，靠 align="left" 加 .is-left 与其余输入框对齐；
+   兜底再压一层，避免 EP 主题样式顺序覆盖 */
+.ds-port-input :deep(.el-input__inner) { text-align: left; }
 
 /* 弹窗底部测试行 */
 .dialog-test-row {

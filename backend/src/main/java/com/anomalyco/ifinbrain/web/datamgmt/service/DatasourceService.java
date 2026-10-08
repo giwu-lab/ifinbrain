@@ -1,6 +1,8 @@
 package com.anomalyco.ifinbrain.web.datamgmt.service;
 
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.PageResp;
 import com.anomalyco.ifinbrain.web.datamgmt.dto.DatasourceCreateReq;
 import com.anomalyco.ifinbrain.web.datamgmt.dto.DatasourceDto;
 import com.anomalyco.ifinbrain.web.datamgmt.dto.DatasourceUpdateReq;
@@ -10,6 +12,8 @@ import com.anomalyco.ifinbrain.web.security.CryptoUtil;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +27,9 @@ public class DatasourceService {
 
     private static final String PWD_MASK = "********";
 
+    /** 列表页默认排序：id 升序（与改版前 findAllByOrderByIdAsc 一致） */
+    private static final Sort DEFAULT_SORT = Sort.by(Sort.Order.asc("id"));
+
     private final SysDatasourceRepository repo;
     private final CryptoUtil crypto;
     private final PermissionChecker perm;
@@ -30,12 +37,33 @@ public class DatasourceService {
 
     // ===================== 查询 =====================
 
+    /**
+     * 全量列表：仅供「下拉选数据源」场景（查询详情页、导入向导）。
+     *
+     * <p>这类场景必须看到全部数据源才能渲染选项，不适用分页；
+     * 列表页请走 {@link #page(PageReq)}。
+     */
     @Transactional(readOnly = true)
     public List<DatasourceDto> list() {
         perm.require("data:datasource:view");
         return repo.findAllByOrderByIdAsc().stream()
                 .map(this::toDtoWithStatus)
                 .toList();
+    }
+
+    /**
+     * 列表页分页。排序沿用改版前的全量查询：id 升序。
+     */
+    @Transactional(readOnly = true)
+    public PageResp<DatasourceDto> page(PageReq req) {
+        perm.require("data:datasource:view");
+        String kw = req.getKeyword();
+        Page<SysDatasource> p = (kw == null || kw.isBlank())
+                ? repo.findAllBy(req.toPageable(DEFAULT_SORT))
+                : repo.findByNameContainingIgnoreCaseOrHostContainingIgnoreCaseOrDatabaseNameContainingIgnoreCaseOrUsernameContainingIgnoreCaseOrRemarkContainingIgnoreCase(
+                        kw, kw, kw, kw, kw, req.toPageable(DEFAULT_SORT));
+        return PageResp.of(p.getContent().stream().map(this::toDtoWithStatus).toList(),
+                p.getTotalElements(), req.safePage(), req.safeSize());
     }
 
     @Transactional(readOnly = true)
@@ -140,10 +168,31 @@ public class DatasourceService {
      * 给 DatasourceTestService 用：从 DB 读密文 → 解密。
      * 解密失败抛 BizException(500)，与 SettingService.getParserConfig 的探测语义一致。
      * 返回明文密码用于实际建连。
+     *
+     * <p>权限位固定为 {@code data:datasource:test}。需要别的权限位（如数据导入模块的
+     * {@code data:import:view}）请调 {@link #loadDecrypted(Long, String)}，
+     * 不要绕过本方法自己复制一遍解密逻辑 —— 密文解密口径必须只有一处。
      */
     @Transactional(readOnly = true)
     public DecryptedDatasource loadDecrypted(Long id) {
-        perm.require("data:datasource:test");
+        return loadDecrypted(id, "data:datasource:test");
+    }
+
+    /**
+     * 按指定权限位解密数据源密码。
+     *
+     * <p>为什么需要重载：解密密码 = 建立到该外部库的连接。
+     * 但「谁可以建连」不等于「谁可以测试连通」，更不等于「谁可以往这张表写数据」。
+     * 三个能力必须独立授权：
+     * <ul>
+     *   <li>{@code data:datasource:test}  → 测连通（DatasourceTestService）</li>
+     *   <li>{@code data:datasource:view}  → 浏览表结构（DatasourceSchemaService）</li>
+     *   <li>{@code data:import:view/execute} → 数据导入（ImportExecutorService）</li>
+     * </ul>
+     */
+    @Transactional(readOnly = true)
+    public DecryptedDatasource loadDecrypted(Long id, String permCode) {
+        perm.require(permCode);
         SysDatasource e = repo.findById(id).orElseThrow(() -> new BizException(404, "数据源不存在"));
         try {
             String plain = crypto.decrypt(e.getPasswordEnc());

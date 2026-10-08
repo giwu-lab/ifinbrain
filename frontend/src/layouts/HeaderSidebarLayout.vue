@@ -3,20 +3,22 @@
     <!-- 顶栏：logo + 工具栏 -->
     <el-header class="hs-header">
       <div class="hs-left">
-        <div v-if="s.showLogo" class="logo-mark">
-          <svg viewBox="0 0 32 32" fill="none">
-            <defs>
-              <linearGradient id="brand-grad-hs" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#6366f1" />
-                <stop offset="1" stop-color="#3b82f6" />
-              </linearGradient>
-            </defs>
-            <rect width="32" height="32" rx="9" fill="url(#brand-grad-hs)" />
-            <path d="M9 11h14M9 16h14M9 21h9" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="22.5" cy="22.5" r="1.5" fill="white"/>
-          </svg>
-        </div>
-        <span v-if="s.showLogo" class="brand-name">{{ t('layout.brand') }}</span>
+        <router-link v-if="s.showLogo" to="/dashboard" class="brand-link" :title="t('layout.home')">
+          <div class="logo-mark">
+            <svg viewBox="0 0 32 32" fill="none">
+              <defs>
+                <linearGradient id="brand-grad-hs" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stop-color="#6366f1" />
+                  <stop offset="1" stop-color="#3b82f6" />
+                </linearGradient>
+              </defs>
+              <rect width="32" height="32" rx="9" fill="url(#brand-grad-hs)" />
+              <path d="M9 11h14M9 16h14M9 21h9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="22.5" cy="22.5" r="1.5" fill="white"/>
+            </svg>
+          </div>
+          <span class="brand-name">{{ t('layout.brand') }}</span>
+        </router-link>
 
         <el-breadcrumb v-if="s.showBreadcrumb" separator="/" class="breadcrumb">
           <el-breadcrumb-item :to="{ path: '/dashboard' }">{{ t('layout.home') }}</el-breadcrumb-item>
@@ -65,7 +67,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import * as ElIcons from '@element-plus/icons-vue';
+import { resolveElIcon } from '@/utils/icon';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
 
@@ -79,8 +81,7 @@ const s = computed(() => theme.settings);
 const active = computed(() => route.path);
 
 function iconOf(name?: string) {
-  if (!name) return ElIcons.Document;
-  return (ElIcons as Record<string, unknown>)[name] as any || ElIcons.Document;
+  return resolveElIcon(name);
 }
 
 function menuName(m: { name: string; component?: string; path?: string }) {
@@ -99,8 +100,10 @@ function menuName(m: { name: string; component?: string; path?: string }) {
 
 const breadcrumbLabel = computed(() => {
   const m = route.meta as { name?: string; component?: string; path?: string; title?: string } | undefined;
-  if (!m?.name) return m?.title || '';
-  return menuName({ name: m.name, component: m.component, path: m.path });
+  if (!m) return '';
+  // name / title 都可能缺：缺 name 时也要走 menuName()，否则会直接把 meta.title
+  // 那个硬编码英文显示出来。title 仅作为 i18n 没命中时的最后兜底。
+  return menuName({ name: m.name ?? m.title ?? '', component: m.component, path: m.path });
 });
 
 function go(index: string) {
@@ -122,6 +125,21 @@ function go(index: string) {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 .hs-left { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
+/* logo + 品牌名整体可点击回仪表盘 */
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 2px 6px;
+  margin-left: -6px;
+  transition: background 0.18s ease;
+}
+.brand-link:hover { background: var(--color-primary-soft); }
+.brand-link:hover .brand-name { color: var(--color-primary); }
 .logo-mark {
   width: 32px; height: 32px;
   border-radius: 8px;

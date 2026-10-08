@@ -1,21 +1,16 @@
 <template>
   <div class="page-container fade-in-up todo-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('todo.title') }}</h1>
-        <p class="page-desc muted">{{ t('todo.desc') }}</p>
+    <div class="table-wrap todo-table-wrap">
+      <div class="table-actions">
+        <el-button
+          v-if="auth.hasPerm('todo:task:create')"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          {{ t('todo.create') }}
+        </el-button>
       </div>
-      <el-button
-        v-if="auth.hasPerm('todo:task:create')"
-        type="primary"
-        :icon="Plus"
-        @click="openCreate"
-      >
-        {{ t('todo.create') }}
-      </el-button>
-    </div>
-
-    <div class="todo-table-wrap">
       <!-- 工具栏：筛选 + 搜索 -->
       <div class="toolbar">
         <el-input
@@ -24,20 +19,20 @@
           style="width: 240px;"
           clearable
           :prefix-icon="Search"
-          @keyup.enter="reload"
-          @clear="reload"
+          @keyup.enter="onFilterChange"
+          @clear="onFilterChange"
         />
-        <el-select v-model="query.status" :placeholder="t('todo.fields.status')" clearable style="width: 120px;" @change="reload">
+        <el-select v-model="query.status" :placeholder="t('todo.fields.status')" clearable style="width: 120px;" @change="onFilterChange">
           <el-option :label="t('todo.status.pending')" value="PENDING" />
           <el-option :label="t('todo.status.completed')" value="COMPLETED" />
         </el-select>
-        <el-select v-model="query.priority" :placeholder="t('todo.fields.priority')" clearable style="width: 120px;" @change="reload">
+        <el-select v-model="query.priority" :placeholder="t('todo.fields.priority')" clearable style="width: 120px;" @change="onFilterChange">
           <el-option :label="t('todo.priority.high')" value="HIGH" />
           <el-option :label="t('todo.priority.medium')" value="MEDIUM" />
           <el-option :label="t('todo.priority.low')" value="LOW" />
           <el-option :label="t('todo.priority.none')" value="NONE" />
         </el-select>
-        <el-button type="primary" @click="reload">{{ t('common.search') }}</el-button>
+        <el-button type="primary" @click="onFilterChange">{{ t('common.search') }}</el-button>
         <span class="toolbar-spacer" />
         <span v-if="adminViewAll" class="admin-badge" :title="t('todo.fields.assignee')">
           <el-icon><View /></el-icon>{{ t('todo.fields.assignee') }}: {{ t('todo.adminViewAllLabel') }}
@@ -57,10 +52,14 @@
         <!-- 完成 checkbox（inline） -->
         <el-table-column :label="t('todo.fields.done')" width="56" align="center">
           <template #default="{ row }">
-            <div class="done-cell" :class="{ 'is-child': (row as TodoTask).parentId }">
+            <div
+              class="done-cell"
+              :class="{ 'is-child': (row as TodoTask).parentId, 'is-locked': (row as TodoTask).crossDeptReadOnly }"
+              :title="completeHint(row as TodoTask) || undefined"
+            >
               <el-checkbox
                 :model-value="(row as TodoTask).status === 'COMPLETED'"
-                :disabled="(row as TodoTask).status === 'COMPLETED' || !auth.hasPerm('todo:task:update')"
+                :disabled="(row as TodoTask).status === 'COMPLETED' || (row as TodoTask).canComplete === false"
                 @change="(v) => toggleDone(row as TodoTask, v as boolean)"
               />
             </div>
@@ -141,38 +140,80 @@
           </template>
         </el-table-column>
 
-        <!-- 创建时间 -->
-        <el-table-column :label="t('todo.fields.createdAt')" width="170">
+        <!-- 创建时间：保留完整时间戳（排查问题时需要精确到分），
+             但用 mono-time 弱化 —— 等宽数字 + muted 色 + 13px，在一屏任务里
+             不该抢走「标题 / 截止时间」的注意力。
+             宽度 176 是算出来的：13px 等宽字体下 "2026-10-07 11:22:33" 约 148px，
+             加单元格左右内边距约 24px，留 4px 余量。再窄就会折成两行。 -->
+        <el-table-column :label="t('todo.fields.createdAt')" width="176">
           <template #default="{ row }">
-            <span class="muted small">{{ (row as TodoTask).createdAt }}</span>
+            <span class="mono-time nowrap">{{ formatDateTime((row as TodoTask).createdAt) }}</span>
           </template>
         </el-table-column>
 
-        <!-- 操作列：编辑图标 + ··· 收纳删除 -->
+        <!-- 操作列：编辑图标 + ··· 收纳删除
+             跨部门任务（crossDeptReadOnly）按钮保留但置灰，并提示「仅可查看」——
+             不用 auth.hasPerm 做粗粒度开关：那是角色级权限，无法表达
+             「本部门的能改、别的部门的不能改」这种按行差异。 -->
         <el-table-column :label="t('common.actions')" width="120" align="center" fixed="right">
           <template #default="{ row }">
-            <el-tooltip v-if="auth.hasPerm('todo:task:update')" :content="t('common.edit')" placement="top">
-              <el-button size="small" link :icon="Edit" @click="openEdit(row as TodoTask)" />
+            <el-tooltip :content="rowTip(row as TodoTask, 'common.edit')" placement="top">
+              <span class="act-wrap">
+                <el-button
+                  size="small"
+                  link
+                  :icon="Edit"
+                  :disabled="(row as TodoTask).canEdit === false"
+                  @click="openEdit(row as TodoTask)"
+                />
+              </span>
             </el-tooltip>
-            <el-dropdown
-              v-if="auth.hasPerm('todo:task:delete')"
-              trigger="click"
-              @command="(cmd: string) => onCmd(cmd, row as TodoTask)"
+            <el-tooltip
+              :disabled="!((row as TodoTask).crossDeptReadOnly)"
+              :content="t('todo.crossDeptReadOnly')"
+              placement="top"
             >
-              <el-button :icon="MoreFilled" size="small" link />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="delete" divided>
-                    <span class="danger-text">
-                      <el-icon><Delete /></el-icon>{{ t('common.delete') }}
-                    </span>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+              <span class="act-wrap">
+                <el-dropdown
+                  trigger="click"
+                  :disabled="(row as TodoTask).canDelete === false"
+                  @command="(cmd: string) => onCmd(cmd, row as TodoTask)"
+                >
+                  <el-button :icon="MoreFilled" size="small" link :disabled="(row as TodoTask).canDelete === false" />
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="delete" divided>
+                        <span class="danger-text">
+                          <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                        </span>
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </span>
+            </el-tooltip>
           </template>
         </el-table-column>
       </el-table>
+
+      <!--
+        分页器。后端已把 status / priority / keyword 下推到 SQL 的 WHERE，
+        total 是真实匹配总数，翻页不会再漏数据。
+        注意：当页可能出现「为补全层级而带出的父任务」，行数会略多于 page-size，
+        这是预期行为 —— total 不含这些补全行，分页总页数仍然正确。
+      -->
+      <div class="todo-pager">
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.size"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="total"
+          layout="total,sizes,prev,pager,next,jumper"
+          background
+          @size-change="onPageSizeChange"
+          @current-change="onPageChange"
+        />
+      </div>
     </div>
 
     <!--
@@ -271,7 +312,7 @@
                 v-model="form.dueAt"
                 type="datetime"
                 :placeholder="t('todo.duePlaceholder')"
-                value-format="YYYY-MM-DD HH:mm:ss"
+                value-format="YYYY-MM-DDTHH:mm:ss"
                 format="YYYY-MM-DD HH:mm"
                 style="width: 100%;"
                 clearable
@@ -305,7 +346,20 @@
             <el-form-item v-if="dialog.mode === 'edit'" :label="t('todo.fields.status')">
               <el-radio-group v-model="form.status">
                 <el-radio-button value="PENDING">{{ t('todo.status.pending') }}</el-radio-button>
-                <el-radio-button value="COMPLETED">{{ t('todo.status.completed') }}</el-radio-button>
+                <el-tooltip
+                  :content="currentPendingChildren > 0
+                    ? t('todo.qt.pendingChildren', { n: currentPendingChildren })
+                    : ''"
+                  :disabled="currentPendingChildren === 0"
+                  placement="top"
+                >
+                  <span class="status-radio-wrap">
+                    <el-radio-button
+                      value="COMPLETED"
+                      :disabled="currentPendingChildren > 0"
+                    >{{ t('todo.status.completed') }}</el-radio-button>
+                  </span>
+                </el-tooltip>
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="dialog.mode === 'edit'" :label="t('todo.fields.createdBy')">
@@ -364,7 +418,7 @@
                     <span class="att-dot">·</span>
                     <span>{{ t('todo.attachments.uploadedBy') }}: {{ a.uploaderName || `#${a.uploaderId}` }}</span>
                     <span class="att-dot">·</span>
-                    <span class="mono">{{ a.createdAt }}</span>
+                    <span class="mono nowrap">{{ formatDateTime(a.createdAt) }}</span>
                   </div>
                 </div>
                 <div class="att-actions">
@@ -418,6 +472,7 @@ import {
   type TodoTask, type TodoTag, type TodoParentCandidate,
   type TodoAssigneeOption, type TodoAttachment
 } from '@/api/todo';
+import { formatDateTime } from '@/utils/time';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -426,7 +481,7 @@ const rows = ref<TodoTask[]>([]);
 const total = ref(0);
 const loading = ref(false);
 const adminViewAll = ref(false);
-const query = reactive({ page: 1, size: 20, keyword: '', status: '', priority: '' });
+const query = reactive({ page: 1, size: 10, keyword: '', status: '', priority: '' });
 
 const allTags = ref<TodoTag[]>([]);
 const parentCandidates = ref<TodoParentCandidate[]>([]);
@@ -488,6 +543,9 @@ function recurrenceBadgeText(row: TodoTask): string {
 
 const currentTaskCreatedBy = ref<number | null>(null);
 const currentTaskCreatedByName = ref<string>('');
+/** 编辑弹窗里当前任务的未完成直接子任务数；>0 时禁用「已完成」单选。
+ *  后端 PUT 也会拦，这里只是提前告知，避免用户填完一整张表单才被 400 退回。 */
+const currentPendingChildren = ref(0);
 
 const formRef = ref<FormInstance>();
 const rules = computed<FormRules>(() => ({
@@ -505,6 +563,39 @@ const canShowAssigneePicker = computed(() => {
 
 /** picker 真正能改 assignee（区分 admin / 创建者 / 仅查看） */
 const canReassign = computed(() => canShowAssigneePicker.value);
+
+/** 筛选条件变化 → 回到第 1 页再查（否则停在第 5 页会看到空列表）。 */
+function onFilterChange() {
+  query.page = 1;
+  reload();
+}
+
+function onPageChange() {
+  reload();
+}
+
+/** 每页条数变化 → 同样回第 1 页，避免 page 超出新总页数。 */
+function onPageSizeChange() {
+  query.page = 1;
+  reload();
+}
+
+/**
+ * 该行是否满足当前筛选条件。
+ * 后端为补全层级会多带出「不在筛选结果里的父任务」行，这里本地判定后弱化显示，
+ * 让用户一眼看出哪些是补进来的上下文行（它们不计入分页器的 total）。
+ */
+function matchesFilter(row: TodoTask): boolean {
+  if (query.status && row.status !== query.status) return false;
+  if (query.priority && row.priority !== query.priority) return false;
+  const kw = query.keyword.trim().toLowerCase();
+  if (kw) {
+    const inTitle = (row.title || '').toLowerCase().includes(kw);
+    const inDesc = (row.description || '').toLowerCase().includes(kw);
+    if (!inTitle && !inDesc) return false;
+  }
+  return true;
+}
 
 async function reload() {
   loading.value = true;
@@ -580,6 +671,7 @@ function openCreate() {
   dialog.tab = 'basic';
   currentTaskCreatedBy.value = null;
   currentTaskCreatedByName.value = '';
+  currentPendingChildren.value = 0;
   attachments.value = [];
   Object.assign(form, {
     title: '',
@@ -606,6 +698,7 @@ function openEdit(row: TodoTask) {
   dialog.tab = 'basic';
   currentTaskCreatedBy.value = row.createdBy ?? null;
   currentTaskCreatedByName.value = row.createdByName || '';
+  currentPendingChildren.value = row.pendingChildCount ?? 0;
   Object.assign(form, {
     title: row.title,
     description: row.description || '',
@@ -696,6 +789,18 @@ async function toggleDone(row: TodoTask, done: boolean) {
   } catch {
     /* 接口已在拦截器弹错 */
   }
+}
+
+/**
+ * 勾选框不可用时的原因，空串 = 可用（此时不挂 title，鼠标悬停无提示）。
+ * 「等子任务」和「跨部门只读」要分开说：前者是任务没做完，后者是权限不够。
+ */
+function completeHint(row: TodoTask): string {
+  if ((row.pendingChildCount ?? 0) > 0) {
+    return t('todo.qt.pendingChildren', { n: row.pendingChildCount });
+  }
+  if (row.crossDeptReadOnly) return t('todo.crossDeptReadOnly');
+  return '';
 }
 
 async function remove(row: TodoTask) {
@@ -800,7 +905,18 @@ function formatDue(row: TodoTask): string {
 }
 
 function rowClass({ row }: { row: TodoTask }) {
-  return row.status === 'COMPLETED' ? 'todo-row-done' : '';
+  const cls: string[] = [];
+  if (row.status === 'COMPLETED') cls.push('todo-row-done');
+  if (!matchesFilter(row)) cls.push('todo-row-context');
+  return cls.join(' ');
+}
+
+/**
+ * 操作按钮的 tooltip 文案：跨部门任务提示「仅可查看」，否则显示常规动作名。
+ * 比 auth.hasPerm 粗粒度开关好在 —— 它是按行的，同一张表里有的行能点有的不能点。
+ */
+function rowTip(row: TodoTask, actionKey: string): string {
+  return row.crossDeptReadOnly ? t('todo.crossDeptReadOnly') : t(actionKey);
 }
 
 onMounted(async () => {
@@ -809,19 +925,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 20px;
-}
-.page-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.page-desc { margin: 4px 0 0; font-size: 13px; }
 
 /* —— 双层吸顶 —— */
 .todo-page .page-header {
@@ -831,7 +934,7 @@ onMounted(async () => {
   background: var(--color-bg);
   padding-top: 4px;
 }
-.todo-table-wrap { margin-top: 16px; overflow: visible; }
+.todo-table-wrap { margin-top: 16px; }
 :deep(.todo-table-wrap th.el-table__cell) {
   position: sticky;
   top: 92px;
@@ -961,6 +1064,36 @@ onMounted(async () => {
 /* —— 行完成态弱化 —— */
 :deep(.todo-row-done) { opacity: 0.65; }
 
+/* —— 跨部门只读：置灰的操作按钮 + 锁定态完成框 —— */
+/* Element Plus 的 disabled 按钮不派发鼠标事件，tooltip 收不到；
+   用一层 span 包住才能正常悬浮提示。 */
+.act-wrap { display: inline-flex; }
+.done-cell.is-locked { cursor: not-allowed; }
+
+/* 「已完成」单选在有未完成子任务时禁用，同理需要一层 span 承载 hover。 */
+.status-radio-wrap { display: inline-flex; }
+
+/* —— 补全行：为补全层级而带出、但并不匹配当前筛选的父任务 —— */
+:deep(.todo-row-context) {
+  opacity: 0.72;
+  background: var(--color-bg-popover);
+}
+/* 用左侧细虚线标记「这一行是补进来的上下文」，不占用额外列 */
+:deep(.todo-row-context td:first-child) {
+  box-shadow: inset 2px 0 0 var(--color-border-strong);
+}
+
+/* —— 分页器 —— */
+.todo-pager {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-soft);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  background: var(--color-bg);
+}
+
 /* —— 弹窗 —— */
 .form-hint { margin-top: 4px; }
 
@@ -1053,4 +1186,9 @@ onMounted(async () => {
 .muted { color: var(--color-text-muted); }
 .small { font-size: 12px; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* 时间戳强制单行：el-table 的 cell 默认 white-space: normal，列宽算得再准
+   也会因为字体回退（等宽字体缺失时退回比例字体，字符更宽）而折行。
+   宁可横向溢出被相邻列盖住，也不要时间戳变成两行。 */
+.nowrap { white-space: nowrap; }
 </style>

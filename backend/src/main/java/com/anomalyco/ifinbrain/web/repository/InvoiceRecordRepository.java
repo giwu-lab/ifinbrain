@@ -60,9 +60,11 @@ public interface InvoiceRecordRepository extends JpaRepository<InvoiceRecord, Lo
                             @Param("dateTo") LocalDate dateTo);
 
     /** 游标导出：native query + 手工 ResultSet 映射。
-     *  避免 Hibernate 对 SQLite DATE 列做类型转换时 sqlite-jdbc 的 FastDateParser 抛
-     *  "Unparseable date: YYYY-MM-DD"（它只接受 'YYYY-MM-DD HH:MM:SS.NNN'）。
-     *  这里直接拿到 Object[]，逐列按位置读 String / Number / Timestamp，自己装配成 InvoiceRecord。 */
+     *  直接拿 Object[]，逐列按位置读 String / Number / Timestamp，自己装配成 InvoiceRecord，
+     *  避开 Hibernate 对 DATE 列的类型转换（历史上 sqlite-jdbc 的 FastDateParser 会在
+     *  "YYYY-MM-DD" 上抛 Unparseable date）。SQLite 已弃用，但 PG 的 pgjdbc 同样可能按
+     *  java.sql.Date 而非 java.time.LocalDate 返回，手工映射两边都吃得下，故保留。
+     *  注意：本查询用 '||' 拼串（PG 与 SQLite 通用语法），不是 PG 专属写法。 */
     @Query(value = "SELECT id, storage_key, storage_type, original_filename, size_bytes, sha256, " +
                    "       invoice_type, invoice_number, issue_date, buyer_name, buyer_tax_id, " +
                    "       seller_name, seller_tax_id, amount_without_tax, tax_amount, total_amount, " +
@@ -139,7 +141,7 @@ public interface InvoiceRecordRepository extends JpaRepository<InvoiceRecord, Lo
         if (o == null) return null;
         if (o instanceof LocalDate d) return d;
         String str = String.valueOf(o);
-        // sqlite-jdbc 有时返回 "2026-01-01" 有时返回 "2026-01-01 00:00:00.000"
+        // PG 的 pgjdbc 可能返回 LocalDate、java.sql.Date 或 "2026-01-01" 三种形态
         if (str.length() >= 10) return LocalDate.parse(str.substring(0, 10));
         return null;
     }

@@ -1,20 +1,15 @@
 <template>
   <div class="page-container fade-in-up qy-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('dataMgmt.qyTitle') }}</h1>
-        <p class="page-desc muted">{{ t('dataMgmt.qyDesc') }}</p>
-      </div>
-      <div class="header-actions">
+    <div class="table-wrap qy-table-wrap">
+      <div class="table-actions">
         <el-button v-if="auth.hasPerm('data:query:create')" type="primary" @click="openNew">
-          + {{ t('dataMgmt.qyCreate') }}
+          {{ t('dataMgmt.qyCreate') }}
         </el-button>
       </div>
-    </div>
 
-    <div class="qy-panel">
+      <!-- 表格 + 分页作为一组：当前页有数据才渲染，翻到空页时退化成下面的空态 -->
+      <template v-if="items.length > 0">
       <el-table
-        v-if="items.length > 0"
         :data="items"
         stripe
         v-loading="loading"
@@ -128,13 +123,29 @@
         </el-table-column>
       </el-table>
 
-      <div v-else-if="!loading" class="qy-empty">
-        <div class="qy-empty-icon" />
+      <el-pagination
+        v-model:current-page="query.page"
+        v-model:page-size="query.size"
+        :total="total"
+        :page-sizes="[10,20,50,100]"
+        layout="total,sizes,prev,pager,next,jumper"
+        @current-change="loadList"
+        @size-change="onSizeChange"
+      />
+      </template>
+
+      <!-- 空态看 total 而不是当前页行数：翻到后面的空页 ≠ 库里没有查询 -->
+      <div v-else-if="!loading && total === 0" class="qy-empty">
+        <el-icon class="qy-empty-icon"><Document /></el-icon>
         <h3>{{ t('dataMgmt.qyEmptyTitle') }}</h3>
         <p class="muted small">{{ t('dataMgmt.qyEmptyDesc') }}</p>
-        <el-button v-if="auth.hasPerm('data:query:create')" type="primary" plain @click="openNew">
-          {{ t('dataMgmt.qyEmptyAction') }}
-        </el-button>
+        <!-- 空状态 CTA 与数据源 / 档案库页保持一致：实心 primary + Plus 图标 -->
+        <el-button
+          v-if="auth.hasPerm('data:query:create')"
+          type="primary"
+          :icon="Plus"
+          @click="openNew"
+        >{{ t('dataMgmt.qyEmptyAction') }}</el-button>
       </div>
     </div>
 
@@ -151,11 +162,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import { Edit, Delete, MoreFilled, CopyDocument } from '@element-plus/icons-vue';
+import { Edit, Delete, MoreFilled, CopyDocument, Plus, Document } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { queryApi, type QueryItem } from '@/api/query';
 import { queryPageApi, parseConfig, type QueryPageConfig } from '@/api/queryPage';
@@ -167,6 +178,10 @@ const auth = useAuthStore();
 
 const items = ref<QueryItem[]>([]);
 const loading = ref(false);
+const total = ref(0);
+
+/** 分页状态：后端真分页，size 必须是 ref（const 无法 v-model:page-size） */
+const query = reactive({ page: 1, size: 20 });
 
 
 function rowClass({ row }: { row: QueryItem }) {
@@ -206,7 +221,7 @@ async function onDelete(row: QueryItem) {
     });
     await queryApi.remove(row.id);
     ElMessage.success(t('common.deleted'));
-    await loadList();
+    reloadAfterDelete();
   } catch (e: any) {
     if (e !== 'cancel') ElMessage.error(e?.message || t('dataMgmt.qyDeleteFail'));
   }
@@ -352,10 +367,28 @@ function truncate(s: string | null | undefined, n: number) {
 async function loadList() {
   loading.value = true;
   try {
-    items.value = await queryApi.list();
+    const r = await queryApi.list(query);
+    items.value = r.items;
+    total.value = r.total;
   } finally {
     loading.value = false;
   }
+}
+
+/** 切每页条数必须回到第 1 页：停在后面的页码改 size 会落到一个可能已不存在的页 */
+function onSizeChange() {
+  query.page = 1;
+  loadList();
+}
+
+/**
+ * 删掉本页最后一条时把页码退一格，否则停在一个空页上。
+ *
+ * <p>判断用 `<= 1` 而不是 `=== 0`：remove 返回后，被删的那一行还留在内存数组里。
+ */
+function reloadAfterDelete() {
+  if (items.value.length <= 1 && query.page > 1) query.page -= 1;
+  loadList();
 }
 
 onMounted(loadList);
@@ -422,9 +455,10 @@ onMounted(loadList);
 
 :deep(.qy-row-fail td) { background: #fcf6f6 !important; }
 
-.qy-empty { padding: 80px 24px; text-align: center; }
-.qy-empty h3 { margin: 12px 0 4px; font-size: 16px; }
-.qy-empty-icon { width: 56px; height: 56px; margin: 0 auto; border: 2px dashed var(--line); border-radius: 50%; }
+/* 空状态样式与数据源页 .ds-empty 对齐：图标 40px muted、标题 16px/600 */
+.qy-empty { padding: 32px 12px; text-align: center; }
+.qy-empty-icon { font-size: 40px; color: var(--color-text-muted); }
+.qy-empty h3 { margin: 16px 0 4px; font-size: 16px; font-weight: 600; }
 
 .qy-more-btn { font-size: 16px; padding: 0 6px; }
 </style>

@@ -1,19 +1,7 @@
 <template>
   <div class="page-container fade-in-up docs-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">
-          <el-icon v-if="category" class="title-icon">
-            <component :is="resolveIcon(category.icon)" />
-          </el-icon>
-          {{ category ? t('documents.listTitle', { name: category.name }) : t('documents.title') }}
-        </h1>
-        <p class="page-desc muted">
-          <span v-if="category">/{{ category.slug }}</span>
-          <span v-else>{{ t('documents.desc') }}</span>
-        </p>
-      </div>
-      <div class="header-actions">
+    <div class="table-wrap docs-table-wrap">
+      <div class="table-actions">
         <!-- RAG 问答：后端 RAG 关闭时整组端点不存在，探测失败即隐藏入口 -->
         <el-button
           v-if="ragEnabled"
@@ -37,38 +25,15 @@
         >
           {{ t('documents.createFolder') }}
         </el-button>
+        <!-- 笔记入口：无 note:view 权限的人看不到（菜单同样受 note:view 管控） -->
+        <el-button
+          v-if="auth.hasPerm('note:view') && category"
+          :icon="EditPen"
+          @click="noteDrawerVisible = true"
+        >
+          {{ t('note.drawerTitle') }}
+        </el-button>
       </div>
-    </div>
-
-    <!-- 拖拽上传区：内联在表格上方（参考上传识别页样式） -->
-    <div v-if="canUpload && category" class="upload-area">
-      <el-upload
-        drag multiple :auto-upload="true"
-        :action="uploadUrl"
-        :headers="uploadHeaders"
-        :before-upload="beforeUpload"
-        :on-success="onUploadSuccess"
-        :on-error="onUploadError"
-        :show-file-list="false"
-      >
-        <el-icon class="upload-icon"><UploadFilled /></el-icon>
-        <div class="upload-title">{{ t('documents.dropHere') }}</div>
-        <div class="upload-hint">{{ t('documents.uploadTip') }}</div>
-      </el-upload>
-    </div>
-
-    <!-- 面包屑：当前路径导航 -->
-    <div v-if="category" class="breadcrumb-bar">
-      <el-icon class="bc-icon"><Folder /></el-icon>
-      <a class="bc-link" @click="openFolder('')">{{ t('documents.breadcrumbRoot') }}</a>
-      <template v-for="(seg, i) in breadcrumbs" :key="seg.path">
-        <span class="bc-sep">/</span>
-        <a class="bc-link" @click="openFolder(seg.path)">{{ seg.name }}</a>
-      </template>
-    </div>
-
-    <!-- 列表区：plain 1px 边框容器，避开 SaaS-card 套娃 -->
-    <div class="docs-table-wrap">
       <el-table
         v-if="folders.length > 0 || rows.length > 0"
         :data="tableData"
@@ -296,6 +261,13 @@
 
     <!-- 档案库问答抽屉：检索范围由后端按 documents:{slug}:view 圈定 -->
     <RagChatDrawer v-model="ragVisible" @open-document="onRagOpenDocument" />
+
+    <!-- 本档案库的笔记（跨库笔记能力的库内入口） -->
+    <NoteDrawer
+      v-model="noteDrawerVisible"
+      :category-id="category?.id ?? null"
+      :category-name="category?.name"
+    />
   </div>
 </template>
 
@@ -304,7 +276,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import {
-  ArrowRight, Close, Delete, Document, Download, Edit, Folder, FolderAdd, FolderOpened, InfoFilled, Lock, MagicStick, MoreFilled, Refresh, Search, UploadFilled, View
+  ArrowRight, Close, Delete, Document, Download, Edit, Folder, FolderAdd, FolderOpened, InfoFilled, Lock, MagicStick, MoreFilled, Refresh, Search, UploadFilled, View, EditPen
 } from '@element-plus/icons-vue';
 import * as ElIcons from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
@@ -313,6 +285,7 @@ import { archiveApi, documentApi, fileRawUrl, type ArchiveLibrary, type Document
 import { ragApi } from '@/api/rag';
 import ProjectFileViewer from '@/components/ProjectFileViewer.vue';
 import RagChatDrawer from '@/components/documents/RagChatDrawer.vue';
+import NoteDrawer from '@/views/documents/notes/components/NoteDrawer.vue';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -557,6 +530,8 @@ async function onCommand(cmd: string, row: DocumentItem) {
 
 // ---------- RAG 档案库问答 ----------
 const ragVisible = ref(false);
+/** 本档案库的笔记抽屉 */
+const noteDrawerVisible = ref(false);
 /** null = 探测中；false = 后端 RAG 未启用（@ConditionalOnProperty 整组不注册，探测必失败） */
 const ragEnabled = ref<boolean | null>(null);
 const indexingId = ref<number | null>(null);
@@ -840,11 +815,6 @@ onMounted(() => {
 .docs-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
 .docs-page .page-desc  { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
 .docs-table-wrap {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elev);
-  /* overflow: visible 让 th sticky 透到外层页面滚动容器 */
-  overflow: visible;
   /* 与吸顶页头之间不留多余间距（紧贴） */
   margin-top: 0;
   /* 让表格 wrap 也参与 flex 分配（剩余空间吃掉） */

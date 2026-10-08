@@ -38,13 +38,18 @@
             <el-form-item :label="t('formDesigner.field.help')">
               <el-input v-model="local.help" type="textarea" :rows="2" @input="emitPatch" />
             </el-form-item>
-            <el-form-item :label="t('formDesigner.field.defaultValue')">
+            <!-- 默认值是字符串语义：分割线无值，表格值是对象数组，两者都不适用 -->
+            <el-form-item v-if="field.type !== 'DIVIDER' && field.type !== 'TABLE'"
+                          :label="t('formDesigner.field.defaultValue')">
               <el-input v-model="local.defaultValue" @input="emitPatch" />
             </el-form-item>
             <el-form-item v-if="field.type !== 'DIVIDER'">
-              <el-checkbox v-model="local.required" @change="emitPatch">{{ t('formDesigner.field.required') }}</el-checkbox>
-            </el-form-item>
-          </el-form>
+              <el-checkbox v-model="local.required" @change="emitPatch">
+                {{ field.type === 'TABLE'
+                  ? t('formDesigner.table.requireAtLeastOneRow')
+                  : t('formDesigner.field.required') }}
+              </el-checkbox>
+            </el-form-item>          </el-form>
         </div>
 
         <!-- ============ 选项 ============ -->
@@ -58,6 +63,79 @@
             </div>
             <el-button :icon="Plus" size="small" link @click="addOption">{{ t('formDesigner.option.add') }}</el-button>
           </div>
+        </div>
+
+        <!-- ============ 表格列 ============ -->
+        <div v-if="isTable" class="props-section">
+          <div class="props-section-label">{{ t('formDesigner.table.sectionColumns') }}</div>
+
+          <div class="table-col-switches">
+            <el-checkbox v-model="local.requireAllCells" @change="emitPatch">
+              {{ t('formDesigner.table.requireAllCells') }}
+            </el-checkbox>
+          </div>
+          <p v-if="!local.requireAllCells" class="props-hint">
+            {{ t('formDesigner.table.colRequiredInactiveHint') }}
+          </p>
+
+          <div v-for="(col, idx) in (local.columns || [])" :key="idx" class="col-editor">
+            <div class="col-row">
+              <el-select v-model="col.type" size="small" style="width: 116px;" @change="onColTypeChange(col)">
+                <el-option
+                  v-for="t in COLUMN_TYPES"
+                  :key="t"
+                  :value="t"
+                  :label="typeLabel(t)"
+                />
+              </el-select>
+              <el-input
+                v-model="col.label"
+                size="small"
+                style="flex: 1;"
+                :placeholder="t('formDesigner.table.colTitle')"
+                @input="emitPatch"
+              />
+              <el-button link :icon="Delete" size="small" class="danger-icon" @click="removeColumn(idx)" />
+            </div>
+            <div class="col-row">
+              <el-input
+                v-model="col.key"
+                size="small"
+                style="flex: 1;"
+                :placeholder="t('formDesigner.table.colKey')"
+                @input="emitPatch"
+              />
+              <el-input-number
+                v-model="col.width"
+                size="small"
+                :min="60"
+                :max="600"
+                :controls="false"
+                style="width: 78px;"
+                :placeholder="t('formDesigner.table.colWidth')"
+                @change="emitPatch"
+              />
+              <el-checkbox v-model="col.required" @change="emitPatch">
+                {{ t('formDesigner.table.colRequired') }}
+              </el-checkbox>
+            </div>
+
+            <!-- select/radio/checkbox 列需要选项 -->
+            <div v-if="colNeedsOptions(col)" class="col-options">
+              <div v-for="(opt, oi) in (col.options || [])" :key="oi" class="col-option-row">
+                <el-input v-model="opt.label" size="small" style="flex: 1;" @input="emitPatch" />
+                <el-input v-model="opt.value" size="small" style="flex: 1;" @input="emitPatch" />
+                <el-button link :icon="Delete" size="small" class="danger-icon" @click="removeColOption(col, oi)" />
+              </div>
+              <el-button :icon="Plus" size="small" link @click="addColOption(col)">
+                {{ t('formDesigner.option.add') }}
+              </el-button>
+            </div>
+          </div>
+
+          <el-button :icon="Plus" size="small" link @click="addColumn">
+            {{ t('formDesigner.table.addColumn') }}
+          </el-button>
         </div>
 
         <!-- ============ 校验 ============ -->
@@ -97,7 +175,7 @@
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Document, Delete, Plus } from '@element-plus/icons-vue';
-import type { FormFieldSchema, FieldType, FormFieldValidator, FormFieldOption } from '@/api/formDesign';
+import { COLUMN_TYPES, type FormFieldSchema, type FieldType, type FormFieldValidator, type FormFieldOption, type FormFieldColumn } from '@/api/formDesign';
 
 const props = defineProps<{ field: FormFieldSchema | null }>();
 const emit = defineEmits<{ patch: [Partial<FormFieldSchema>] }>();
@@ -107,7 +185,10 @@ const local = reactive<FormFieldSchema>({
   id: '', type: 'TEXT', key: '', label: '',
   required: false, defaultValue: '', placeholder: '', help: '',
   options: undefined, validator: undefined, fullWidth: true,
+  columns: undefined, requireAllCells: false,
 });
+
+const isTable = computed(() => local.type === 'TABLE');
 
 watch(() => props.field, (f) => {
   if (!f) return;
@@ -145,6 +226,44 @@ function addOption() {
 function removeOption(idx: number) {
   if (!local.options) return;
   local.options.splice(idx, 1);
+  emitPatch();
+}
+
+// ===================== 表格列编辑 =====================
+
+function colNeedsOptions(col: FormFieldColumn): boolean {
+  return col.type === 'SELECT' || col.type === 'RADIO' || col.type === 'CHECKBOX';
+}
+
+function addColumn() {
+  if (!local.columns) local.columns = [];
+  local.columns.push({ key: '', label: '', type: 'TEXT', required: false });
+  emitPatch();
+}
+
+function removeColumn(idx: number) {
+  if (!local.columns) return;
+  local.columns.splice(idx, 1);
+  emitPatch();
+}
+
+/** 切换列类型：切成选择类要补 options 数组，切走时留着无害（后端只对需要时校验） */
+function onColTypeChange(col: FormFieldColumn) {
+  if (colNeedsOptions(col) && !col.options) {
+    col.options = [] as FormFieldOption[];
+  }
+  emitPatch();
+}
+
+function addColOption(col: FormFieldColumn) {
+  if (!col.options) col.options = [];
+  col.options.push({ label: '', value: '' });
+  emitPatch();
+}
+
+function removeColOption(col: FormFieldColumn, idx: number) {
+  if (!col.options) return;
+  col.options.splice(idx, 1);
   emitPatch();
 }
 
@@ -229,4 +348,38 @@ function emitPatch() {
   align-items: center;
 }
 .danger-icon :deep(.el-icon) { color: var(--color-danger); }
+
+/* ===== 表格列编辑 ===== */
+.table-col-switches { margin-bottom: 6px; }
+.props-hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+.col-editor {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md, 4px);
+  padding: 6px;
+  margin-bottom: 8px;
+  background: var(--color-bg);
+}
+.col-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.col-row:last-child { margin-bottom: 0; }
+.col-options {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border-soft);
+}
+.col-option-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 4px;
+}
 </style>

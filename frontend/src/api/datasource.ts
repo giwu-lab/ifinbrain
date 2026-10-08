@@ -1,4 +1,5 @@
 import { http } from './http';
+import type { PageResp } from '@/types';
 
 export type DbType = 'mysql' | 'mssql' | 'postgresql';
 export type PasswordStatus = 'missing' | 'ok' | 'failed';
@@ -36,7 +37,16 @@ export interface TestResult {
 }
 
 export const datasourceApi = {
-  list:    () => http.get<unknown, Datasource[]>('/datamgmt/datasources'),
+  /** 列表页：后端真分页。keyword 命中名称 / 主机 / 库名 / 账号 / 备注 */
+  list:    (params?: { page?: number; size?: number; keyword?: string }) =>
+    http.get<unknown, PageResp<Datasource>>('/datamgmt/datasources', { params }),
+
+  /**
+   * 全量列表：仅供「下拉选数据源」（查询详情页、导入向导）。
+   * 下拉必须看到全部项才渲染得全，所以后端这个入口刻意不分页。
+   */
+  listAll: () => http.get<unknown, Datasource[]>('/datamgmt/datasources/options'),
+
   detail:  (id: number) => http.get<unknown, Datasource>(`/datamgmt/datasources/${id}`),
   create:  (body: {
     name: string; dbType: DbType; host: string; port: number;

@@ -2,23 +2,25 @@
   <el-container class="layout-root">
     <el-aside :width="collapsed ? '72px' : '240px'" class="aside">
       <div class="brand" :class="{ collapsed }">
-        <div v-if="s.showLogo" class="logo-mark">
-          <svg viewBox="0 0 32 32" fill="none">
-            <defs>
-              <linearGradient id="brand-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#6366f1" />
-                <stop offset="1" stop-color="#3b82f6" />
-              </linearGradient>
-            </defs>
-            <rect width="32" height="32" rx="9" fill="url(#brand-grad)" />
-            <path d="M9 11h14M9 16h14M9 21h9" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="22.5" cy="22.5" r="1.5" fill="white"/>
-          </svg>
-        </div>
-        <div v-if="!collapsed && s.showLogo" class="brand-text">
-          <div class="brand-name">{{ t('layout.brand') }}</div>
-          <div class="brand-sub">{{ t('layout.brandSub') }}</div>
-        </div>
+        <router-link v-if="s.showLogo" to="/dashboard" class="brand-link" :title="t('layout.home')">
+          <div class="logo-mark">
+            <svg viewBox="0 0 32 32" fill="none">
+              <defs>
+                <linearGradient id="brand-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stop-color="#6366f1" />
+                  <stop offset="1" stop-color="#3b82f6" />
+                </linearGradient>
+              </defs>
+              <rect width="32" height="32" rx="9" fill="url(#brand-grad)" />
+              <path d="M9 11h14M9 16h14M9 21h9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="22.5" cy="22.5" r="1.5" fill="white"/>
+            </svg>
+          </div>
+          <div v-if="!collapsed" class="brand-text">
+            <div class="brand-name">{{ t('layout.brand') }}</div>
+            <div class="brand-sub">{{ t('layout.brandSub') }}</div>
+          </div>
+        </router-link>
         <el-button v-if="!collapsed" class="brand-toggle" text :title="t('layout.collapsedHint')" @click="app.toggle()">
           <el-icon :size="16"><Fold /></el-icon>
         </el-button>
@@ -93,8 +95,8 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import * as ElIcons from '@element-plus/icons-vue';
 import { Expand, Fold } from '@element-plus/icons-vue';
+import { resolveElIcon } from '@/utils/icon';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import { useThemeStore } from '@/stores/theme';
@@ -122,8 +124,7 @@ const openedDirs = computed(() => {
 });
 
 function iconOf(name?: string) {
-  if (!name) return ElIcons.Document;
-  return (ElIcons as Record<string, unknown>)[name] as any || ElIcons.Document;
+  return resolveElIcon(name);
 }
 
 function menuName(m: { name: string; component?: string; path?: string }) {
@@ -142,8 +143,10 @@ function menuName(m: { name: string; component?: string; path?: string }) {
 
 const breadcrumbLabel = computed(() => {
   const m = route.meta as { name?: string; component?: string; path?: string; title?: string } | undefined;
-  if (!m?.name) return m?.title || '';
-  return menuName({ name: m.name, component: m.component, path: m.path });
+  if (!m) return '';
+  // name / title 都可能缺：缺 name 时也要走 menuName()，否则会直接把 meta.title
+  // 那个硬编码英文显示出来。title 仅作为 i18n 没命中时的最后兜底。
+  return menuName({ name: m.name ?? m.title ?? '', component: m.component, path: m.path });
 });
 
 function go(index: string) {
@@ -179,6 +182,20 @@ defineExpose({ menuName });
 .brand.collapsed { padding: 0; justify-content: center; }
 .brand-toggle { width: 36px; height: 36px; border-radius: 8px; color: var(--color-text-muted); flex-shrink: 0; }
 .brand-toggle:hover { background: var(--color-primary-soft); color: var(--color-primary); }
+/* logo + 品牌文字整体可点击回仪表盘（router-link，保留折叠按钮在链接外） */
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: background 0.18s ease;
+}
+.brand-link:hover { background: var(--color-primary-soft); }
+.brand-link:hover .logo-mark { box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4); }
+.brand-link:hover .brand-name { color: var(--color-primary); }
 .logo-mark {
   width: 38px; height: 38px;
   border-radius: 10px;

@@ -1,21 +1,17 @@
 <template>
   <div class="page-container fade-in-up">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('system.userTitle') }}</h1>
-        <p class="page-desc muted">{{ t('system.userTitleDesc') }}</p>
+    <div class="table-wrap">
+      <div class="table-actions">
+        <el-button
+          v-if="auth.hasPerm('system:user:create')"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          {{ t('system.newUser') }}
+        </el-button>
       </div>
-      <el-button
-        v-if="auth.hasPerm('system:user:create')"
-        type="primary"
-        :icon="Plus"
-        @click="openCreate"
-      >
-        {{ t('system.newUser') }}
-      </el-button>
-    </div>
 
-    <el-card class="card-table" shadow="never">
       <div class="toolbar">
         <el-input
           v-model="query.keyword"
@@ -44,6 +40,14 @@
         <el-table-column :label="t('system.colEmail')" prop="email" min-width="180">
           <template #default="{ row }">
             <span v-if="row.email" class="link-text">{{ row.email }}</span>
+            <span v-else class="muted">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('system.userDeptLabel')" prop="deptName" min-width="140">
+          <template #default="{ row }">
+            <span v-if="(row as UserItem).deptName" class="dept-text">
+              <el-icon><OfficeBuilding /></el-icon>{{ row.deptName }}
+            </span>
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
@@ -108,7 +112,7 @@
         @current-change="reload"
         @size-change="reload"
       />
-    </el-card>
+    </div>
 
     <el-dialog
       v-model="dialog.visible"
@@ -139,6 +143,17 @@
         <el-form-item :label="t('system.colPhone')">
           <el-input v-model="form.phone" />
         </el-form-item>
+        <el-form-item :label="t('system.userDeptLabel')">
+          <el-tree-select
+            v-model="form.deptId"
+            :data="deptTree"
+            :props="deptTreeProps"
+            check-strictly
+            clearable
+            :placeholder="t('system.userDeptPlaceholder')"
+            style="width: 100%;"
+          />
+        </el-form-item>
         <el-form-item :label="t('common.status')">
           <el-switch
             v-model="form.status"
@@ -166,9 +181,10 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
-import { Plus, Search, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
+import { Plus, Search, Edit, Delete, MoreFilled, OfficeBuilding } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
-import { userApi, roleApi, type UserItem, type RoleItem } from '@/api/system';
+import { invalidateUserOptions } from '@/composables/useOptionsCache';
+import { userApi, roleApi, deptApi, type UserItem, type RoleItem, type DeptItem } from '@/api/system';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -178,11 +194,16 @@ const loading = ref(false);
 const query = reactive({ page: 1, size: 10, keyword: '' });
 
 const allRoles = ref<RoleItem[]>([]);
+/** 部门树 —— el-tree-select 的数据源（后端 Node 同时带 label/value，默认 props 也能用，这里显式指定更清楚） */
+const deptTree = ref<DeptItem[]>([]);
+const deptTreeProps = { value: 'id' as const, label: 'name' as const, children: 'children' as const };
 
 const dialog = reactive({ visible: false, mode: 'create' as 'create' | 'edit', title: '', loading: false });
 const form = reactive({
   id: 0, username: '', password: '', displayName: '', email: '', phone: '',
-  status: 1 as number, roleIds: [] as number[]
+  status: 1 as number, roleIds: [] as number[],
+  /** undefined = 未选择（提交时转成 0 表示「清空归属」，见 save） */
+  deptId: undefined as number | undefined
 });
 const formRef = ref<FormInstance>();
 /** 邮箱选填：留空不校验，填了才要求是合法地址（与后端 @Email 同一口径） */
@@ -217,10 +238,23 @@ async function loadRoles() {
   allRoles.value = await roleApi.list();
 }
 
+/** 部门下拉数据源。/tree 只要求登录，所以任何能进本页的用户都拿得到。 */
+async function loadDepts() {
+  deptTree.value = await deptApi.tree();
+}
+
+/**
+ * 用户增删改后清掉表单「人员」字段的模块级选项缓存 —— 否则本会话内
+ * 后续打开的表单仍会看到旧的用户列表。
+ */
+function refreshUserCache() {
+  invalidateUserOptions();
+}
+
 function openCreate() {
   dialog.mode = 'create';
   dialog.title = t('system.newUserTitle');
-  Object.assign(form, { id: 0, username: '', password: '', displayName: '', email: '', phone: '', status: 1, roleIds: [] });
+  Object.assign(form, { id: 0, username: '', password: '', displayName: '', email: '', phone: '', status: 1, roleIds: [], deptId: undefined });
   dialog.visible = true;
 }
 
@@ -230,7 +264,8 @@ function openEdit(row: UserItem) {
   Object.assign(form, {
     id: row.id, username: row.username, password: '',
     displayName: row.displayName || '', email: row.email || '', phone: row.phone || '',
-    status: row.status, roleIds: row.roleIds
+    status: row.status, roleIds: row.roleIds,
+    deptId: row.deptId ?? undefined
   });
   dialog.visible = true;
 }
@@ -243,17 +278,26 @@ async function save() {
     try {
       // 邮箱选填：去掉首尾空白后提交，空串由后端落成 NULL
       const email = form.email.trim();
+      // 部门三态（见后端 UserUpdateReq.deptId）：
+      //   undefined = 未选 —— 对 update 而言是「不动」，不能原样丢出去；
+      //   这里统一转 0 = 明确清空，后端据此把 dept_id 置 NULL（null 会被 JSON 丢掉，
+      //   那样用户就没法解除部门归属了）。
+      const deptId = form.deptId ?? 0;
       if (dialog.mode === 'create') {
-        await userApi.create({ ...form, email });
+        await userApi.create({ ...form, email, deptId });
         ElMessage.success(t('common.created'));
       } else {
         // 编辑时密码留空 = 不修改。直接把空串发出去会被后端长度校验拒掉，
         // 这里干脆不带上该字段（缺省语义就是「不动这个字段」）。
-        const { password, ...rest } = form;
-        await userApi.update(form.id, password ? { ...rest, email, password } : { ...rest, email });
+        const { password, deptId: _omit, ...rest } = form;
+        await userApi.update(
+          form.id,
+          password ? { ...rest, email, password, deptId } : { ...rest, email, deptId }
+        );
         ElMessage.success(t('common.updated'));
       }
       dialog.visible = false;
+      refreshUserCache();
       reload();
     } finally {
       dialog.loading = false;
@@ -269,6 +313,7 @@ function isPreset(row: UserItem) {
 async function remove(row: UserItem) {
   await userApi.remove(row.id);
   ElMessage.success(t('common.deleted'));
+  refreshUserCache();
   reload();
 }
 
@@ -287,25 +332,12 @@ async function onCmd(cmd: string, row: UserItem) {
 }
 
 onMounted(async () => {
-  await loadRoles();
+  await Promise.all([loadRoles(), loadDepts()]);
   await reload();
 });
 </script>
 
 <style scoped>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 10px;
-}
-.page-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.page-desc { margin: 4px 0 0; font-size: 13px; }
 
 .user-cell { display: flex; align-items: center; gap: 10px; }
 .mini-avatar {
@@ -321,4 +353,11 @@ onMounted(async () => {
 .strong { font-weight: 600; color: var(--color-text); }
 .small { font-size: 12px; }
 .link-text { color: var(--color-primary); }
+.dept-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-secondary);
+}
+.dept-text .el-icon { color: var(--color-primary); font-size: 13px; }
 </style>

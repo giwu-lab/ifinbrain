@@ -16,6 +16,15 @@ public interface DocumentRecordRepository extends JpaRepository<DocumentRecord, 
 
     long countByCategoryIdAndStatus(Long categoryId, Short status);
 
+    /**
+     * 统计某档案库下的档案总行数，**不分 status**。
+     *
+     * <p>与 {@link #countByCategoryIdAndStatus} 的区别正是在 MISSING(4) / PENDING_*(2,3)：
+     * 那些行在列表页看不见（list 只查 READY），却是 FK 上真实的引用者。
+     * 删库守卫必须区分「可见档案」与「残留行」—— 前者要拦，后者该级联清掉。
+     */
+    long countByCategoryId(Long categoryId);
+
     Optional<DocumentRecord> findFirstBySha256AndCategoryIdAndStatus(String sha256, Long categoryId, Short status);
 
     /** 同 sha + 同 storage_key 前缀（= 同目录） → 视为重复。

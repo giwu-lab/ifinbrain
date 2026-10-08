@@ -18,4 +18,7 @@ public interface SysUserRepository extends JpaRepository<SysUser, Long> {
 
     /** 任务清单执行人选择器数据源：仅启用用户，按 username 升序。 */
     List<SysUser> findAllByStatusOrderByUsernameAsc(Short status);
+
+    /** 某部门下的人数 —— 删部门前判断是否被引用（避免留下悬空 dept_id）。 */
+    long countByDeptId(Long deptId);
 }

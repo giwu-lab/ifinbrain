@@ -34,9 +34,17 @@ public class TodoTaskUpdateReq {
     private Integer recurrenceDom;
     private Integer recurrenceMonth;
 
-    /** 接受 ISO 8601 格式（yyyy-MM-dd'T'HH:mm:ss），与 TodoTaskDto 输出格式一致。 */
+    /**
+     * 截止时间。只接受 ISO 8601 带 T 的格式，与 TodoTaskCreateReq 保持一致。
+     * （此前这里的注释写着"yyyy-MM-dd HH:mm:ss"空格格式，与 pattern 不符，
+     *  是前端踩 400 的诱因之一，已校正。）
+     */
     @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dueAt;
+
+    /** 预估投入时长（分钟）。null = 不修改；0 = 已估但为 0。 */
+    @jakarta.validation.constraints.Min(0)
+    private Integer estimateMinutes;
 
     /** 显式给值；null 表示清空父任务。 */
     private Long parentId;

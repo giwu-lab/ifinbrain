@@ -1,11 +1,7 @@
 <template>
   <div class="page-container fade-in-up flow-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('design.flowTitle') }}</h1>
-        <p class="page-desc muted">{{ t('design.flowDesc') }}</p>
-      </div>
-      <div class="header-actions">
+    <div class="table-wrap flow-table-wrap">
+      <div class="table-actions">
         <el-button
           v-if="auth.hasPerm('design:flow:create')"
           type="primary"
@@ -13,9 +9,6 @@
           @click="goCreate"
         >{{ t('design.flowCreate') }}</el-button>
       </div>
-    </div>
-
-    <div class="flow-table-wrap">
       <el-table :data="rows" v-loading="loading" border stripe size="small">
         <el-table-column :label="t('design.flowColCode')" prop="code" min-width="160">
           <template #default="{ row }">
@@ -361,10 +354,6 @@ onMounted(loadList);
 /* 列表区：plain 1px 边框容器；避开 SaaS-card 套娃 */
 .flow-table-wrap {
   margin-top: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elev);
-  overflow: visible;
 }
 
 .status { font-size: 11px; padding: 1px 8px; border-radius: 2px; font-weight: 500; }

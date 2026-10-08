@@ -1,11 +1,7 @@
 <template>
   <div class="page-container fade-in-up form-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('design.formTitle') }}</h1>
-        <p class="page-desc muted">{{ t('design.formDesc') }}</p>
-      </div>
-      <div class="header-actions">
+    <div class="table-wrap form-table-wrap">
+      <div class="table-actions">
         <el-button
           v-if="auth.hasPerm('design:form:create')"
           type="primary"
@@ -13,9 +9,6 @@
           @click="goCreate"
         >{{ t('design.formCreate') }}</el-button>
       </div>
-    </div>
-
-    <div class="form-table-wrap">
       <el-table
         :data="rows"
         v-loading="loading"
@@ -190,10 +183,6 @@ onMounted(loadList);
 /* 列表区：plain 1px 边框容器；避开 SaaS-card 套娃 */
 .form-table-wrap {
   margin-top: 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elev);
-  overflow: visible;
 }
 
 .status {

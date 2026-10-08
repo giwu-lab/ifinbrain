@@ -1,12 +1,5 @@
 <template>
   <div class="page-container fade-in-up flow-rt-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('design.flowRtTitle') }}</h1>
-        <p class="page-desc muted">{{ t('design.flowRtDesc') }}</p>
-      </div>
-    </div>
-
     <el-tabs v-model="activeTab" class="flow-rt-tabs">
       <!-- ============== 待办 ============== -->
       <el-tab-pane :label="t('design.flowTabPending')" name="pending">
@@ -19,7 +12,7 @@
             <el-icon class="danger-text"><CircleClose /></el-icon>
             {{ t('design.flowRejectedMyTitle') }} ({{ rejectedMy.length }})
           </h4>
-          <div class="flow-table-wrap">
+          <div class="table-wrap flow-table-wrap">
             <el-table :data="rejectedMy" border stripe size="small">
               <el-table-column :label="t('design.flowColFlow')" min-width="180">
                 <template #default="{ row }">
@@ -70,7 +63,7 @@
 
         <!-- 下半区：待审批任务 -->
         <h4 class="section-title">{{ t('design.flowTasksMyTitle') }}</h4>
-        <div class="flow-table-wrap">
+        <div class="table-wrap flow-table-wrap">
           <el-table :data="pendingRows" v-loading="loadingPending" border stripe size="small">
             <el-table-column :label="t('design.flowColFlow')" min-width="180">
               <template #default="{ row }">
@@ -117,7 +110,7 @@
 
       <!-- ============== 我发起的 ============== -->
       <el-tab-pane :label="t('design.flowTabApplied')" name="applied">
-        <div class="flow-table-wrap">
+        <div class="table-wrap flow-table-wrap">
           <el-table :data="appliedRows" v-loading="loadingApplied" border stripe size="small">
             <el-table-column :label="t('design.flowColFlow')" min-width="180">
               <template #default="{ row }">
@@ -192,7 +185,7 @@
           - 点击「发起」按钮 → 弹窗内填 businessKey + 流程表单
           - 「重新发起」也走同一弹窗（驳回后复用）
         -->
-        <div class="flow-table-wrap">
+        <div class="table-wrap flow-table-wrap">
           <el-table :data="launchableFlows" v-loading="loadingLaunchable" border stripe size="small">
             <el-table-column :label="t('design.flowColFlow')" min-width="220">
               <template #default="{ row }">
@@ -313,7 +306,7 @@
         </div>
 
         <h4 class="history-title">{{ t('design.flowHistoryTitle') }}</h4>
-        <div class="history-table-wrap">
+        <div class="table-wrap history-table-wrap">
           <el-table :data="detailInst.history || []" border stripe size="small">
             <el-table-column :label="t('design.flowColAction')" width="80" align="center" prop="action" />
             <el-table-column :label="t('design.flowColNode')" width="120">
@@ -706,10 +699,6 @@ watch(
 /* 列表区：plain 1px 边框容器；避开 SaaS-card 套娃 */
 .flow-table-wrap {
   margin-top: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elev);
-  overflow: visible;
 }
 
 /* 流程状态：用 theme token，避开硬编码十六进制 */
@@ -778,13 +767,6 @@ margin: 8px 0 4px;
 .history-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; }
 
 /* modal 内 history 表格：同款 1px 边框容器 */
-.history-table-wrap {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-elev);
-  overflow: visible;
-}
-
 /* 详情弹窗：限制高度 + 内部滚动 + 让弹窗整体"浮起" */
 .flow-detail-dialog {
   max-height: 80vh;

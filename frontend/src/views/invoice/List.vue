@@ -1,13 +1,6 @@
 <template>
-  <div class="page-container fade-in-up">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('invoice.listTitle') }}</h1>
-        <p class="page-desc muted">{{ t('invoice.listTitleDesc') }}</p>
-      </div>
-    </div>
-
-    <el-card class="card-table" shadow="never">
+  <div class="page-container fade-in-up invoice-list-page">
+    <div class="table-wrap">
       <div class="toolbar">
         <span class="field">
           <span class="label">{{ t('invoice.queryKeywordLabel') }}：</span>
@@ -132,7 +125,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column column-key="invoiceType" :label="t('invoice.colType')" prop="invoiceType" :width="widthOf('invoiceType', 180)">
+        <el-table-column column-key="invoiceType" :label="t('invoice.colType')" prop="invoiceType" :min-width="minOf('invoiceType', 180)">
           <template #default="{ row }">
             <el-tag effect="plain" size="small">{{ row.invoiceType || '—' }}</el-tag>
           </template>
@@ -142,13 +135,13 @@
             <span class="mono-time">{{ row.issueDate || '—' }}</span>
           </template>
         </el-table-column>
-        <el-table-column column-key="sellerName" :label="t('invoice.colSeller')" prop="sellerName" :width="widthOf('sellerName', 180)" :min-width="120">
+        <el-table-column column-key="sellerName" :label="t('invoice.colSeller')" prop="sellerName" :min-width="minOf('sellerName', 200)">
           <template #default="{ row }">
             <CellText v-if="row.sellerName" :text="row.sellerName" />
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column column-key="buyerName" :label="t('invoice.colBuyer')" prop="buyerName" :width="widthOf('buyerName', 160)" :min-width="120">
+        <el-table-column column-key="buyerName" :label="t('invoice.colBuyer')" prop="buyerName" :min-width="minOf('buyerName', 180)">
           <template #default="{ row }">
             <CellText v-if="row.buyerName" :text="row.buyerName" />
             <span v-else class="muted">—</span>
@@ -172,7 +165,7 @@
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column column-key="message" :label="t('invoice.colMessage')" :width="widthOf('message', 160)" :min-width="120">
+        <el-table-column column-key="message" :label="t('invoice.colMessage')" :min-width="minOf('message', 140)">
           <template #default="{ row }">
             <el-tooltip
               placement="top"
@@ -190,13 +183,13 @@
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column column-key="verificationNo" :label="t('invoice.colVerificationNo')" :width="widthOf('verificationNo', 160)" :min-width="120">
+        <el-table-column column-key="verificationNo" :label="t('invoice.colVerificationNo')" :min-width="minOf('verificationNo', 160)">
           <template #default="{ row }">
             <CellText v-if="(row as InvoiceGroupItem).verificationNo" :text="(row as InvoiceGroupItem).verificationNo" />
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column column-key="verifier" :label="t('invoice.colVerifier')" :width="widthOf('verifier', 120)" :min-width="80">
+        <el-table-column column-key="verifier" :label="t('invoice.colVerifier')" :min-width="minOf('verifier', 120)">
           <template #default="{ row }">
             <CellText v-if="(row as InvoiceGroupItem).verifier" :text="(row as InvoiceGroupItem).verifier" />
             <span v-else class="muted">—</span>
@@ -240,7 +233,7 @@
         @current-change="reload"
         @size-change="reload"
       />
-    </el-card>
+    </div>
 
     <!-- 发票文件预览抽屉（参考 documents/list/Index.vue 档案库预览）：
          drawer 80% rtl + #header slot 自定义（Document 图标 + 文件名 + 下载 + 关闭）
@@ -334,7 +327,7 @@ const query = reactive({
   verificationDateRange: [] as string[],
 });
 
-const { widthOf, onResize: onColumnResize } = useColumnWidths('invoice-list');
+const { widthOf, minOf, onResize: onColumnResize } = useColumnWidths('invoice-list');
 
 /** 文件预览抽屉（参考 documents/list/Index.vue 档案库预览实现） */
 const previewVisible = ref(false);
@@ -473,9 +466,8 @@ onMounted(reload);
 </script>
 
 <style scoped>
-.page-header { margin-bottom: 10px; }
-.page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.page-desc { margin: 4px 0 0; font-size: 13px; }
+/* 单元格「单行 + 省略号」已提升为全项目标准，见 styles/global.css 的
+   「标准表格」区块，本页不再重复定义。 */
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .toolbar-right { margin-left: auto; display: inline-flex; gap: 8px; }
 .field { display: inline-flex; align-items: center; gap: 6px; }
@@ -492,9 +484,10 @@ onMounted(reload);
 }
 
 /* 文件格式复选框样式 */
-.format-cell { display: inline-flex; gap: 6px; align-items: center; }
+/* chip 组整体不换行：全局 .cell 的 ellipsis 裁不动 inline-flex 容器 */
+.format-cell { display: inline-flex; gap: 6px; align-items: center; max-width: 100%; overflow: hidden; }
 .fmt-chip {
-  display: inline-flex; align-items: center; gap: 3px;
+  display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
   padding: 1px 8px;
   border: 1px solid var(--color-border, #d1d5db);
   border-radius: 10px;

@@ -68,19 +68,42 @@ export const useFlowDesignStore = defineStore('flowDesign', () => {
 
   // ===================== Reset / 初始化 =====================
 
+  /** 坐标是否有效（后端历史数据 / 种子数据可能完全没有 position） */
+  function hasPos(n: FlowNode): boolean {
+    const p = n?.position;
+    return !!p && Number.isFinite(p.x) && Number.isFinite(p.y);
+  }
+
+  /** 兜底网格坐标：保证「没有坐标的节点」不会全叠在同一个点 */
+  function fallbackPos(slot: number): { x: number; y: number } {
+    return { x: 100 + (slot % 3) * 240, y: 100 + Math.floor(slot / 3) * 140 };
+  }
+
   function reset(item?: any) {
     meta.value = item ?? null;
     const json: FlowJson = item?.flowJson ?? { nodes: [], edges: [] };
-    nodes.value = (json.nodes || []).map(n => ({
-      ...n,
-      position: n.position || { x: 100, y: 100 },
-    }));
+    const raw: FlowNode[] = (json.nodes || []).map(n => ({ ...n, type: n.type || 'custom' }));
     edges.value = (json.edges || []).map(e => ({ ...e }));
     selectedNodeId.value = null;
     selectedEdgeId.value = null;
     dirty.value = false;
     history.value = [];
     historyIndex.value = -1;
+
+    if (raw.length && !raw.some(hasPos)) {
+      // 整张图一个坐标都没有（V38 种子数据、以及后端丢弃过 position 的历史数据）。
+      // 原实现给所有节点同一个 {x:100,y:100}，加上 Vue Flow 的 fit-view-on-init
+      // 只会把这一堆重叠框进视野 —— 表现就是「几个节点重叠在一起」。
+      // 先铺一个不重叠的兜底网格，再交给 dagre 出正式布局。
+      nodes.value = raw.map((n, i) => ({ ...n, position: fallbackPos(i) }));
+      void autoLayout(raw, edges.value)
+        .then(r => { nodes.value = r.nodes; })
+        .catch(() => { /* dagre 不可用时保留上面的兜底网格 */ });
+    } else {
+      // 已有坐标的保持原样；个别缺坐标的补到网格空位，不与已有节点重叠
+      let slot = 0;
+      nodes.value = raw.map(n => (hasPos(n) ? n : { ...n, position: fallbackPos(slot++) }));
+    }
     saveHistory();
   }
 
@@ -220,7 +243,7 @@ export const useFlowDesignStore = defineStore('flowDesign', () => {
 
   // ===================== 自动布局（dagre） =====================
 
-  function autoLayout(nodes2: FlowNode[], edges2: FlowEdge[]): { nodes: FlowNode[] } {
+  function autoLayout(nodes2: FlowNode[], edges2: FlowEdge[]): Promise<{ nodes: FlowNode[] }> {
     // 动态 import dagre（避免影响主包体积）
     return import('dagre').then(({ default: dagre }) => {
       const g = new dagre.graphlib.Graph();
@@ -234,7 +257,7 @@ export const useFlowDesignStore = defineStore('flowDesign', () => {
         return pos ? { ...n, position: { x: pos.x - 90, y: pos.y - 30 } } : n;
       });
       return { nodes: newNodes };
-    }) as any;
+    });
   }
 
   // ===================== 校验 =====================

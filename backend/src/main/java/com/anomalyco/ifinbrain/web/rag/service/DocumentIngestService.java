@@ -60,12 +60,19 @@ public class DocumentIngestService {
     }
 
     private IngestResult index(DocumentRecord doc, ArchiveLibrary lib) {
-        String filename = doc.getOriginalFilename();
+        // 类型探测必须用 originalFilename：它上传后不可变，扩展名永远可信。
+        // 若改用 name，用户把「合同.pdf」重命名为「采购合同终稿」就会因丢扩展名而抽不出文本。
+        String sourceName = doc.getOriginalFilename();
+        // 溯源展示用 name：用户看到并据此检索的是显示名，重命名后引用应立刻体现新名。
+        // 与 DocumentService.rename() 的 syncChunkSourceName() 保持同一语义 ——
+        // 否则「重命名 → 新名生效，再点一次重建索引 → 又退回旧名」。
+        String displayName = (doc.getName() == null || doc.getName().isBlank())
+                ? sourceName : doc.getName();
 
         if (doc.getStatus() == null || doc.getStatus() != STATUS_READY) {
             // MISSING / PENDING_* 的档案内容不可信，清掉可能存在的旧分块后返回
             chunks.deleteByDocumentId(doc.getId());
-            return new IngestResult(doc.getId(), filename, false, 0,
+            return new IngestResult(doc.getId(), displayName, false, 0,
                     "档案状态不是 READY（status=" + doc.getStatus() + "），已清除旧分块");
         }
 
@@ -74,29 +81,29 @@ public class DocumentIngestService {
             bytes = storage.current().readAllBytes(doc.getStorageKey());
         } catch (Exception ex) {
             log.warn("[rag] read failed doc={} key={}: {}", doc.getId(), doc.getStorageKey(), ex.toString());
-            return new IngestResult(doc.getId(), filename, false, 0, "读取文件内容失败");
+            return new IngestResult(doc.getId(), displayName, false, 0, "读取文件内容失败");
         }
 
-        TextExtractor.ExtractResult er = extractor.extract(filename, doc.getMimeType(), bytes);
+        TextExtractor.ExtractResult er = extractor.extract(sourceName, doc.getMimeType(), bytes);
         if (!er.supported()) {
             chunks.deleteByDocumentId(doc.getId());
-            return new IngestResult(doc.getId(), filename, false, 0, er.note());
+            return new IngestResult(doc.getId(), displayName, false, 0, er.note());
         }
         if (er.isEmpty()) {
             chunks.deleteByDocumentId(doc.getId());
-            return new IngestResult(doc.getId(), filename, false, 0, "未抽取到文字内容，已清除旧分块");
+            return new IngestResult(doc.getId(), displayName, false, 0, "未抽取到文字内容，已清除旧分块");
         }
 
         List<String> pieces = TextChunker.split(er.text(), props.getChunkSize(), props.getChunkOverlap());
         if (pieces.isEmpty()) {
             chunks.deleteByDocumentId(doc.getId());
-            return new IngestResult(doc.getId(), filename, false, 0, "切分后无有效分块");
+            return new IngestResult(doc.getId(), displayName, false, 0, "切分后无有效分块");
         }
 
         List<float[]> vectors = embedAll(pieces);
-        chunks.replaceChunks(doc.getId(), lib.getId(), filename,
+        chunks.replaceChunks(doc.getId(), lib.getId(), displayName,
                 pieces, vectors, props.getDimensions());
-        return new IngestResult(doc.getId(), filename, true, pieces.size(), null);
+        return new IngestResult(doc.getId(), displayName, true, pieces.size(), null);
     }
 
     /**

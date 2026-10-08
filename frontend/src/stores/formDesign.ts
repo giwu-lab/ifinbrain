@@ -22,6 +22,15 @@ function makeDefaultField(type: FieldType): FormFieldSchema {
   if (type === 'SELECT' || type === 'RADIO' || type === 'CHECKBOX') {
     base.options = [];
   }
+  if (type === 'TABLE') {
+    // 表格必须占整行：半行宽度下多列表格没法看
+    base.fullWidth = true;
+    base.defaultValue = '';
+    base.columns = [
+      { key: 'name', label: '名称', type: 'TEXT', required: true },
+      { key: 'amount', label: '金额', type: 'NUMBER', required: false },
+    ];
+  }
   return base;
 }
 

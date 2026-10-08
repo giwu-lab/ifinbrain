@@ -8,6 +8,8 @@ const IGNORED_PREFIXES = [
   '/login', '/403', '/404',
   // BI 播放页 / 展示墙：全屏无 chrome 的单次访问页，不占 tab
   '/bi/dashboard/view', '/bi/dashboard/wall',
+  // 报表播放页：同样是沉浸式单次访问页
+  '/bi/report/view',
 ];
 
 export interface Tab {

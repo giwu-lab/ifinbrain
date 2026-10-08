@@ -23,7 +23,7 @@ import java.util.*;
  * 流程引擎（自研状态机 + 适配 BPMN 概念）。
  *
  * <p>说明：原计划用 Flowable 引擎，但与 Spring Boot 4 的多数据源兼容性问题无法解决
- * （始终 init 主 DataSource，无法与 SQLite 隔离）。改为自研：数据存 sys_flow_instance / task / history
+ * （始终 init 主 DataSource）。改为自研：数据存 sys_flow_instance / task / history
  * （已建），状态推进逻辑直接实现。后续 Flowable 出兼容版本时可平滑切换（schema 已对齐）。
  *
  * <p>API：

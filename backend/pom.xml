@@ -22,7 +22,6 @@
         <jjwt.version>0.13.0</jjwt.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <awssdk.version>2.29.26</awssdk.version>
-        <sqlite-jdbc.version>3.46.1.0</sqlite-jdbc.version>
         <poi.version>5.4.1</poi.version>
         <!-- PDF 文本抽取。档案库里 PDF 是占比最大的一类（实测 4/14），
              缺了它 RAG 对 PDF 一律检索不到。 -->
@@ -135,14 +134,7 @@
             <version>${pdfbox.version}</version>
         </dependency>
 
-        <!-- SQLite (dev) -->
-        <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>${sqlite-jdbc.version}</version>
-        </dependency>
-
-        <!-- PostgreSQL (prod + data source management) -->
+        <!-- PostgreSQL (唯一数据库：运行时主库 + 数据管理可配置的外部数据源) -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
@@ -177,8 +169,9 @@
             1) 它带的 PgVectorStore 会按 metadata(jsonb) 过滤，权限过滤落在应用层，
                一旦漏判就是越权；本项目的做法是自建 rag_document_chunk 表 +
                原生 SQL `library_id = ANY(...)` 在检索 SQL 内过滤，无权数据不出库。
-            2) 它的自动配置在 dev profile（SQLite）下会因 DataSource 非 PG 而建 bean 失败。
-               文档 RAG 能力用 ifinbrain.rag.enabled 开关隔离，dev 默认关，不影响现有启动。
+            2) 它的自动配置会按 DataSource 方言建 bean，RAG 未启用时不应因为库缺少
+               pgvector 扩展而炸掉整个上下文。文档 RAG 能力用 ifinbrain.rag.enabled
+               开关隔离，默认关，不影响启动。
         -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

@@ -190,8 +190,11 @@ async function loadNotifBadge() {
   if (!auth.isLogged) { hasNotif.value = false; return; }
   let any = false;
   try {
+    // 注意：曾经写的是 todoApi.count() —— 该方法前后端都不存在，
+    // 运行时 TypeError 被下面的空 catch 吞掉，导致「待办」这一路的红点永远不亮。
+    // 现走专用的 pending/count 端点（形态与 flowTaskApi.pendingCount 一致）。
     const { todoApi } = await import('@/api/todo');
-    const n = await todoApi.count();
+    const n = await todoApi.pendingCount();
     if (n > 0) any = true;
   } catch { /* 忽略权限/网络错误 */ }
   if (!any) {

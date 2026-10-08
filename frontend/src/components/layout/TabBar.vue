@@ -124,11 +124,29 @@ function onCtxRefresh(id: string) {
 </script>
 
 <style scoped>
+/* ---------------------------------------------------------------
+ * 多标签栏视觉区分
+ *
+ * 原来这里 background: var(--color-bg)，和 `.main` 的内容底色完全相同
+ * （4 个 layout 里 Sidebar / TopNav / HeaderSidebar 都是 --color-bg），
+ * tab 栏和页面正文糊成一块，看不出这是独立的导航层。
+ *
+ * 改成三处一起下手，缺一不可：
+ *   1. 底色换成 --color-bg-elev（白）—— 与灰色内容区拉开明度差
+ *   2. border-bottom 从 -soft 提到 -border + 一道浅投影 —— 边界线始终可见
+ *      （FloatingSidebarLayout 的 .main-inner 本身就是白底，靠底色差不出来，
+ *       必须靠这条边线兜底）
+ *   3. 激活态改成主色浅底 —— 栏变白之后，原来的「白 tab + 白栏」会互相隐身
+ *
+ * 高度保持 38px 不动：列表页 §7.2 的 th sticky 是按 top: 92px 算的，
+ * 改高度会连带把所有列表页的表头吸顶位置打歪。
+ * ------------------------------------------------------------- */
 .tab-bar {
   display: flex;
   align-items: stretch;
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border-soft);
+  background: var(--color-bg-elev);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   height: 38px;
   position: relative;
   z-index: 10;
@@ -152,42 +170,40 @@ function onCtxRefresh(id: string) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0 10px;
+  padding: 0 12px;
   height: 30px;
   margin-top: 4px;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
   font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
-  border: 1px solid transparent;
-  border-bottom: none;
   transition: background 0.15s ease, color 0.15s ease;
   flex-shrink: 0;
   max-width: 200px;
+  position: relative;
 }
 
 .tab-item:hover {
-  background: var(--color-primary-soft);
+  background: var(--color-primary-softer);
   color: var(--color-primary);
 }
 
 .tab-item.active {
-  background: var(--color-bg-elev);
+  background: var(--color-primary-soft);
   color: var(--color-primary);
-  border-color: var(--color-border-soft);
-  border-bottom-color: var(--color-bg-elev);
-  font-weight: 500;
-  position: relative;
-  z-index: 1;
+  font-weight: 600;
 }
 
+/* 激活 tab 底部的主色指示条：贴齐 tab 下沿，和栏底边线合成一条完整的选中带 */
 .tab-item.active::after {
   content: '';
   position: absolute;
-  left: 0; right: 0; top: 0;
+  left: 12px;
+  right: 12px;
+  bottom: -4px;
   height: 2px;
   background: var(--color-primary);
   border-radius: 2px 2px 0 0;
@@ -237,7 +253,7 @@ function onCtxRefresh(id: string) {
   gap: 2px;
   padding: 0 6px;
   border-left: 1px solid var(--color-border-soft);
-  background: var(--color-bg);
+  background: var(--color-bg-elev);
 }
 .tab-actions :deep(.el-button) {
   padding: 4px;

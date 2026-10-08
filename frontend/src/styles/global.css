@@ -43,6 +43,14 @@
   --radius-lg:            14px;
   --radius-xl:            20px;
 
+  /* 笔记纸面宽度 —— 编辑态（NoteEditor.paper-inner）与只读态（NoteViewer.md-body）
+   * 必须一致，否则同一个笔记在两种状态下正文会左右跳。用变量锁住，改一处即可。 */
+  --note-paper-width:     1080px;
+  --note-outline-width:   240px;
+  /* 纸面投影：亮色下用真实阴影把「纸」托离灰底；暗色下黑色阴影看不见，
+   * theme.css 把它置为 none，改由底色差 + 1px 边框承担区分（见 §7.3.6）。*/
+  --note-paper-shadow:    0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px rgba(15, 23, 42, 0.06);
+
   /* 阴影 */
   --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
@@ -219,6 +227,26 @@ body {
 
 /* ============== 工具类 ============== */
 .page-container { padding: var(--space-6); }
+
+/* ---- 页面头部（少数非列表页保留，见 §7.1 例外）----
+ * 列表页已取消页头：标题由顶部多标签栏 / 面包屑表达，操作按钮下沉到
+ * .table-actions（表格容器内）。仅表单页 / 预览页 / 结果面板仍用页头，
+ * 这里给一份全局默认，页面只需覆盖布局（flex / 对齐）即可。 */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.page-desc { margin: 4px 0 0; font-size: 13px; }
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -277,6 +305,8 @@ body {
   font-weight: 500;
 }
 
+/* card-table：表单 / 状态类卡片用（§7.1 例外：列表页禁用，列表统一用 .table-wrap）
+ * 仍被 invoice/Upload.vue、system/storage/Index.vue 等表单页引用。 */
 .card-table,
 .el-card.card-table {
   background: var(--color-bg-elev);
@@ -305,11 +335,23 @@ body {
   font-weight: 500;
   transition: all 0.18s ease;
 }
-.el-button--primary {
+/* 实心 primary 才覆盖底色 —— 这里必须排除 .is-plain / .is-link / .is-text。
+   这三个变体的文字色本来就是主色蓝（EP 的 .el-button--primary.is-plain/.is-link/.is-text
+   把 --el-button-text-color 设成 var(--el-color-primary)），一旦底色也被刷成实心主色，
+   就成了「蓝字压蓝底」，文字彻底看不见：
+     · .is-plain —— 查询库空状态按钮踩过；
+     · .is-link  —— 查询库「页面操作」列（link type="primary"）踩过：整列只剩一个蓝色
+       实心小块，标签文字一个都看不见；
+     · .is-text  —— 同理。
+   本规则与 EP 的 .el-button.is-link{background:0 0} 特异度相同（都是 0,2,0），
+   而 global.css 在 element-plus/dist/index.css 之后加载 → 后者赢，所以必须主动排除。
+   三个变体交回 Element Plus 默认：link/text 透明底 + 主色字；
+   plain 底色 --el-color-primary-light-9 + 主色字（theme.css / theme.ts 已按明暗维护 light-9）。*/
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text) {
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
-.el-button--primary:hover {
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):hover {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
 }
@@ -338,6 +380,7 @@ body {
  * 单元格：13px
  * 行底边：var(--color-border-soft)
  * Hover：var(--color-primary-soft)
+ * 内容：单行显示，超出用 ... 截断（不换行）
  */
 .el-table th.el-table__cell {
   background: var(--color-bg) !important;
@@ -348,11 +391,146 @@ body {
 .el-table td.el-table__cell {
   font-size: var(--font-size-sm);
 }
+
+/* ---- 单元格内容：单行 + 省略号（全项目统一，来源：发票列表页）----
+ * EP 默认 .cell { word-break: break-all; white-space: normal }，
+ * 长文本会把行撑高、列宽被内容顶开。这里统一锁成 nowrap + ellipsis。
+ * .cell 是 EP 的内容包裹层，overflow 挂在它上面即可裁剪。
+ * 配套约定：需要换行展示的富文本单元格，用 .cell-wrap 显式覆盖回去。 */
+.el-table th.el-table__cell > .cell,
+.el-table td.el-table__cell > .cell {
+  white-space: nowrap;
+  word-break: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 例外：确实需要多行展示的单元格（长描述 / JSON / 富文本）显式覆盖 */
+.el-table td.el-table__cell > .cell.cell-wrap {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* el-tag 是 inline-flex，父级 .cell 的 ellipsis 裁不到它内部文本，
+ * 需要单独给 tag 本体 + content 加截断规则 */
+.el-table td > .cell > .el-tag {
+  max-width: 100%;
+  overflow: hidden;
+}
+.el-table td > .cell > .el-tag > .el-tag__content {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .el-table .el-table__row:hover > td.el-table__cell {
   background-color: var(--color-primary-soft) !important;
 }
 .el-table .el-table__row > td.el-table__cell {
   border-bottom: 1px solid var(--color-border-soft) !important;
+}
+
+/* ---- 行高：全局统一 ----
+ * EP 的 size="small" 默认 cell padding 是 6px/0，行高随内容浮动；
+ * 列表页普遍有 tag / chip / 双行文本，行高会参差不齐。这里锁死表头与
+ * 数据行的 padding + line-height，让所有表格行高一致。
+ * 单元格内容已是单行（见上方 nowrap 规则），所以固定行高不会截断正常内容。 */
+.el-table .el-table__cell {
+  padding: 8px 0;
+  line-height: 20px;
+}
+.el-table th.el-table__cell {
+  padding: 8px 0;
+  line-height: 20px;
+}
+
+/* ---- 容器内操作条 ----
+ * 原先页面头部（.page-header）承担「标题 + 描述 + 操作按钮」三件事。
+ * 标题已由顶部多标签栏 / 面包屑表达，重复，所以头部取消，
+ * 操作按钮下沉到表格容器内的第一行（.table-actions）。
+ *
+ * 位置约定：容器内顶部，与工具栏同一条水平线，下方带分隔线。 */
+
+/* ---- 标准表格容器 ----
+ * 列表页统一用它包住 <el-table>：1px 边框 + 圆角 + 12px 内边距（不用 el-card，§7.1 禁套娃）。
+ *
+ * padding 放在容器上（而不是各子元素各写各的）：容器内所有内容 ——
+ * 工具栏 / 操作条 / 表格 / 分页 —— 与边框统一保持 12px 留白，不会出现
+ * 「工具栏有间距、表格却贴边」的错位。
+ *
+ * overflow 必须是 visible，不能用 hidden / clip：
+ * 列表页的 th 用了 position: sticky 做双层吸顶（§7.2），
+ * 一旦容器创建了滚动容器，sticky 就只在容器内生效，跨页滚动时表头不吸顶。
+ * 代价是圆角无法裁剪子元素，所以由 .table-wrap > .el-table 自身圆角补上。
+ *
+ * 页面若已有专属 wrap 类（xxx-table-wrap），可叠加使用：
+ *   <div class="table-wrap docs-table-wrap">
+ * 但边框 / 圆角 / 背景 / padding 统一以本类为准，不要在页面里重复写。 */
+.table-wrap {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  overflow: visible;
+  background: var(--color-bg-elev);
+  padding: var(--space-6);   /* = 12px，容器与内容的统一间距 */
+}
+/* 容器内表格：边框由 el-table 自己画，圆角清 0，否则会与容器圆角叠出双层弧线 */
+.table-wrap > .el-table {
+  border-radius: 0;
+}
+/* 容器内如果有工具栏（.toolbar）：与容器同底色（--color-bg-elev），
+ * 底边一条分割线 + 12px 间隙与表格分开 —— 查询条件与数据是两个视觉层，
+ * 靠「分割线 + 间距」双保险分隔，不能只靠一条线（线太弱、留白太紧会糊在一起）。
+ *
+ * 底色与容器一致而不是灰底：查询条件栏不是卡片，和容器是同一块面，
+ * 用底色差去分反而多出一层没必要的层级感；靠分割线 + 间距就够。
+ *
+ * 用负 margin 让底色铺到容器内边缘，再靠 padding-bottom + margin-bottom
+ * 造出「线 + 12px 间隙」。 */
+.table-wrap > .toolbar {
+  border-bottom: 1px solid var(--color-border-soft);
+  margin: calc(var(--space-6) * -1) calc(var(--space-6) * -1) var(--space-6);
+  padding: var(--space-6);
+}
+/* 操作条：容器内顶部一行，按钮右对齐，分隔逻辑同工具栏 */
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  border-bottom: 1px solid var(--color-border-soft);
+  margin: calc(var(--space-6) * -1) calc(var(--space-6) * -1) var(--space-6);
+  padding: var(--space-6);
+}
+.table-actions .toolbar-right,
+.table-actions .header-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 操作条 + 工具栏上下相邻时：两条分割线 + 两段间隙会挨太近，
+ * 合并成一条线 + 一段 12px 间隙 */
+.table-actions + .toolbar {
+  margin-top: calc(var(--space-6) * -1);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+/* 容器内分页：顶部一条分割线 + 12px 间隙，与表格分开（与工具栏同一套分隔逻辑）
+ * 左右 padding 由容器统一提供，这里只管纵向间距 */
+.table-wrap > .el-pagination {
+  border-top: 1px solid var(--color-border-soft);
+  padding-top: var(--space-6);
+  margin-top: var(--space-6);
+}
+/* 空状态：容器内表格无数据时不要留一条多余的顶边 */
+.table-wrap > .el-table:empty { border: 0; }
+
+/* ---- 标准分页 ----
+ * .el-pagination 的右对齐 + 上间距已在「Element Plus 调优」区块定义，
+ * 这里只补「分页跟在表格容器后面」这个场景的间距约定。 */
+.table-wrap + .el-pagination,
+.table-pagination {
+  margin-top: var(--space-4);
 }
 
 /* ============== 动画 ============== */
@@ -757,21 +935,29 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* 暗色下：tab 多标签页 */
+/* 暗色下：tab 多标签页
+ * 注意选择器类名是 .tab-item（不是 .tab-bar-item，历史上写错过一直空挂着）。
+ * 这条 :root[data-theme="dark"] 规则特异度 (0,3,0) 高于组件 scoped 的 (0,2,0)，
+ * 不在这里同步覆盖的话，暗色下 tab 栏会退回 --color-bg 和正文糊在一起。 */
 :root[data-theme="dark"] .tab-bar {
-  background: var(--color-bg);
-  border-bottom-color: var(--color-border-soft);
-}
-:root[data-theme="dark"] .tab-bar-item {
-  color: var(--color-text-secondary);
-  border-right-color: var(--color-border-soft);
-}
-:root[data-theme="dark"] .tab-bar-item:hover { background: var(--color-primary-softer); color: var(--color-text); }
-:root[data-theme="dark"] .tab-bar-item.active {
-  color: var(--color-primary);
   background: var(--color-bg-elev);
+  border-bottom-color: var(--color-border);
+  /* 暗色页面上黑色半透明投影几乎不可见（§7.3.6），靠更实的边线撑边界 */
+  box-shadow: none;
 }
-:root[data-theme="dark"] .tab-bar-item.active::before { background: var(--color-primary); }
+:root[data-theme="dark"] .tab-item {
+  color: var(--color-text-secondary);
+}
+:root[data-theme="dark"] .tab-item:hover { background: var(--color-primary-softer); color: var(--color-primary); }
+:root[data-theme="dark"] .tab-item.active {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+:root[data-theme="dark"] .tab-item.active::after { background: var(--color-primary); }
+:root[data-theme="dark"] .tab-actions {
+  background: var(--color-bg-elev);
+  border-left-color: var(--color-border-soft);
+}
 :root[data-theme="dark"] .tab-context-menu { background: var(--color-bg-popover); border-color: var(--color-border); }
 :root[data-theme="dark"] .tab-context-menu :deep(.el-dropdown-menu__item) { color: var(--color-text-secondary); }
 :root[data-theme="dark"] .tab-context-menu :deep(.el-dropdown-menu__item:hover),
@@ -789,5 +975,6 @@ body {
 :root[data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 4px; }
 :root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
 
-/* 暗色下 page-header 吸顶背景 */
-:root[data-theme="dark"] .{domain}-page .page-header { background: var(--color-bg); }
+/* 暗色下 page-header 吸顶背景
+ * 注：此处原本写着 `.{domain}-page` 占位符没替换，是条永不匹配的死规则。 */
+:root[data-theme="dark"] .page-header { background: var(--color-bg); }

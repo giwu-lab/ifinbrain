@@ -25,14 +25,15 @@ ifinbrain/
 
 | 模式 | 后端 | 前端 | 数据库 | 何时用 |
 |---|---|---|---|---|
-| **dev** | `mvn spring-boot:run` | `npm run dev` | SQLite（默认） | 日常开发，热重载 |
-| **prod** | docker compose | docker compose | SQLite 或外部 PG | 服务器部署 |
+| **dev** | `mvn spring-boot:run` | `npm run dev` | PostgreSQL（`dev` profile） | 日常开发，热重载 |
+| **prod** | docker compose | docker compose | PostgreSQL（`prod` profile） | 服务器部署 |
 
-> dev 默认走 `dev` profile + SQLite；prod 默认走 `dev` profile + SQLite（在容器里），要切换 PostgreSQL 时在 `.env` 设 `SPRING_PROFILES_ACTIVE=prod` + `PG_*`。
+> **唯一数据库是 PostgreSQL**，dev 与 prod 连同一个库。SQLite 已弃用：`sqlite-jdbc` 依赖与 `db/migration-dev/` 迁移目录均已移除。
+> 两种模式只是连接池大小和批量参数不同，不切数据库。需要 pgvector 扩展（`pgvector/pgvector:pg18` 镜像）。
 
 ---
 
-## dev 模式（源码启动，SQLite 默认）
+## dev 模式（源码启动）
 
 dev 是日常开发模式，三个进程同时跑在本地，热重载可用。
 
@@ -61,9 +62,10 @@ cd /home/coder/workspace/ifinbrain/backend
 mvn -DskipTests spring-boot:run
 ```
 
-默认 profile = `dev`，SQLite 文件落在 `./data/ifinbrain.db`，本地存储落在 `./data/storage/`。
+默认 profile = `dev`，连 PostgreSQL；本地存储落在 `./data/storage/`。
 
-> 必填的环境变量：`JWT_ACCESS_SECRET`（≥32 字节）、`IFINBRAIN_MASTER_KEY`（≥32 字节）。
+> 必填的环境变量：`PG_HOST` / `PG_PORT` / `PG_DB` / `PG_USER` / `PG_PASSWORD`（连远程库）、
+> `JWT_ACCESS_SECRET`（≥32 字节）、`IFINBRAIN_MASTER_KEY`（≥32 字节）。
 > 识别 API（fapiao_cn 的 base-url / api-key）**不在 .env 中配置**，请在「系统 → API 设置」页面填写。
 
 后端起来：`curl http://localhost:8080/actuator/health` → `{"status":"UP"}`
@@ -90,15 +92,18 @@ Vite dev server 监听 `http://localhost:5173`，自动把 `/api/*` 反代到 `h
 
 `ifinbrain` 是**纯独立**项目：所有依赖（数据库、OCR 服务）都视为外部服务通过环境变量注入，不假设任何 docker 网络共享。
 
-### 默认模式：SQLite + 本地磁盘存储
+### 默认模式：PostgreSQL + 本地磁盘存储
 
 #### 前置
+- 已运行的 PostgreSQL 实例，**装了 pgvector 扩展**（`CREATE EXTENSION vector;`）
 - 已运行的 `fapiao_cn` 服务（任意位置），知道其 URL 与 `extract` scope 的 API Key
 
 #### 启动
 ```bash
 cp .env.example .env
 # 编辑 .env，填入：
+#   PG_HOST=<PG 地址>  PG_PORT=5432  PG_DB=ifinbrain
+#   PG_USER=<用户>    PG_PASSWORD=<密码>
 #   JWT_ACCESS_SECRET=<≥32 字节随机串>            # openssl rand -base64 32
 #   IFINBRAIN_MASTER_KEY=<≥32 字节随机串>        # openssl rand -base64 48
 docker compose up -d
@@ -110,9 +115,9 @@ docker compose up -d
 > - **fapiao_cn 侧的 API Key 需要用户自行轮换**（因为它在 fapiao_cn 项目内，不在本仓库）
 > - 由于 master key 轮换，**旧的 sys_setting 加密字段将无法解密**——首次启动后到「系统 → API 设置 / 存储设置」重新填一次密钥即可
 
-默认 profile = `dev`，后端容器内：
-- 数据库：`/app/data/ifinbrain.db`（由 named volume `backend_data` 持久化）
-- 存储：`/app/data/storage`（同一 volume 内子目录）
+默认 profile = `prod`（compose 里已固定），后端容器内：
+- 数据库：外部 PostgreSQL（由 `PG_*` 环境变量注入，compose 不内置 PG 服务）
+- 存储：`/app/data/storage`（named volume `backend_data` 内的子目录）
 
 访问：
 - 前端：<http://localhost:8088>
@@ -149,12 +154,15 @@ PG_PASSWORD=your-secret
 
 ## 数据库
 
-| Profile | Driver | 默认行为 | Migration 目录 |
-|---|---|---|---|
-| dev | SQLite 3.46 | **默认**：`./data/ifinbrain.db` | `db/migration-dev/V1__init.sql` + `db/migration/V2__seed.sql` |
-| prod | PostgreSQL 16 | **可选**：外部 PG via `PG_*` env | `db/migration-prod/V1__init.sql` + `db/migration/V2__seed.sql` |
+**唯一数据库是 PostgreSQL**，SQLite 已弃用（驱动依赖与 `db/migration-dev/` 目录已移除）。
 
-Flyway 由 `FlywayConfig` 按 `spring.profiles.active` 自动挑选迁移目录。
+| Profile | Driver | 差异 | Migration 目录 |
+|---|---|---|---|
+| dev | `org.postgresql.Driver` | 连接池 10 / 2，批量关闭 | `db/migration/` + `db/migration-prod/` |
+| prod | `org.postgresql.Driver` | 连接池 20 / 5，批量 50、时区 `Asia/Shanghai` | `db/migration/` + `db/migration-prod/` |
+
+两种 profile 连**同一个库**，只有连接池和 Hibernate 批量参数不同。迁移目录由 `FlywayConfig` 固定指定，
+不再按方言或 profile 分支。需要 pgvector 扩展（`CREATE EXTENSION vector;`）—— V45 迁移与 RAG 检索都依赖它。
 
 ## 关键 API
 
@@ -199,9 +207,9 @@ Flyway 由 `FlywayConfig` 按 `spring.profiles.active` 自动挑选迁移目录�
 > **fapiao_cn（识别服务）的 base-url / api-key / timeout 不在 `application.yml` 中**，而是通过「系统 → API 设置」页面写入 `sys_setting` 表的 `ocr.*` key，由 `FapiaoCnClient` 直接读取。
 
 环境变量（部署期可覆盖）：
-- `SQLITE_PATH`：dev profile 下 SQLite 文件路径
-- `SPRING_PROFILES_ACTIVE`：切换 dev / prod
-- `PG_HOST/PORT/DB/USER/PASSWORD`：prod profile 下外部 PG 连接信息
+- `PG_HOST` / `PG_PORT` / `PG_DB` / `PG_USER` / `PG_PASSWORD`：PostgreSQL 连接信息（dev / prod 都要）
+- `SPRING_PROFILES_ACTIVE`：切换 dev / prod（只影响连接池与批量参数，不切数据库）
+- `DB_POOL_MAX`：prod 连接池上限，默认 20
 - `APP_STORAGE_LOCAL_ROOT`：本地存储根目录（容器内默认 `/app/data/storage`）
 
 ## 存储设置（运行时修改）
@@ -215,8 +223,8 @@ Flyway 由 `FlywayConfig` 按 `spring.profiles.active` 自动挑选迁移目录�
 
 ## 已知限制
 
-- dev profile 用 SQLite，多文件并行上传时 HikariCP 池大小=1，避免 SQLite 锁竞争。
-- 大流量生产建议用 PostgreSQL + `ddl-auto: none` + Flyway 全权管理 schema。
+- dev / prod 连接同一个 PostgreSQL 实例，请确保它装了 `pgvector` 扩展。
+- schema 完全由 Flyway 管理（`ddl-auto: none`），改表结构只能写 `V{n}__*.sql` 迁移，不要手工 DDL。
 - 上传分批默认 50 文件 / 10 MB（与 `fapiao_cn` 对齐）。
 - 切换到 prod profile 前，需先在外部 PG 上手工创建 database / user / schema 权限（Flyway 只管表）。
 

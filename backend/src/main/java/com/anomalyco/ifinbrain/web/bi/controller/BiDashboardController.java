@@ -4,6 +4,8 @@ import com.anomalyco.ifinbrain.web.bi.dto.BiDashboardCreateReq;
 import com.anomalyco.ifinbrain.web.bi.dto.BiDashboardDto;
 import com.anomalyco.ifinbrain.web.bi.dto.BiDashboardUpdateReq;
 import com.anomalyco.ifinbrain.web.bi.service.BiDashboardService;
+import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.PageResp;
 import com.anomalyco.ifinbrain.web.common.Result;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import jakarta.validation.Valid;
@@ -20,9 +22,10 @@ public class BiDashboardController {
     private final BiDashboardService dashboardService;
     private final PermissionChecker perm;
 
+    /** 列表页：真分页，支持 keyword（名称 / 编码 / 描述）与 sortBy+sortDir */
     @GetMapping
-    public Result<List<BiDashboardDto>> list() {
-        return Result.ok(dashboardService.list());
+    public Result<PageResp<BiDashboardDto>> list(PageReq req) {
+        return Result.ok(dashboardService.page(req));
     }
 
     /** 只看已发布（轮播 / 展示墙用） */

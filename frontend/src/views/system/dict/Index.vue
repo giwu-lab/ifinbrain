@@ -1,13 +1,5 @@
 <template>
   <div class="page-container fade-in-up">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">{{ t('dict.title') }}</h1>
-        <p class="page-desc muted">{{ t('dict.desc') }}</p>
-      </div>
-      <!-- page-header 只保留标题；字典 tab 在 pane 内部署操作按钮 -->
-    </div>
-
     <el-tabs v-model="activeTab" class="dict-tabs">
       <el-tab-pane :label="t('dict.tabDicts')" name="dict">
         <div class="dict-panel">
@@ -278,8 +270,11 @@ import {
   Plus, Refresh, Search, Folder, Document,
   ArrowDown, ArrowUp, UploadFilled, Download,
   Edit, Delete, MoreFilled,
-  type UploadFile, type UploadInstance,
 } from '@element-plus/icons-vue';
+// UploadFile / UploadInstance 是 el-upload 的类型，属于 element-plus 而不是图标包。
+// 之前写在 icons-vue 的 import 里（靠内联 type 标注让 esbuild 剥掉，运行时侥幸没炸），
+// 但类型来源是错的 —— 这里从正确的包导入。
+import type { UploadFile, UploadInstance } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
 import { dictApi, type DictItem, type DictType } from '@/api/dict';
 import { useDictStore } from '@/stores/dict';
@@ -654,11 +649,6 @@ watch(() => types.value.length, (n) => {
 </script>
 
 <style scoped>
-.page-header {
-  margin-bottom: 20px;
-}
-.page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.page-desc { margin: 4px 0 0; font-size: 13px; }
 .cache-hint { font-size: 12px; align-self: center; }
 
 .dict-panel {

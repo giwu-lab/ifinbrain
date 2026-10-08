@@ -24,7 +24,7 @@
     <el-row :gutter="16">
       <template v-for="(f, idx) in fields" :key="f.id || idx">
         <el-col
-          :span="f.fullWidth === false ? 12 : 24"
+          :span="isFullWidth(f) ? 24 : 12"
           class="form-col"
         >
           <!-- divider 不参与 form-item，仅占整行 -->
@@ -71,20 +71,8 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { QuestionFilled, Check } from '@element-plus/icons-vue';
-import TextField from './fields/TextField.vue';
-import TextareaField from './fields/TextareaField.vue';
-import NumberField from './fields/NumberField.vue';
-import SelectField from './fields/SelectField.vue';
-import RadioField from './fields/RadioField.vue';
-import CheckboxField from './fields/CheckboxField.vue';
-import DateField from './fields/DateField.vue';
-import DatetimeField from './fields/DatetimeField.vue';
-import UserField from './fields/UserField.vue';
-import DeptField from './fields/DeptField.vue';
-import FileField from './fields/FileField.vue';
-import RichTextField from './fields/RichTextField.vue';
-import DividerField from './fields/DividerField.vue';
-import type { FormFieldSchema, FieldType } from '@/api/formDesign';
+import { resolveField } from './fieldRegistry';
+import type { FormFieldSchema } from '@/api/formDesign';
 
 const props = withDefaults(defineProps<{
   fields: FormFieldSchema[];
@@ -124,17 +112,78 @@ watch(() => props.modelValue, (v) => {
 watch(() => props.fields, () => {
   for (const f of props.fields) {
     if (formData[f.key] == null && f.defaultValue != null && f.defaultValue !== '') {
+      // TABLE 没有字符串型默认值（值是对象数组），DIVIDER 本就无值
+      if (f.type === 'TABLE' || f.type === 'DIVIDER') continue;
       formData[f.key] = f.type === 'NUMBER' ? Number(f.defaultValue) : f.defaultValue;
     }
   }
 }, { immediate: true });
+
+/** 表格必须占整行 —— 半行宽度下多列表格无法阅读 */
+function isFullWidth(f: FormFieldSchema): boolean {
+  return f.type === 'TABLE' || f.fullWidth !== false;
+}
+
+/** 单元格「空」的判定：null / undefined / 空白串 / 空数组都算未填 */
+function isBlankCell(v: any): boolean {
+  if (v == null) return true;
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.length === 0;
+  return false;
+}
+
+/**
+ * 表格的两个正交必填开关（与属性面板一一对应）：
+ *
+ * <pre>
+ *   required | requireAllCells | 0 行      | 有行但缺必填列
+ *   ---------+-----------------+-----------+------------------
+ *    false   | false           | 通过      | 通过
+ *    true    | false           | 报错      | 通过
+ *    false   | true            | 通过      | 报错
+ *    true    | true            | 报错      | 报错
+ * </pre>
+ *
+ * 注意「有行但缺必填列」在 requireAllCells 为 false 时是**通过**的 —— 列级 required
+ * 只有开了这个开关才生效，否则配了等于没配。
+ */
+function tableValidator(field: FormFieldSchema) {
+  return (_r: unknown, value: any, cb: (e?: Error) => void) => {
+    const rows = Array.isArray(value) ? value : [];
+    if (rows.length === 0) {
+      return field.required
+        ? cb(new Error(t('formDesigner.table.errAtLeastOneRow', { label: field.label })))
+        : cb();
+    }
+    if (!field.requireAllCells) return cb();
+    const requiredCols = (field.columns || []).filter((c) => c.required && c.key);
+    for (let i = 0; i < rows.length; i++) {
+      for (const c of requiredCols) {
+        if (isBlankCell(rows[i]?.[c.key])) {
+          return cb(new Error(t('formDesigner.table.errCellRequired', {
+            row: i + 1,
+            label: c.label || c.key,
+          })));
+        }
+      }
+    }
+    cb();
+  };
+}
 
 const rules = computed(() => {
   const r: Record<string, any[]> = {};
   for (const f of props.fields) {
     if (f.type === 'DIVIDER') continue;
     const itemRules: any[] = [];
-    if (f.required) itemRules.push({ required: true, message: t('formDesigner.required', { label: f.label }), trigger: 'blur' });
+    if (f.type === 'TABLE') {
+      // 表格不用通用的 required 规则：空数组要区分「允许留空」与「必须填一行」
+      if (f.required || f.requireAllCells || (f.columns || []).some((c) => c.required)) {
+        itemRules.push({ validator: tableValidator(f), trigger: ['blur', 'change'] });
+      }
+    } else if (f.required) {
+      itemRules.push({ required: true, message: t('formDesigner.required', { label: f.label }), trigger: 'blur' });
+    }
     if (f.validator?.pattern && (f.type === 'TEXT' || f.type === 'TEXTAREA')) {
       itemRules.push({ pattern: new RegExp(f.validator.pattern), message: f.validator.message || t('formDesigner.invalid'), trigger: 'blur' });
     }
@@ -143,24 +192,6 @@ const rules = computed(() => {
   return r;
 });
 
-function resolveField(type: FieldType) {
-  const map: Record<FieldType, any> = {
-    TEXT: TextField,
-    TEXTAREA: TextareaField,
-    NUMBER: NumberField,
-    SELECT: SelectField,
-    RADIO: RadioField,
-    CHECKBOX: CheckboxField,
-    DATE: DateField,
-    DATETIME: DatetimeField,
-    USER: UserField,
-    DEPT: DeptField,
-    FILE: FileField,
-    RICH_TEXT: RichTextField,
-    DIVIDER: DividerField,
-  };
-  return map[type] || TextField;
-}
 
 function updateField(key: string, value: any) {
   formData[key] = value;

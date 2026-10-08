@@ -8,10 +8,12 @@ import com.anomalyco.ifinbrain.web.documents.entity.ArchiveLibrary;
 import com.anomalyco.ifinbrain.web.documents.entity.DocumentRecord;
 import com.anomalyco.ifinbrain.web.documents.repository.ArchiveLibraryRepository;
 import com.anomalyco.ifinbrain.web.documents.repository.DocumentRecordRepository;
+import com.anomalyco.ifinbrain.web.rag.repository.RagChunkRepository;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import com.anomalyco.ifinbrain.web.storage.StorageSelector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,17 +21,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -47,6 +54,13 @@ public class DocumentService {
     private final ArchiveLibraryRepository libraryRepo;
     private final StorageSelector storage;
     private final PermissionChecker perm;
+
+    /**
+     * 向量分块表访问器。用 ObjectProvider 而非直接注入：{@code RagChunkRepository} 带
+     * {@code @ConditionalOnProperty(ifinbrain.rag.enabled=true)}，RAG 关闭时该 bean 根本不注册，
+     * 直接注入会让 rag.enabled=false 的环境在启动阶段就因缺 bean 失败。
+     */
+    private final ObjectProvider<RagChunkRepository> ragChunks;
 
     // ===================== 查询 =====================
 
@@ -175,6 +189,68 @@ public class DocumentService {
     }
 
     /**
+     * 把内存里的一段文本作为档案写入（当前唯一调用方：笔记「发布为 .md」）。
+     *
+     * <p>为什么不复用 {@link #upload}：那条路径的入参是 {@code MultipartFile}，
+     * 笔记正文已经在数据库里了，再包一层 MultipartFile 纯属绕路。
+     * 但<b>去重 / uniqueKey / 两阶段 + 补偿</b>这几段必须和上传保持完全一致，
+     * 所以复用本类的私有 helper，而不是在 NoteService 里另写一份 storage 逻辑。
+     */
+    @Transactional
+    public DocumentDto publishText(Long categoryId, String folderPath, String filename, String content) {
+        ArchiveLibrary lib = libraryRepo.findById(categoryId)
+                .orElseThrow(() -> new BizException(404, "档案库不存在"));
+        if (lib.getStatus() == null || lib.getStatus() != 1) {
+            throw new BizException(400, "档案库已禁用");
+        }
+        requireLibraryPerm(categoryId, "upload");
+
+        byte[] bytes = (content == null ? "" : content).getBytes(StandardCharsets.UTF_8);
+        if (bytes.length > MAX_UPLOAD_BYTES) {
+            throw new BizException(413, "内容超过大小限制");
+        }
+        String name = filename.endsWith(".md") ? filename : filename + ".md";
+        String mime = "text/markdown; charset=utf-8";
+        String folder = normalizeFolderPath(folderPath);
+        String prefix = buildPrefix(lib.getSlug(), folder);
+        String sha = sha256Hex(bytes);
+
+        // 同内容同目录 → 拒绝（与 upload 一致：同一份东西不想在库里躺两份）
+        Optional<DocumentRecord> dup = documentRepo
+                .findFirstBySha256AndStorageKeyStartingWith(sha, prefix);
+        if (dup.isPresent()) {
+            throw new BizException(409, "该目录下已有内容相同的档案: " + dup.get().getName());
+        }
+
+        String key = uniqueKey(prefix, name);
+        DocumentRecord rec = DocumentRecord.builder()
+                .categoryId(categoryId)
+                .name(name)
+                .storageKey(key)
+                .storageType(storage.current().type())
+                .originalFilename(name)
+                .sizeBytes((long) bytes.length)
+                .sha256(sha)
+                .mimeType(mime)
+                .uploaderId(perm.currentUserId())
+                .uploaderName(perm.currentUsername())
+                .status((short) 2)              // PENDING_UPLOAD
+                .build();
+        rec = documentRepo.save(rec);
+        try (InputStream in = new ByteArrayInputStream(bytes)) {
+            storage.current().put(key, in, bytes.length, mime);
+        } catch (Exception ex) {
+            // 与 upload 同样的补偿：DB 行随事务回滚消失，storage 侧可能残留孤儿对象（可由 reconcile 清理）
+            throw new BizException(500, "保存到存储失败");
+        }
+        rec.setStatus((short) 1);
+        rec = documentRepo.save(rec);
+        log.info("[documents] published text id={} cat={} path={} key={} size={}",
+                rec.getId(), categoryId, folder, key, bytes.length);
+        return DocumentDto.fromEntity(rec);
+    }
+
+    /**
      * 生成唯一 storage key：先试原始文件名（safeName 后），存在则追加 -1/-2/...。
      * 不会重命名用户上传的文件名 —— 只是 storage 层的 disambiguation。
      * 原始 `name` 仍存 DB（DocumentRecord.name），用户在表格里看到的还是原名。
@@ -250,6 +326,17 @@ public class DocumentService {
 
     // ===================== 重命名 =====================
 
+    /**
+     * 批量取档案名（笔记列表要显示「关联的档案叫什么」）。
+     * 走一次 IN 查询而不是每行一次 —— 列表页 20 行就是 20 次 round trip。
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, String> findNames(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) return Map.of();
+        return documentRepo.findAllById(ids).stream()
+                .collect(Collectors.toMap(DocumentRecord::getId, DocumentRecord::getName));
+    }
+
     @Transactional
     public DocumentDto rename(Long id, String newName) {
         DocumentRecord rec = documentRepo.findById(id)
@@ -261,7 +348,29 @@ public class DocumentService {
         }
         rec.setName(trimmed);
         rec = documentRepo.save(rec);
+        syncChunkSourceName(rec.getId(), trimmed);
         return DocumentDto.fromEntity(rec);
+    }
+
+    /**
+     * 重命名后同步向量分块的 {@code source_filename}，使 RAG 引用溯源显示新名字。
+     *
+     * <p><b>不吞异常</b>：PostgreSQL 里一条语句一旦报错，整个事务即进入 aborted 状态，
+     * 后续任何命令都返回 25P02。若在此 catch 掉，重命名看似成功，commit 时却抛出
+     * 更难定位的 "current transaction is aborted"。让异常自然上抛、连同 name 一起回滚，
+     * 才能保证 {@code sys_document.name} 与 {@code source_filename} 始终一致。
+     *
+     * <p>同步失败通常意味着连接层故障，此时 rename 一起回滚也是正确行为。
+     */
+    private void syncChunkSourceName(Long documentId, String newName) {
+        RagChunkRepository repo = ragChunks.getIfAvailable();
+        if (repo == null) {
+            return;   // RAG 关闭，无向量表
+        }
+        int synced = repo.updateSourceFilename(documentId, newName);
+        if (synced > 0) {
+            log.info("[documents] renamed id={} newName={} chunksSynced={}", documentId, newName, synced);
+        }
     }
 
     // ===================== 删除 =====================

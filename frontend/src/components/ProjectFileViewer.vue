@@ -168,17 +168,20 @@ async function load() {
       zoomState.value = initZoom;
     }
     // PDF 默认 100% 缩放（v1.5.3）。
-    // 走 fitToView({mode:'actual', scale:1}) 而非 applyViewState({scale:1})：
+    // 走 fitToView('actual') 而非 applyViewState({scale:1})：
     //   fitToView 走 zoom provider 的 setZoom 通道，会显式 markFitInteraction('api')
     //   关掉 PDF renderer 的 autoFitWidth，阻止后续 ResizeObserver / pagesinit 的
     //   fitToWidth() 覆盖回 fit-width（实测：applyViewState 设的 scale 会被 pagesinit
     //   的 fitToWidth 抢回去，又变 112%）。
     // 真实场景：PDF.js pagesinit 默认 fit-to-width（A4 撑满抽屉）算出 ~112%；
-    //   这里 fitToView 强制 1:1 渲染，canvas 像素 = A4 物理像素（96 DPI）。
-    // 仅 PDF 文件触发：imageRenderer / textRenderer 走 fitToView 会按 scale 不变
-    //   （它们的 applyViewState 对 scale 字段无副作用，且 fit 行为不同）。
+    //   这里用 'actual' 模式强制 1:1 渲染，canvas 像素 = A4 物理像素（96 DPI）。
+    // 注意：FileViewerFitOptions 只有 mode / resize / padding / minScale / maxScale，
+    //   **没有 scale 字段**。原先这里传 { mode:'actual', scale:1 }，其中 scale 会被
+    //   静默忽略（JS 不报错、TS 才抱怨），1:1 完全是靠 mode:'actual' 达成的 ——
+    //   所以现在只传 mode，别再写 scale 以免误导下一个人以为它在生效。
+    // 仅 PDF 文件触发：imageRenderer / textRenderer 的 fit 行为与 PDF 不同，不走这条。
     if (/\.pdf$/i.test(props.filename)) {
-      viewer.fitToView?.({ mode: 'actual', scale: 1 });
+      viewer.fitToView?.('actual');
       const afterZoom = viewer.getZoomState?.();
       if (afterZoom) zoomState.value = afterZoom;
     }

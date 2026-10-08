@@ -68,8 +68,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import * as ElIcons from '@element-plus/icons-vue';
 import { ArrowDown, CircleClose, Search } from '@element-plus/icons-vue';
+import { resolveElIcon, EL_ICON_NAMES } from '@/utils/icon';
 
 const { t } = useI18n();
 
@@ -95,11 +95,7 @@ const keyword = ref('');
 const open = ref(false);
 const visibleCount = ref(props.pageSize);
 
-const allNames = computed(() =>
-  Object.keys(ElIcons).filter(
-    (k) => k !== 'default' && k !== 'install' && typeof (ElIcons as Record<string, unknown>)[k] !== 'function'
-  )
-);
+const allNames = computed(() => EL_ICON_NAMES);
 
 const filtered = computed(() => {
   const q = keyword.value.trim().toLowerCase();
@@ -119,8 +115,7 @@ function onScroll(e: Event) {
 }
 
 function resolve(name?: string | null) {
-  if (!name) return ElIcons.Document;
-  return (ElIcons as Record<string, unknown>)[name] || ElIcons.Document;
+  return resolveElIcon(name);
 }
 
 const currentIcon = computed(() => resolve(props.modelValue));

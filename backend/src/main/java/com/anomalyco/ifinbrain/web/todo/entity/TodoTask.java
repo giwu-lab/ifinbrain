@@ -41,6 +41,13 @@ public class TodoTask {
     @Column(name = "due_at")
     private LocalDateTime dueAt;
 
+    /**
+     * 预估投入时长（分钟）。可空 —— 未估时前端不渲染时长元素。
+     * 与 dueAt 无关：前者是「要花多久」，后者是「什么时候之前」。
+     */
+    @Column(name = "estimate_minutes")
+    private Integer estimateMinutes;
+
     /** 父任务（同 assignee + PENDING）；删除父任务时本字段被 SET NULL。 */
     @Column(name = "parent_id")
     private Long parentId;

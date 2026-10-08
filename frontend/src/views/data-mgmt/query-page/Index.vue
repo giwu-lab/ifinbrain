@@ -23,7 +23,7 @@
       </span>
     </div>
 
-    <el-card class="card-table" shadow="never">
+    <div class="table-wrap">
       <div class="toolbar" v-if="query">
         <template v-for="p in query.paramsSchema" :key="p.name">
           <span class="field">
@@ -119,8 +119,9 @@
         layout="total,sizes,prev,pager,next,jumper"
         class="qp-pager"
         @current-change="onPagerChange"
+        @size-change="onPageSizeChange"
       />
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -258,6 +259,11 @@ function scheduleReload(delay = 300) {
 
 /** pager 当前页变化（client-side 分页，不需重发请求） */
 function onPagerChange(_p: number) { /* pagedRows computed 会自动更新 */ }
+
+/** 切换每页条数：重置回第 1 页，否则可能停在越界页码上拿到空结果 */
+function onPageSizeChange() {
+  page.value = 1;
+}
 
 async function reload() {
   if (!queryId.value) return;

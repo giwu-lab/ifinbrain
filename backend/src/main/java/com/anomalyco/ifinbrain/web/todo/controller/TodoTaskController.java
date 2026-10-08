@@ -5,6 +5,8 @@ import com.anomalyco.ifinbrain.web.common.Result;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoAssigneeOption;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoDashboardItem;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoDashboardResponse;
+import com.anomalyco.ifinbrain.web.todo.dto.TodoInsightResponse;
+import com.anomalyco.ifinbrain.web.todo.dto.TodoQuadrantResponse;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoTaskCreateReq;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoTaskDto;
 import com.anomalyco.ifinbrain.web.todo.dto.TodoTaskUpdateReq;
@@ -63,6 +65,17 @@ public class TodoTaskController {
         return Result.ok(service.complete(id));
     }
 
+    /**
+     * 直接子任务明细（含已完成）—— 父任务卡片展开子任务时懒加载。
+     *
+     * <p>只返回直接子级；孙级由前端在展开某条子任务时再调一次本接口。
+     * 默认隐藏，所以不在列表接口里内联，避免一屏 20 张卡各带一棵子树。
+     */
+    @GetMapping("/{id}/children")
+    public Result<List<TodoTaskDto>> children(@PathVariable Long id) {
+        return Result.ok(service.children(id));
+    }
+
     /** 父任务下拉数据源：当前 assignee 的 PENDING 任务（排除自己）。 */
     @GetMapping("/parent-candidates")
     public Result<List<Map<String, Object>>> parentCandidates(@RequestParam(required = false) Long excludeId) {
@@ -82,5 +95,47 @@ public class TodoTaskController {
     @GetMapping("/dashboard")
     public Result<TodoDashboardResponse> dashboard(@RequestParam(defaultValue = "10") int limit) {
         return Result.ok(service.dashboard(limit));
+    }
+
+    /**
+     * 四象限视图数据源（仪表盘「我的任务」→ 四象限 tab）。
+     *
+     * <p>返回 { stats, quadrants:[4 个格子，恒定存在] }。象限归属由
+     * priority × dueAt 实时推导（见 TodoQuadrant），<b>不落库</b> —— 今天到期
+     * 的任务明天就不再紧急，落库会过期。
+     *
+     * <p>口径与 /dashboard 一致：只看 assignee = me，view-all 也不混入他人任务。
+     */
+    @GetMapping("/quadrant")
+    public Result<TodoQuadrantResponse> quadrant(@RequestParam(defaultValue = "200") int limit) {
+        return Result.ok(service.quadrant(limit));
+    }
+
+    /**
+     * 「今天」tab 数据源：逾期 + 今日到期的 PENDING 任务，按截止时间升序。
+     * 逾期一并返回 —— 今天该做什么，逾期的优先级最高。
+     */
+    @GetMapping("/today")
+    public Result<Map<String, Object>> today(@RequestParam(defaultValue = "50") int limit) {
+        return Result.ok(service.today(limit));
+    }
+
+    /**
+     * 我的 PENDING 任务数 —— 顶栏通知红点。
+     * 与 flowTask 的 /pending/count 同一形态：一个数字，不返回任务列表。
+     */
+    @GetMapping("/pending/count")
+    public Result<Long> pendingCount() {
+        return Result.ok(service.pendingCount());
+    }
+
+    /**
+     * 洞察 tab 数据源：时间趋势（完成/新增）+ 象限结构 + 行动建议。
+     *
+     * <p>{@code days} 收敛到 7~90，前端切换 7/30 天。不传则默认 7。
+     */
+    @GetMapping("/insight")
+    public Result<TodoInsightResponse> insight(@RequestParam(defaultValue = "7") int days) {
+        return Result.ok(service.insight(days));
     }
 }

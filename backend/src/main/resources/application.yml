@@ -82,3 +82,23 @@ ifinbrain:
     #            false = 非 v1: 前缀抛 BizException(500) —— 任何漏 encrypt 的写入路径会立刻爆。
     # 迁移完成后务必改为 false —— review M17。
     allow-legacy-plaintext: ${IFINBRAIN_ALLOW_LEGACY_PLAINTEXT:true}
+
+  # 数据导入（Excel / CSV → 外部数据源表）
+  import:
+    # 单文件上限。刻意不动上面的 spring.servlet.multipart.max-file-size（100MB 是发票上传用的）——
+    # 导入的解析会把整个 sheet 读进堆内存，20MB xlsx 展开后约占百 MB。
+    max-file-size: 20MB
+    # 数据行上限。超了直接拒收并置 truncated，不做「先读进来再截」。
+    max-rows: 50000
+    # 同时存在的预检会话数：解析结果缓存在堆里，这是防并发叠加的第二道闸。
+    max-sessions: 20
+    # 会话闲置多久失效（用户中途去干别的事回来发现要重传）
+    session-ttl: 30m
+    # executeBatch 粒度；请求里传的值会被夹到 [200, 2000]
+    batch-size: 1000
+    # 单条 INSERT 语句的 JDBC 超时
+    query-timeout-sec: 120
+    # 预检返回给前端的样例行数
+    preview-rows: 20
+    # 错误明细最多回传 / 落库条数（超出只留计数，避免几千条明细把前端表格卡死）
+    max-error-rows: 200

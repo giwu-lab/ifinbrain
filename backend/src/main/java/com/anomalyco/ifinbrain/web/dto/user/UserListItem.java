@@ -19,19 +19,25 @@ public class UserListItem {
     private String displayName;
     private String email;
     private String phone;
+    /** 所属部门 id；null = 未归属 */
+    private Long deptId;
+    /** 所属部门名称；部门已被删或未归属时为 null */
+    private String deptName;
     private Short status;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
     private List<Long> roleIds;
     private List<String> roleNames;
 
-    public static UserListItem from(SysUser u, List<Long> roleIds, List<String> roleNames) {
+    public static UserListItem from(SysUser u, List<Long> roleIds, List<String> roleNames, String deptName) {
         return UserListItem.builder()
                 .id(u.getId())
                 .username(u.getUsername())
                 .displayName(u.getDisplayName())
                 .email(u.getEmail())
                 .phone(u.getPhone())
+                .deptId(u.getDeptId())
+                .deptName(deptName)
                 .status(u.getStatus())
                 .lastLoginAt(u.getLastLoginAt())
                 .createdAt(u.getCreatedAt())

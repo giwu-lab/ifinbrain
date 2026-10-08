@@ -56,6 +56,12 @@ public class ArchiveLibraryService {
     /** admin 角色 code —— 新建/迁移/重命名 档案库时自动 seed 4 权限 */
     private static final String ADMIN_CODE = "admin";
 
+    /**
+     * sys_document.status = 1 READY：唯一「有真实内容且列表可见」的状态。
+     * 与 DocumentRecord 上的 javadoc 一一对应（2=PENDING_UPLOAD / 3=PENDING_DELETE / 4=MISSING）。
+     */
+    private static final short STATUS_READY = 1;
+
     private final ArchiveLibraryRepository libraryRepo;
     private final DocumentRecordRepository documentRepo;
     private final SysMenuRepository menuRepo;
@@ -102,7 +108,7 @@ public class ArchiveLibraryService {
     }
 
     private long fileCount(Long libraryId) {
-        return documentRepo.countByCategoryIdAndStatus(libraryId, (short) 1);
+        return documentRepo.countByCategoryIdAndStatus(libraryId, STATUS_READY);
     }
 
     // ===================== 创建 =====================
@@ -220,10 +226,22 @@ public class ArchiveLibraryService {
         ArchiveLibrary e = libraryRepo.findById(id)
                 .orElseThrow(() -> new BizException(404, "档案库不存在"));
 
-        long count = documentRepo.countByCategoryIdAndStatus(id, (short) 1);
-        if (count > 0) {
+        // 守卫只拦 READY：那是有真实内容、用户在列表里看得见的档案，删库不该顺手带走。
+        long ready = documentRepo.countByCategoryIdAndStatus(id, STATUS_READY);
+        if (ready > 0) {
             throw new BizException(400,
-                    "档案库「" + e.getName() + "」下仍有 " + count + " 个档案，请先处理后再删除");
+                    "档案库「" + e.getName() + "」下仍有 " + ready + " 个档案，请先处理后再删除");
+        }
+
+        // 非 READY 残留行（MISSING / PENDING_*）不拦，必须由 DB 级联清掉。
+        // 原因：V17 建的 category_id 外键没写 ON DELETE，PG 默认 NO ACTION，
+        // 这些行会挡住 libraryRepo.delete() → 23503 → 500；而此时 deletePrefix() 已经跑完，
+        // 文件删了 DB 行还在，重试必然再失败。V58 已把该外键改成 ON DELETE CASCADE。
+        // 留一行 warn：PENDING_DELETE 意味着当初 storage 删除失败过，值得事后追。
+        long residual = documentRepo.countByCategoryId(id) - ready;
+        if (residual > 0) {
+            log.warn("[documents] deleting library id={} slug={} cascades {} residual non-READY document(s)",
+                    id, e.getSlug(), residual);
         }
 
         // 两阶段 + 补偿（V35）：先清 storage，再清 DB。

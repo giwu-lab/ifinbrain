@@ -1,6 +1,6 @@
 spring:
   datasource:
-    # dev 与 prod 同库：RAG 依赖 pgvector，SQLite 没有 vector 类型。
+    # PostgreSQL 是唯一数据库（SQLite 已弃用）。dev 与 prod 连同一个库。
     # 远程实例必须使用带 pgvector 的镜像（pgvector/pgvector:pg18）。
     url: jdbc:postgresql://${PG_HOST:}:${PG_PORT:5432}/${PG_DB:ifinbrain}${PG_QUERY_STRING:}
     username: ${PG_USER:}
@@ -22,10 +22,10 @@ spring:
         format_sql: false
         show_sql: false
   flyway:
-    # 迁移目录由 FlywayConfig 按数据源方言选择，这里只负责开关。
+    # 迁移目录固定为 classpath:db/migration + db/migration-prod，由 FlywayConfig 统一指定。
     enabled: true
   # 档案库 RAG。application.yml 里默认六项模型全关成 none，这里打开 chat/embedding。
-  # 打开的前提：dev 与 prod 共用同一台远程 PG（已装 pgvector），且 RAG_API_KEY 已配置。
+  # 打开的前提：PG 已装 pgvector 扩展，且 RAG_API_KEY 已配置。
   # 少任何一样，Spring AI 都会在缺 api-key 时直接终止启动 —— 这是刻意的 fail-fast。
   ai:
     model:

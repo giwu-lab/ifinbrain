@@ -94,6 +94,10 @@
   --header-bg:            #1a1f2e;
   --sidebar-bg-actual:    #0f172a;
 
+  /* 纸面投影在暗色下无效（黑色阴影压在深蓝底上看不出来），
+   * 笔记纸面的层次感改由 --color-bg-elev 与 --color-bg 的底色差 + 边框承担。*/
+  --note-paper-shadow:    none;
+
   /* Element Plus 派生 —— 大块覆盖让 EP 自己选 */
   --el-color-primary: #60a5fa;
   --el-color-primary-light-3: #60a5fa;

@@ -64,8 +64,9 @@ public class TodoAttachmentService {
             throw new BizException(413, "文件超过 20MB 限制");
         }
 
-        // 校验任务可见性 + 写入权限
-        TodoTask task = taskService.loadForAttachment(taskId);
+        // 校验任务**可写**：跨部门任务在此 403。上传附件同样是写操作，
+        // 否则「跨部门只读」就留了个往别人任务里塞文件的口子。
+        taskService.loadForAttachmentWrite(taskId);
         Long uploaderId = perm.currentUserId();
         String uploaderName = perm.currentUsername();
 
@@ -134,8 +135,8 @@ public class TodoAttachmentService {
     @Transactional(readOnly = true)
     public List<TodoAttachmentDto> list(Long taskId) {
         perm.require("todo:attachment:download");
-        // 校验可见性（loadForAttachment 已 require("todo:task:view")）
-        taskService.loadForAttachment(taskId);
+        // 校验可见性（loadForAttachmentRead 已 require("todo:task:view")）
+        taskService.loadForAttachmentRead(taskId);
         return attachmentRepo.findByTaskIdAndStatusOrderByCreatedAtDesc(taskId, (short) 1).stream()
                 .map(TodoAttachmentDto::fromEntity)
                 .toList();
@@ -155,13 +156,15 @@ public class TodoAttachmentService {
         perm.require("todo:attachment:delete");
         TodoAttachment a = attachmentRepo.findByIdAndStatus(attachmentId, (short) 1)
                 .orElseThrow(() -> new BizException(404, "附件不存在"));
-        // 跨用户鉴权 —— 任务的 assignee 或 view-all 允许删；上传者也允许删自己传的
-        TodoTask task = taskService.loadForAttachment(a.getTaskId());
+        // 跨部门鉴权：删除权限**跟随任务的可写性**，不再看 view-all ——
+        // 那是只读权限，旧的 isAssigneeOrAdmin 判断等于给 view-all 开了删除后门。
+        // 上传者仍可删自己传的那一份：任务转手后那文件还是他的，这是对自己文件的控制权，
+        // 与「能否管理这个任务」是两件事。
+        TodoTask task = taskService.loadForAttachmentRead(a.getTaskId());
         Long me = perm.currentUserId();
-        boolean isAssigneeOrAdmin = perm.has("todo:task:view-all") || me.equals(task.getAssigneeId());
         boolean isUploader = a.getUploaderId() != null && a.getUploaderId().equals(me);
-        if (!isAssigneeOrAdmin && !isUploader) {
-            throw new BizException(403, "无权删除该附件");
+        if (!taskService.canWrite(task) && !isUploader) {
+            throw new BizException(403, "无权删除该附件：跨部门任务仅可查看");
         }
         // 先删 storage（失败 warn 但不阻塞）
         try {
@@ -185,7 +188,7 @@ public class TodoAttachmentService {
         perm.require("todo:attachment:download");
         TodoAttachment a = attachmentRepo.findByIdAndStatus(attachmentId, (short) 1)
                 .orElseThrow(() -> new BizException(404, "附件不存在"));
-        taskService.loadForAttachment(a.getTaskId()); // 校验任务可见性
+        taskService.loadForAttachmentRead(a.getTaskId()); // 校验任务可见性
         String fname = a.getOriginalFilename() != null ? a.getOriginalFilename() : "file";
         try (InputStream in = storage.current().get(a.getStorageKey())) {
             response.setContentType(a.getMimeType() != null ? a.getMimeType() : "application/octet-stream");
