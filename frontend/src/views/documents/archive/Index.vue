@@ -11,8 +11,9 @@
           {{ t('documents.createArchive') }}
         </el-button>
       </div>
+      <!-- 表格 + 分页作为一组：当前页有数据才渲染，翻到空页时退化成下面的空态 -->
+      <template v-if="rows.length > 0">
       <el-table
-        v-if="rows.length > 0"
         :data="rows"
         v-loading="loading"
         border
@@ -80,8 +81,20 @@
         </el-table-column>
       </el-table>
 
-      <!-- 空状态：无档案库时居中展示，引导用户创建第一个 -->
-      <div v-else-if="!loading" class="empty-state">
+      <el-pagination
+        v-model:current-page="query.page"
+        v-model:page-size="query.size"
+        :total="total"
+        :page-sizes="[10,20,50,100]"
+        layout="total,sizes,prev,pager,next,jumper"
+        @current-change="reload"
+        @size-change="onSizeChange"
+      />
+      </template>
+
+      <!-- 空状态：无档案库时居中展示，引导用户创建第一个。
+           判据是 total 而不是 rows.length：翻到后面的空页 ≠ 库里没档案库 -->
+      <div v-else-if="!loading && total === 0" class="empty-state">
         <el-icon class="empty-icon"><Folder /></el-icon>
         <h2 class="empty-title">{{ t('documents.archiveEmptyTitle') }}</h2>
         <p class="empty-desc muted">{{ t('documents.archiveEmptyDesc') }}</p>
@@ -234,6 +247,10 @@ type PermVerb = typeof PERM_VERBS[number];
 
 const loading = ref(false);
 const rows = ref<ArchiveLibrary[]>([]);
+const total = ref(0);
+
+/** 分页状态：后端真分页，size 必须是 ref（const 无法 v-model:page-size） */
+const query = reactive({ page: 1, size: 20 });
 const dialogVisible = ref(false);
 const saving = ref(false);
 const editing = ref<ArchiveLibrary | null>(null);
@@ -305,12 +322,29 @@ function resolveIcon(name?: string) {
 async function reload() {
   loading.value = true;
   try {
-    rows.value = await archiveApi.list();
+    const r = await archiveApi.page(query);
+    rows.value = r.items;
+    total.value = r.total;
   } catch {
     /* http interceptor already toasted */
   } finally {
     loading.value = false;
   }
+}
+
+/** 切每页条数必须回到第 1 页：停在后面的页码改 size 会落到一个可能已不存在的页 */
+function onSizeChange() {
+  query.page = 1;
+  reload();
+}
+
+/**
+ * 删掉本页最后一条时把页码退一格，否则停在一个空页上。
+ * 判断用 `<= 1`：remove 返回后被删的那一行还留在内存数组里。
+ */
+async function reloadAfterDelete() {
+  if (rows.value.length <= 1 && query.page > 1) query.page -= 1;
+  await reload();
 }
 
 function openCreate() {
@@ -384,7 +418,7 @@ async function onDelete(row: ArchiveLibrary) {
   try {
     await archiveApi.remove(row.id);
     ElMessage.success(t('documents.deleteSuccess'));
-    await reload();
+    await reloadAfterDelete();
     await auth.fetchMe();
     await auth.refreshTokens();
   } catch (e: any) {
@@ -518,48 +552,14 @@ onMounted(reload);
 </script>
 
 <style scoped>
-/* ===== 页面布局（参照数据源页） ===== */
-.cat-page {
-  /* 页面至少填满 el-main（视口 - 64px 顶栏） */
-  min-height: calc(100vh - 64px);
-  display: flex;
-  flex-direction: column;
-}
-.cat-page .page-header {
-  display: flex; justify-content: space-between; align-items: center;
-  /* 吸顶：标题 + 操作按钮始终可见 */
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: var(--color-bg);
-  padding: 8px 0;
-  margin-bottom: 0;
-  flex-shrink: 0;
-}
-.cat-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
-.cat-page .page-desc  { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
-
-/* ===== 列表区：plain 1px 边框容器（与数据源页对齐） ===== */
-.cat-table-wrap {
-  margin-top: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.cat-table-wrap > .el-table,
-.cat-table-wrap > .el-table > .el-table__inner-wrapper,
-.cat-table-wrap > .el-table > .el-table__inner-wrapper > .el-table__body-wrapper {
-  flex: 1;
-}
-/* 表头不吸顶 —— <el-table> 的内部布局对 position:sticky 极敏感，
- * 把 header-wrapper 设 sticky 会让 tbody 跑到表头上方（实测 bug）。
- * 退而求其次：只让页头吸顶；表头随页面滚动自然消失/出现。 */
-:deep(.cat-table-wrap .el-table__header-wrapper) {
-  background: var(--color-bg);
-}
-:deep(.cat-table-wrap .el-table__header-wrapper table) {
-  background: var(--color-bg);
-}
+/* 页面布局 / 表格容器样式**全部继承 global.css**，本页不覆写
+ * （与发票列表页 invoice/List.vue 保持一致，见 AGENTS §7.1 / §8.5.1）。
+ *
+ * 之前这里自定义过一套竖向撑满（min-height: calc(100vh - 64px) + flex:1 链路 +
+ * el-table / inner-wrapper / body-wrapper 逐层 flex:1），结果与全局标准打架：
+ * EP 的 .el-table 默认 height:fit-content，被 flex 拉高后表体在边框内留下
+ * 一大片空白，竖向看起来"没撑满"。全局 .table-wrap 本来就按内容高度渲染，
+ * 行数少时容器跟着矮 —— 这才是与发票列表一致的观感。 */
 
 .name-cell {
   display: inline-flex;
@@ -575,7 +575,7 @@ onMounted(reload);
   color: var(--color-text);
 }
 .mono {
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text-secondary);
 }

@@ -26,16 +26,14 @@
         </div>
       </el-col>
 
-      <!-- 角色数（恒有） -->
-      <el-col :xs="12" :sm="12" :md="6">
-        <div class="stat-card stat-success clickable fade-in-up" style="animation-delay: 0.15s" @click="goRoles">
-          <div class="stat-icon"><el-icon><UserFilled /></el-icon></div>
+      <!-- 发票数量（invoice:list 才有）：按发票号去重，口径与发票列表「一行 = 一个发票号」一致 -->
+      <el-col v-if="auth.hasPerm('invoice:list')" :xs="12" :sm="12" :md="6">
+        <div class="stat-card stat-success clickable fade-in-up" style="animation-delay: 0.15s" @click="goInvoices">
+          <div class="stat-icon"><el-icon><Tickets /></el-icon></div>
           <div class="stat-body">
-            <div class="stat-label">{{ t('dashboard.rolesCount') }}</div>
-            <div class="stat-value">{{ auth.roles.length }}</div>
-            <div class="stat-foot">
-              <el-tag v-for="r in auth.roles.slice(0, 2)" :key="r" size="small" effect="plain" round>{{ r }}</el-tag>
-            </div>
+            <div class="stat-label">{{ t('dashboard.invoicesCount') }}</div>
+            <div class="stat-value">{{ invoiceCount }}</div>
+            <div class="stat-foot muted">{{ t('dashboard.invoicesHint') }}</div>
           </div>
         </div>
       </el-col>
@@ -64,10 +62,11 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { List, Menu, Promotion, UserFilled } from '@element-plus/icons-vue';
+import { List, Menu, Promotion, Tickets } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { todoApi } from '@/api/todo';
 import { flowTaskApi } from '@/api/flowTask';
+import { invoiceApi } from '@/api/invoice';
 import TodoWidget from './components/TodoWidget.vue';
 
 const { t } = useI18n();
@@ -79,6 +78,10 @@ const auth = useAuthStore();
 const myTasksCount = ref(0);
 /** 待审批任务数（flow 待办） */
 const flowTodoCount = ref(0);
+/** 发票数量（按发票号去重）—— 取 /invoices/groups 的 total：后端 GROUP BY 发票号码，
+ *  一张发票的 PDF/XML/OFD 三个文件合并成一行，所以 total 是「发票张数」而不是文件数。
+ *  size=1 只为拿到 total，不拉明细（offset=0、1 行，开销与 limit 无关）。 */
+const invoiceCount = ref(0);
 
 function menuName(m: { name: string; component?: string }) {
   const comp = m.component?.replace(/\//g, '.');
@@ -92,13 +95,14 @@ function menuName(m: { name: string; component?: string }) {
 /* 快捷入口：dashboard 4 卡点击 → 跳转对应页面 */
 function goTodo() { router.push('/todo'); }
 function goFlowRuntime() { router.push('/design/flow-runtime'); }
-function goRoles() { router.push('/system/role'); }
+function goInvoices() { router.push('/invoice'); }
 function goMenus() { router.push('/system/menu'); }
 
 onMounted(async () => {
-  /* 两个 count 都是轻量 endpoint，并行拉；权限缺失或失败静默（避免登录后立即 403 toast）。
+  /* 三个 count 都是轻量 endpoint，并行拉；权限缺失或失败静默（避免登录后立即 403 toast）。
    *  - todoApi.dashboard(1) → 拿到真实 total（admin 走 searchAll，看全员 PENDING 数）
    *  - flowTaskApi.pendingCount() → 真正的 count endpoint
+   *  - invoiceApi.listGrouped({page:1,size:1}) → 后端 GROUP BY 发票号分组的 total = 发票张数
    */
   const tasks = [
     auth.hasPerm('todo:task:view')
@@ -106,6 +110,9 @@ onMounted(async () => {
       : Promise.resolve(),
     auth.hasPerm('design:flow:view')
       ? flowTaskApi.pendingCount().then((n) => { flowTodoCount.value = n; }).catch(() => {})
+      : Promise.resolve(),
+    auth.hasPerm('invoice:list')
+      ? invoiceApi.listGrouped({ page: 1, size: 1 }).then((r) => { invoiceCount.value = r.total; }).catch(() => {})
       : Promise.resolve(),
   ];
   await Promise.all(tasks);

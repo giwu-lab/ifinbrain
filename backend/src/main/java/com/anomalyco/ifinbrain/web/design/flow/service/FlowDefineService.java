@@ -1,6 +1,8 @@
 package com.anomalyco.ifinbrain.web.design.flow.service;
 
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.PageResp;
 import com.anomalyco.ifinbrain.web.design.flow.dto.FlowDefineCreateReq;
 import com.anomalyco.ifinbrain.web.design.flow.dto.FlowDefineDto;
 import com.anomalyco.ifinbrain.web.design.flow.dto.FlowDefineUpdateReq;
@@ -21,6 +23,8 @@ import com.anomalyco.ifinbrain.web.repository.SysRoleRepository;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +51,9 @@ public class FlowDefineService {
     /** 流程 perm code 前缀 */
     private static final String FLOW_PERM_PREFIX = "design:flow:";
 
+    /** 列表页默认排序：id 升序（与改版前全量列表一致） */
+    private static final Sort DEFAULT_SORT = Sort.by(Sort.Order.asc("id"));
+
     private static final Map<String, String> VERB_ZH = Map.of(
             "view", "查看",
             "update", "编辑",
@@ -64,9 +71,15 @@ public class FlowDefineService {
     // ===================== 查询 =====================
 
     @Transactional(readOnly = true)
-    public List<FlowDefineDto> list() {
+    public PageResp<FlowDefineDto> page(PageReq req) {
         perm.require("design:flow:view");
-        return repo.findAllByOrderByIdAsc().stream().map(this::toDto).toList();
+        String kw = req.getKeyword();
+        Page<SysFlowDefine> p = (kw == null || kw.isBlank())
+                ? repo.findAllBy(req.toPageable(DEFAULT_SORT))
+                : repo.findByNameContainingIgnoreCaseOrCodeContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
+                        kw, kw, kw, req.toPageable(DEFAULT_SORT));
+        return PageResp.of(p.getContent().stream().map(this::toDto).toList(),
+                p.getTotalElements(), req.safePage(), req.safeSize());
     }
 
     @Transactional(readOnly = true)

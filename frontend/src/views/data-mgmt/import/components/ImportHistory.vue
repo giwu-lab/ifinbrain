@@ -128,17 +128,15 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { dataImportApi } from '@/api/dataImport';
 import type { ImportLogItem } from '@/api/dataImport';
+import { formatDateTime } from '@/utils/time';
 
 const { t } = useI18n();
 const auth = useAuthStore();
 
 /** 与 data-mgmt/datasource 等页保持同一套时间格式（本项目没有公共 format 工具） */
+/** 时间统一走 utils/time.formatDateTime：yyyy-MM-dd HH:mm:ss（AGENTS §8.3） */
 function formatTime(s?: string | null): string {
-  if (!s) return '—';
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return s;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatDateTime(s);
 }
 
 const rows = ref<ImportLogItem[]>([]);
@@ -206,7 +204,7 @@ onMounted(load);
 .imp-history { padding: 4px 0 0; }
 
 .target-cell {
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 

@@ -14,51 +14,66 @@
   <el-form
     ref="formRef"
     :model="formData"
-    :rules="rules"
+    :rules="designMode ? {} : rules"
+    :validate-on-rule-change="false"
     :label-position="labelPosition"
     :label-width="labelWidth"
     :disabled="readonly"
     class="dynamic-form-renderer"
     @submit.prevent
   >
-    <el-row :gutter="16">
-      <template v-for="(f, idx) in fields" :key="f.id || idx">
-        <el-col
-          :span="isFullWidth(f) ? 24 : 12"
-          class="form-col"
+    <div class="form-grid" :style="gridStyle">
+      <template v-for="(item, idx) in renderFields" :key="item.f.id || item.rf.key">
+        <!-- rendered = visible || designMode：
+             visibleWhen 为 false 的字段整块不渲染：
+             值仍保留在 formData 里（用户把条件改回来就不用重填），
+             但不参与校验 —— 隐藏字段还强制必填会让表单永远提交不了。
+             设计器画布例外：隐藏字段照样要显示，否则没法编辑。 -->
+        <div
+          v-if="item.rendered"
+          class="form-cell"
+          :style="item.placement"
         >
           <!-- divider 不参与 form-item，仅占整行 -->
-          <div v-if="f.type === 'DIVIDER'" class="divider-wrap">
+          <div v-if="item.f.type === 'DIVIDER'" class="divider-wrap">
             <component
-              :is="resolveField(f.type)"
-              :field="f"
+              :is="resolveField(item.f.type)"
+              :field="item.rf"
               :readonly="readonly"
             />
           </div>
           <el-form-item
             v-else
-            :prop="f.key"
-            :required="!!f.required"
-            :error="errorOf(f.key)"
+            :prop="item.f.key"
+            :required="item.required"
+            :error="designMode ? undefined : errorOf(item.f.key)"
+            :label-width="item.style?.labelWidth"
+            :label-align="item.style?.labelAlign"
           >
             <template #label>
-              <span class="field-label">{{ f.label }}</span>
-              <span v-if="f.required" class="required-mark">*</span>
-              <el-tooltip v-if="f.help" :content="f.help" placement="top">
+              <span class="field-label" :style="item.labelStyle">{{ item.rf.label }}</span>
+              <span v-if="item.required" class="required-mark">*</span>
+              <el-tooltip v-if="item.rf.help" :content="item.rf.help" placement="top">
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </template>
-            <component
-              :is="resolveField(f.type)"
-              :field="f"
-              :model-value="formData[f.key]"
-              :readonly="readonly"
-              @update:model-value="(v: any) => updateField(f.key, v)"
-            />
+            <div class="cell-body" :style="item.bodyStyle">
+              <component
+                :is="resolveField(item.f.type)"
+                :field="item.rf"
+                :model-value="formData[item.f.key]"
+                :readonly="readonly || item.disabled"
+                @update:model-value="(v: any) => updateField(item.f.key, v)"
+              />
+            </div>
           </el-form-item>
-        </el-col>
+
+          <!-- 设计器 chrome 的挂载点。运行态不传这个插槽，
+               所以这里是真正的零成本、零 DOM —— 渲染路径完全不变。 -->
+          <slot name="cell" :field="item.f" :resolved="item.rf" :item="item" :index="idx" />
+        </div>
       </template>
-    </el-row>
+    </div>
 
     <div v-if="showSubmit" class="form-actions">
       <el-button @click="onCancel">{{ t('common.cancel') }}</el-button>
@@ -72,7 +87,9 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { QuestionFilled, Check } from '@element-plus/icons-vue';
 import { resolveField } from './fieldRegistry';
-import type { FormFieldSchema } from '@/api/formDesign';
+import { useFormExpr } from '@/composables/useFormExpr';
+import { toGridPlacement, migrateFields, DEFAULT_GRID } from '@/utils/form/layout';
+import type { FormFieldSchema, FormGridConfig } from '@/api/formDesign';
 
 const props = withDefaults(defineProps<{
   fields: FormFieldSchema[];
@@ -81,12 +98,22 @@ const props = withDefaults(defineProps<{
   showSubmit?: boolean;
   labelPosition?: 'top' | 'left';
   labelWidth?: string;
+  /** 栅格配置；不传用 24 列 / 64px 行高 / 16px 间距 */
+  grid?: FormGridConfig;
+  /**
+   * 设计器画布模式。打开后
+   * 1) visibleWhen 不成立的字段照常渲染（设计师必须能编辑隐藏字段）
+   * 2) cell 具名插槽透出，FormCanvas 在上面挂拖拽/操作 chrome
+   * 运行态（designMode 不为真）这两条都不生效；插槽不传则完全不渲染。
+   */
+  designMode?: boolean;
 }>(), {
   modelValue: () => ({}),
   readonly: false,
   showSubmit: false,
   labelPosition: 'top',
   labelWidth: '100px',
+  designMode: false,
 });
 
 const emit = defineEmits<{
@@ -101,6 +128,91 @@ const formRef = ref();
 const errorMap = reactive<Record<string, string>>({});
 
 const formData = reactive<Record<string, any>>({ ...props.modelValue });
+
+/**
+ * 表达式求值器。`$form` 就是 formData 本身。
+ *
+ * 响应式是白拿的：expr.resolve() 内部经沙箱 Proxy 读到 `$form.<key>` 时，
+ * 这次读取会被 Vue 依赖追踪自动记下 → 用户改任一输入框，所有引用它的
+ * label / placeholder / help 自动重算。详见 composables/useFormExpr.ts 头注释。
+ */
+const expr = useFormExpr(formData);
+
+/**
+ * 栅格容器：24 列 + 固定行高。
+ *
+ * 用 CSS Grid 而非绝对定位 —— 百分比 + 栅格天然响应式，
+ * deviceMode 切到 768 / 375 时字段自动按比例缩窄，不需要任何适配代码。
+ */
+const gridStyle = computed(() => ({
+  gridTemplateColumns: `repeat(${props.grid?.cols ?? 24}, minmax(0, 1fr))`,
+  /*
+   * minmax(行高, auto) 而不是固定 px。
+   *
+   * 固定行高是「每格都一样高」的假设，但富文本(rows=6 ≈ 124px)、
+   * 多行文本、明细表格都会超过 rowHeight。固定轨道被撑不破，
+   * 内容就从轨道溢出去画到画布外面 —— 表现为画布底边/侧边出现错位和缺口。
+   * 轨道可增长后，行高仍是 rowHeight（短字段不变），长字段自己把行撑开。
+   */
+  gridAutoRows: `minmax(${props.grid?.rowHeight ?? 64}px, auto)`,
+  gap: `${props.grid?.gap ?? 16}px`,
+}));
+
+/**
+ * 栅格坐标。
+ *
+ * 老 schema（迁移前保存的、或建好还没保存过的）只有 `fullWidth`，没有 `layout`。
+ * 设计器 store 在 reset() 里跑过 migrateFields，所以设计器里看不出问题；
+ * 但运行态预览、流程取数、报销弹窗这些**直接吃接口数据**的入口拿到的仍是老 schema，
+ * 渲染层一旦 fallback 成 `1 / -1`，所有半宽字段就会变成满宽 —— 和设计器对不上。
+ *
+ * 所以兜底放在渲染层：缺 layout 就按同一套 fullWidth 语义补出来。
+ * 一次性算完（computed 缓存），不会每帧重跑。
+ */
+const laidOutFields = computed(() => migrateFields(props.fields, props.grid ?? DEFAULT_GRID));
+
+/**
+ * 渲染用字段列表。
+ *
+ * 每个字段解析出运行时状态 + 样式，都是**表达式求值结果**，
+ * 在这个 computed 里一次算完 —— 模板里直接读。
+ *
+ * rf 是文本表达式已解析的字段对象（无文本表达式时与 f 同引用，零开销）。
+ */
+const renderFields = computed(() =>
+  laidOutFields.value.map((f) => {
+    const st = f.style;
+    const visible = expr.isVisible(f);
+    return {
+      f,
+      rf: expr.resolve(f),
+      style: st,
+      visible,
+      // 设计器要看见隐藏字段，运行态要藏起来 —— 两者共用同一份解析结果
+      rendered: visible || props.designMode,
+      disabled: expr.isDisabled(f),
+      required: expr.isRequired(f),
+      // laidOutFields 保证每个字段都有 layout，这里不再需要满宽兜底
+      placement: toGridPlacement(f.layout!, props.grid),
+      labelStyle: {
+        color: st?.labelColor,
+        fontSize: st?.fontSize ? `${st.fontSize}px` : undefined,
+      },
+      bodyStyle: {
+        background: st?.background,
+        color: st?.color,
+        padding: st?.padding != null ? `${st.padding}px` : undefined,
+        borderRadius: st?.radius != null ? `${st.radius}px` : undefined,
+        border: st?.border,
+        textAlign: st?.align,
+        fontSize: st?.fontSize ? `${st.fontSize}px` : undefined,
+      },
+    };
+  }),
+);
+
+/** 校验只看可见字段：隐藏字段还强制必填会让表单永远提交不了 */
+const visibleFields = computed(() => renderFields.value.filter((i) => i.visible));
 
 // 每次 props.modelValue 变化时，同步本地 formData（保留已有字段）
 watch(() => props.modelValue, (v) => {
@@ -118,11 +230,6 @@ watch(() => props.fields, () => {
     }
   }
 }, { immediate: true });
-
-/** 表格必须占整行 —— 半行宽度下多列表格无法阅读 */
-function isFullWidth(f: FormFieldSchema): boolean {
-  return f.type === 'TABLE' || f.fullWidth !== false;
-}
 
 /** 单元格「空」的判定：null / undefined / 空白串 / 空数组都算未填 */
 function isBlankCell(v: any): boolean {
@@ -171,18 +278,28 @@ function tableValidator(field: FormFieldSchema) {
   };
 }
 
+/**
+ * 校验规则。
+ *
+ * 两个关键点：
+ * 1. 只对**可见字段**建规则（visibleFields）。隐藏字段留着必填规则的话，
+ *    表单会因为一个用户根本看不见的字段而永远提交不了。
+ * 2. required 取 `expr.isRequired()` —— 字段级 required 与 requiredWhen 任一为真即必填。
+ * 规则对象整体是 computed，条件一变规则立即跟着变。
+ */
 const rules = computed(() => {
   const r: Record<string, any[]> = {};
-  for (const f of props.fields) {
+  for (const { f, required } of visibleFields.value) {
     if (f.type === 'DIVIDER') continue;
     const itemRules: any[] = [];
+    const label = expr.text(f.label, f.key);
     if (f.type === 'TABLE') {
       // 表格不用通用的 required 规则：空数组要区分「允许留空」与「必须填一行」
-      if (f.required || f.requireAllCells || (f.columns || []).some((c) => c.required)) {
+      if (required || f.requireAllCells || (f.columns || []).some((c) => c.required)) {
         itemRules.push({ validator: tableValidator(f), trigger: ['blur', 'change'] });
       }
-    } else if (f.required) {
-      itemRules.push({ required: true, message: t('formDesigner.required', { label: f.label }), trigger: 'blur' });
+    } else if (required) {
+      itemRules.push({ required: true, message: t('formDesigner.required', { label }), trigger: 'blur' });
     }
     if (f.validator?.pattern && (f.type === 'TEXT' || f.type === 'TEXTAREA')) {
       itemRules.push({ pattern: new RegExp(f.validator.pattern), message: f.validator.message || t('formDesigner.invalid'), trigger: 'blur' });
@@ -228,7 +345,36 @@ defineExpose({ validate: () => formRef.value?.validate(), formData });
 
 <style scoped>
 .dynamic-form-renderer { width: 100%; }
-.form-col { margin-bottom: 16px; }
+
+/*
+ * 24 列栅格。列/行/间距由 gridStyle 内联给出（来自表单级配置），
+ * 这里只负责让单元格撑满并避免内容把格子顶开。
+ * min-width:0 很重要 —— grid 子项默认 min-width:auto，长文本
+ * （如超长 placeholder）会把格子撑破导致整行错位。
+ */
+.form-grid {
+  display: grid;
+  align-items: start;
+}
+.form-cell {
+  min-width: 0;
+  /* 设计器在格子上挂绝对定位的覆盖层（拖拽热区 / 操作栏 / 手柄）。
+     运行态没有覆盖层，position:relative 无副作用。 */
+  position: relative;
+}
+/* 单元格内的 el-form-item 自带 margin-bottom，这里收掉，
+   间距统一由栅格 gap 控制，否则会出现「行间距 + 字段间距」两层叠加 */
+.form-cell :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+/*
+ * el-form-item__content 是 flex 容器，.cell-body 作为 flex item 默认
+ * flex:0 1 auto = 按内容宽度收缩。结果是 el-input/el-select 的 width:100%
+ * 去解一个内容宽度，控件只占 intrinsic 宽度（输入框 ~140px、下拉 ~30px），
+ * 完全撑不满 12 列的格子。flex:1 让它先吃满再让控件的 100% 生效。
+ */
+.cell-body { flex: 1; min-width: 0; }
+
 .field-label { color: var(--color-text); }
 .required-mark { color: var(--color-danger); margin-left: 2px; }
 .help-icon { margin-left: 4px; font-size: 12px; color: var(--color-text-muted); vertical-align: middle; }

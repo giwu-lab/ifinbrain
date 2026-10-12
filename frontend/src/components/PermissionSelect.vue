@@ -133,7 +133,7 @@ onMounted(load);
   font-size: 13px;
 }
 .opt-code {
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   color: var(--color-text);
   flex: 0 0 auto;
 }

@@ -7,8 +7,11 @@ import com.anomalyco.ifinbrain.web.bi.dto.DashboardLayout;
 import com.anomalyco.ifinbrain.web.bi.entity.BiDashboardEntity;
 import com.anomalyco.ifinbrain.web.bi.repository.BiDashboardRepository;
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.common.EntityAuthSupport;
+import com.anomalyco.ifinbrain.web.common.MenuPublisher;
 import com.anomalyco.ifinbrain.web.common.PageReq;
 import com.anomalyco.ifinbrain.web.common.PageResp;
+import com.anomalyco.ifinbrain.web.common.PublishMenuReq;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +23,27 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-/** BI 大屏 CRUD + 发布态流转。权限位全是 {@code bi:dashboard:*}。 */
+/** BI 大屏 CRUD + 发布态流转。
+ *
+ * <p><b>两级权限</b>：模块级 {@code bi:dashboard:view/create/update/delete/publish}
+ * 管「能不能进这个模块、能做哪类操作」；实体级 {@code bi:dashboard:{code}:{verb}}
+ * 管「这一张大屏能不能看/改/发布/删」。查看权由实体级取代模块级 ——
+ * 只要某张大屏的 view 给了你，列表和播放页就能进，不要求先有模块级 view。
+ * 其余三个动作两层都要过。
+ *
+ * <p>实体的稳定标识用 {@code code} 而不是自增 id：id 会随数据迁移变化，
+ * 权限码变了等于所有授权一夜蒸发。
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BiDashboardService {
+
+    /** 实体级权限码前缀 */
+    public static final String PERM_PREFIX = "bi:dashboard";
 
     /** ObjectMapper 线程安全，建一次即可（layout_json 体积不小，别每次 new） */
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -39,7 +57,9 @@ public class BiDashboardService {
             Sort.Order.asc("sort"), Sort.Order.desc("updatedAt"));
 
     private final BiDashboardRepository repo;
+    private final MenuPublisher menuPublisher;
     private final PermissionChecker perm;
+    private final EntityAuthSupport auth;
 
     // ===================== 查询 =====================
 
@@ -51,15 +71,20 @@ public class BiDashboardService {
      *
      * <p>每行都要解析 layout_json / theme_json（{@link #toDto}），全量返回时这里是列表页
      * 最重的一段；分页后单次最多解析 size 行，内存与响应体都有上界。
+     *
+     * <p><b>实体级过滤下推给 DB</b>：没有 {@code :view} 授权的 code 集合会在
+     * 查询前从权限里反推出来，用 {@code In} 交给数据库。放在内存里逐行过滤的话
+     * 分页就名存实亡了（先分页再过滤 → 每页行数忽多忽少，末页还会漏）。
      */
     @Transactional(readOnly = true)
     public PageResp<BiDashboardDto> page(PageReq req) {
-        perm.require("bi:dashboard:view");
+        Set<String> allowed = auth.allowedCodes(PERM_PREFIX, "view");
+        if (allowed.isEmpty()) return PageResp.of(List.of(), 0, req.safePage(), req.safeSize());
         String kw = req.getKeyword();
         Page<BiDashboardEntity> p = (kw == null || kw.isBlank())
-                ? repo.findAllBy(req.toPageable(DEFAULT_SORT))
-                : repo.findByNameContainingIgnoreCaseOrCodeContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
-                        kw, kw, kw, req.toPageable(DEFAULT_SORT));
+                ? repo.findAllByCodeIn(allowed, req.toPageable(DEFAULT_SORT))
+                : repo.findByNameContainingIgnoreCaseOrCodeContainingIgnoreCaseOrDescriptionContainingIgnoreCaseAndCodeIn(
+                        kw, kw, kw, allowed, req.toPageable(DEFAULT_SORT));
         return PageResp.of(p.getContent().stream().map(this::toDto).toList(),
                 p.getTotalElements(), req.safePage(), req.safeSize());
     }
@@ -67,14 +92,25 @@ public class BiDashboardService {
     /** 只看已发布（轮播 / 展示墙用） */
     @Transactional(readOnly = true)
     public List<BiDashboardDto> listPublished() {
-        perm.require("bi:dashboard:view");
-        return repo.findAllByStatusOrderBySortAsc((short) 1).stream().map(this::toDto).toList();
+        Set<String> allowed = auth.allowedCodes(PERM_PREFIX, "view");
+        if (allowed.isEmpty()) return List.of();
+        return repo.findAllByStatusAndCodeInOrderBySortAsc((short) 1, allowed).stream().map(this::toDto).toList();
     }
 
+    /** 详情：实体级 view —— 非授权用户直接探测 id 会被挡在 403 */
     @Transactional(readOnly = true)
     public BiDashboardDto detail(Long id) {
-        perm.require("bi:dashboard:view");
-        return toDto(require(id));
+        BiDashboardEntity e = require(id);
+        auth.require(PERM_PREFIX, e.getCode(), "view");
+        return toDto(e);
+    }
+
+    /** 设计器读取大屏：改设计的人也要有 view 之外的东西，这里先按 design 判 */
+    @Transactional(readOnly = true)
+    public BiDashboardDto detailForDesign(Long id) {
+        BiDashboardEntity e = require(id);
+        auth.require(PERM_PREFIX, e.getCode(), "design");
+        return toDto(e);
     }
 
     // ===================== 创建 =====================
@@ -97,7 +133,11 @@ public class BiDashboardService {
                 .sort(0)
                 .createdBy(createdBy == null ? "system" : createdBy)
                 .build();
-        return toDto(repo.save(e));
+        BiDashboardEntity saved = repo.save(e);
+        // 建实体 = 注册 4 个实体级权限码 + seed 给 admin（只有 admin，不给 operator/viewer）
+        auth.onEntityCreated(PERM_PREFIX, code, saved.getName());
+        log.info("[bi] created dashboard id={} code={} 4 perms + admin seeded", saved.getId(), code);
+        return toDto(saved);
     }
 
     // ===================== 更新 =====================
@@ -106,6 +146,7 @@ public class BiDashboardService {
     public BiDashboardDto update(Long id, BiDashboardUpdateReq req) {
         perm.require("bi:dashboard:update");
         BiDashboardEntity e = require(id);
+        auth.require(PERM_PREFIX, e.getCode(), "design");
 
         if (req.getName() != null && !req.getName().isBlank()) {
             e.setName(req.getName().trim());
@@ -138,6 +179,8 @@ public class BiDashboardService {
     public BiDashboardDto copy(Long id, String createdBy) {
         perm.require("bi:dashboard:create");
         BiDashboardEntity src = require(id);
+        // 复制需要先能看原件，否则等于给了 create 权限就能把别人的大屏内容原样搬走
+        auth.require(PERM_PREFIX, src.getCode(), "view");
         String code = nextCopyCode(src.getCode());
 
         BiDashboardEntity e = BiDashboardEntity.builder()
@@ -151,7 +194,9 @@ public class BiDashboardService {
                 .sort(src.getSort())
                 .createdBy(createdBy == null ? "system" : createdBy)
                 .build();
-        return toDto(repo.save(e));
+        BiDashboardEntity copy = repo.save(e);
+        auth.onEntityCreated(PERM_PREFIX, code, copy.getName());
+        return toDto(copy);
     }
 
     // ===================== 删除 =====================
@@ -159,26 +204,101 @@ public class BiDashboardService {
     @Transactional
     public void delete(Long id) {
         perm.require("bi:dashboard:delete");
-        repo.delete(require(id));
+        BiDashboardEntity e = require(id);
+        auth.require(PERM_PREFIX, e.getCode(), "delete");
+        // 菜单一并下线：大屏都没了，留个指向 404 的侧边栏入口只会让人以为系统坏了
+        menuPublisher.unpublish(menuPath(id));
+        repo.delete(e);
+        // 权限码一并清掉。留着会变成「幽灵授权」：code 复用（删了再建同名）
+        // 时新大屏会白捡一份旧授权。
+        auth.revokeEntity(PERM_PREFIX, e.getCode());
     }
 
     // ===================== 发布 / 反发布 =====================
 
+    /**
+     * 发布：翻 status 位<b>并</b>在菜单树里建入口。
+     *
+     * <p>两件事必须同时做，因为它们管的是两拨人：
+     * <ul>
+     *   <li>{@code status=1} —— 决定能不能进轮播（展示墙靠 {@link #listPublished()} 取数），
+     *       也就是「这台大屏现在算不算上线」；</li>
+     *   <li>菜单行 —— 决定侧边栏有没有入口，也是别人能不能找到它的唯一途径。
+     *       只翻 status 的话，已发布的大屏除了设计器没人找得到。</li>
+     * </ul>
+     *
+     * <p>建 / 改 / 软删交给 {@link MenuPublisher}，与报表共用同一套逻辑 ——
+     * 两个模块的发布语义必须一模一样，否则用户会遇到「报表能选目录、大屏不能」。
+     *
+     * @param body 可空；字段留空 = 沿用上次的目录 / 显示名 / 排序
+     */
     @Transactional
-    public BiDashboardDto publish(Long id) {
+    public BiDashboardDto publish(Long id, PublishMenuReq body) {
         perm.require("bi:dashboard:publish");
         BiDashboardEntity e = require(id);
+        auth.require(PERM_PREFIX, e.getCode(), "publish");
+        // 菜单行的 permission 改成实体级 view —— 侧边栏入口跟着实体授权走，
+        // 收回某张大屏的 view，入口对没权限的角色自然消失
+        menuPublisher.publish(menuPath(id), auth.permCode(PERM_PREFIX, e.getCode(), "view"), body, e.getName());
         e.setStatus((short) 1);
         e.setPublishedAt(LocalDateTime.now());
         return toDto(repo.save(e));
     }
 
+    /**
+     * 取消发布：退回草稿（同时退出轮播）+ 菜单软下线（status=0，可重新发布恢复）。
+     *
+     * <p>菜单走软删而不是删行：用户调好的目录 / 显示名 / 排序得留着，
+     * 重新发布时不该被无声地弹回默认值。
+     */
     @Transactional
     public BiDashboardDto unpublish(Long id) {
         perm.require("bi:dashboard:publish");
         BiDashboardEntity e = require(id);
+        auth.require(PERM_PREFIX, e.getCode(), "publish");
+        menuPublisher.unpublish(menuPath(id));
         e.setStatus((short) 0);
         return toDto(repo.save(e));
+    }
+
+    // ===================== 实体级授权 =====================
+
+    /** 当前这张大屏的授权：{view:[roleId], design:[...], publish:[...], delete:[...]} */
+    @Transactional(readOnly = true)
+    public Map<String, List<Long>> getPermissions(Long id) {
+        perm.require("bi:dashboard:update");
+        return auth.getPermissions(PERM_PREFIX, require(id).getCode());
+    }
+
+    /**
+     * 覆盖式写入授权。
+     *
+     * <p>门槛用 {@code bi:dashboard:update} 而不是「持有这张大屏的 update」——
+     * 否则一个只能编辑自己那几张大屏的人，给别人建的大屏授权不了，
+     * 而这恰恰是管理员最需要做的事。
+     */
+    @Transactional
+    public void updatePermissions(Long id, Map<String, List<Long>> grants) {
+        perm.require("bi:dashboard:update");
+        String code = require(id).getCode();
+        auth.updatePermissions(PERM_PREFIX, code, grants);
+        log.info("[bi] updated permissions for dashboard id={} code={}", id, code);
+    }
+
+    /** 可选父目录列表（发布对话框的下拉） */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> publishDirs() {
+        perm.require("bi:dashboard:publish");
+        return menuPublisher.dirs();
+    }
+
+    /**
+     * 菜单 path = /bi/dashboard/view/{dashboardId}。
+     *
+     * <p>与播放页路由同形 —— 既是反查菜单的依据，也是一条稳定可收藏的直链。
+     */
+    private static String menuPath(Long dashboardId) {
+        return "/bi/dashboard/view/" + dashboardId;
     }
 
     // ===================== 工具 =====================

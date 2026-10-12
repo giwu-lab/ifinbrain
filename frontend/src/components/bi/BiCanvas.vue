@@ -15,19 +15,30 @@ const props = withDefaults(defineProps<{
   canvas: DashboardCanvas;
   widgets: BiWidget[];
   theme: DashboardTheme;
+  /** 主选中项（右侧属性面板看它） */
   selectedId?: string | null;
+  /** 多选集合；不传时退化成只有 selectedId，单选路径行为不变 */
+  selectedIds?: string[];
   editable?: boolean;
   zoom?: number;
   showGrid?: boolean;
   dataFor: (w: BiWidget) => DataSlot | undefined;
   onSelect: (id: string | null) => void;
+  onToggleSelect?: (id: string) => void;
+  onSetSelection?: (ids: string[]) => void;
   onMove: (id: string, patch: Partial<BiWidget>) => void;
   onCommit: (id: string) => void;
 }>(), {
   selectedId: null,
+  selectedIds: undefined,
   editable: false,
   zoom: 1,
   showGrid: false,
+});
+
+const selectedSet = computed(() => {
+  if (props.selectedIds?.length) return new Set(props.selectedIds);
+  return props.selectedId ? new Set([props.selectedId]) : new Set<string>();
 });
 
 /**
@@ -114,7 +125,7 @@ const gridStyle = computed(() => {
 // ===================== 手势状态 =====================
 
 type Gesture =
-  | { kind: 'move'; id: string; startX: number; startY: number; ox: number; oy: number }
+  | { kind: 'move'; id: string; startX: number; startY: number; /** 每个参与移动的组件的起始格坐标 */ origins: Map<string, { x: number; y: number }> }
   | { kind: 'resize'; id: string; dir: string; startX: number; startY: number; o: { x: number; y: number; w: number; h: number } };
 
 let gesture: Gesture | null = null;
@@ -124,7 +135,15 @@ function onPointerDownBody(ev: PointerEvent, id: string) {
   const w = props.widgets.find((x) => x.id === id);
   if (!w || w.locked) return;
   ev.preventDefault();
-  gesture = { kind: 'move', id, startX: ev.clientX, startY: ev.clientY, ox: w.x, oy: w.y };
+  // 多选状态下拖任意一个 = 拖整组。逐个记起始坐标，这样整组保持相对位置
+  const inSel = selectedSet.value.has(id) && selectedSet.value.size > 1;
+  const ids = inSel ? Array.from(selectedSet.value) : [id];
+  const origins = new Map<string, { x: number; y: number }>();
+  for (const sid of ids) {
+    const t = props.widgets.find((x) => x.id === sid);
+    if (t && !t.locked) origins.set(sid, { x: t.x, y: t.y });
+  }
+  gesture = { kind: 'move', id, startX: ev.clientX, startY: ev.clientY, origins };
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp, { once: true });
 }
@@ -152,13 +171,18 @@ function onMove(ev: PointerEvent) {
   const gy = Math.round(dy / stepY.value);
 
   if (gesture.kind === 'move') {
-    const { id, ox, oy } = gesture;
-    const w = props.widgets.find((x) => x.id === id);
-    if (!w) return;
-    props.onMove(id, {
-      x: Math.max(0, Math.min(ox + gx, props.canvas.gridCols - w.w)),
-      y: Math.max(0, Math.min(oy + gy, props.canvas.gridRows - w.h)),
-    });
+    const { id, origins } = gesture;
+    // 整组一起平移：每个组件用**自己的**起始坐标 + 同一个位移，
+    // 不能拿主选中项的起点去算，否则组内其它组件会跳到同一个位置
+    for (const [sid, o] of origins) {
+      const t = props.widgets.find((x) => x.id === sid);
+      if (!t) continue;
+      props.onMove(sid, {
+        x: Math.max(0, Math.min(o.x + gx, props.canvas.gridCols - t.w)),
+        y: Math.max(0, Math.min(o.y + gy, props.canvas.gridRows - t.h)),
+      });
+    }
+    void id;
     return;
   }
 
@@ -183,7 +207,16 @@ function onUp() {
   if (g) props.onCommit(g.id);
 }
 
-/** 点击空白处取消选中 */
+/** 点击组件：Ctrl / Shift / Meta 为增删选，否则单选 */
+function onFrameSelect(id: string) {
+  if (props.onToggleSelect && selectedSet.value.size > 1) {
+    props.onToggleSelect(id);
+    return;
+  }
+  props.onSelect(id);
+}
+
+/** 点击空白处取消选中（框选逻辑在 onBandDown 里统一处理） */
 function onCanvasPointerDown(ev: PointerEvent) {
   if (ev.target === root.value) props.onSelect(null);
 }
@@ -196,6 +229,83 @@ function onDblClick(ev: MouseEvent, id: string) {
   const top = Math.max(...props.widgets.map((v) => v.z));
   if (w.z !== top) props.onMove(id, { z: top + 1 });
 }
+
+// ===================== 框选 =====================
+
+/**
+ * 框选（rubber band）。只在空白处按下才起框；组件上的按下仍然是拖动，
+ * 否则按住组件往外拖就变成「拖组件 + 框选」打架。
+ *
+ * 命中判定用**栅格**而不是像素相交：widget 坐标本来就是格，
+ * 两个矩形相交判定转成「格区间相交」更短，也不会出现差一像素没选中的情况。
+ */
+type Box = { x: number; y: number; w: number; h: number };
+let band: { startX: number; startY: number; curX: number; curY: number } | null = null;
+const bandStyle = computed<Box | null>(() => {
+  if (!band) return null;
+  const x = Math.min(band.startX, band.curX);
+  const y = Math.min(band.startY, band.curY);
+  return { x, y, w: Math.abs(band.curX - band.startX), h: Math.abs(band.curY - band.startY) };
+});
+
+function onBandDown(ev: PointerEvent) {
+  if (!props.editable || ev.button !== 0) return;
+  const rect = root.value?.getBoundingClientRect();
+  if (!rect) return;
+  band = {
+    startX: ev.clientX - rect.left,
+    startY: ev.clientY - rect.top,
+    curX: ev.clientX - rect.left,
+    curY: ev.clientY - rect.top,
+  };
+  window.addEventListener('pointermove', onBandMove);
+  window.addEventListener('pointerup', onBandUp, { once: true });
+}
+
+function onBandMove(ev: PointerEvent) {
+  const rect = root.value?.getBoundingClientRect();
+  if (!band || !rect) return;
+  band.curX = ev.clientX - rect.left;
+  band.curY = ev.clientY - rect.top;
+}
+
+function onBandUp(ev: PointerEvent) {
+  window.removeEventListener('pointermove', onBandMove);
+  const b = band;
+  band = null;
+  if (!b) return;
+  const s = props.zoom || 1;
+  // 拖动距离很小（< 4 屏幕像素）视为「点空白」→ 清空选择，而不是框选到一个空集
+  if (Math.abs(b.curX - b.startX) < 4 && Math.abs(b.curY - b.startY) < 4) {
+    props.onSelect(null);
+    return;
+  }
+  const box: Box = {
+    x: Math.min(b.startX, b.curX) / s,
+    y: Math.min(b.startY, b.curY) / s,
+    w: Math.abs(b.curX - b.startX) / s,
+    h: Math.abs(b.curY - b.startY) / s,
+  };
+  const hits = props.widgets
+    .filter((w) => {
+      if (w.hidden) return false;
+      const r = rectOf(w);
+      return r.left < box.x + box.w && r.left + r.width > box.x
+          && r.top < box.y + box.h && r.top + r.height > box.y;
+    })
+    .map((w) => w.id);
+  // 加选：按住 Ctrl/Shift 时与现有选择求并集
+  if ((ev.ctrlKey || ev.metaKey || ev.shiftKey) && props.selectedIds?.length) {
+    props.onSetSelection?.(Array.from(new Set([...props.selectedIds, ...hits])));
+  } else {
+    props.onSetSelection?.(hits);
+  }
+}
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pointermove', onBandMove);
+  window.removeEventListener('pointerup', onBandUp);
+});
 
 onMounted(() => {
   reportAvailable();
@@ -221,14 +331,17 @@ onBeforeUnmount(() => {
         :style="[stageBoxStyle, themeVarsStyle]"
       >
       <!-- 栅格底纹 -->
-      <div class="canvas-bg" :style="gridStyle" @pointerdown="onCanvasPointerDown"></div>
+      <div class="canvas-bg" :style="gridStyle" @pointerdown="onBandDown"></div>
+
+      <!-- 框选矩形（画布内容坐标，已扣掉 zoom） -->
+      <div v-if="bandStyle" class="select-band" :style="bandStyle"></div>
 
       <BiWidgetFrame
         v-for="w in ordered"
         :key="w.id"
         :widget="w"
         :theme="theme"
-        :selected="w.id === selectedId"
+        :selected="selectedSet.has(w.id)"
         :editable="editable"
         :loading="dataFor(w)?.loading ?? false"
         :error="dataFor(w)?.error ?? ''"
@@ -239,7 +352,7 @@ onBeforeUnmount(() => {
         :width="rectOf(w).width"
         :height="rectOf(w).height"
         :z-index="w.z + 1"
-        @select="(id) => onSelect(id)"
+        @select="onFrameSelect"
         @pointerdown-body="onPointerDownBody"
         @pointerdown-handle="onPointerDownHandle"
         @dblclick="onDblClick($event, w.id)"
@@ -288,5 +401,17 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   background: var(--bi-bg);
+}
+/*
+ * 框选矩形。用 semi-transparent 而不是 outline —— 框本身要能看出
+ * 「覆盖了哪些格子」，outline 画在边界上反而挡不住下层组件。
+ * z-index 取 1：压在所有 widget（z+1，起始为 1）之上但低于选中框手柄。
+ */
+.select-band {
+  position: absolute;
+  border: 1px dashed var(--color-primary, #2563eb);
+  background: color-mix(in srgb, var(--color-primary, #2563eb) 12%, transparent);
+  pointer-events: none;
+  z-index: 1;
 }
 </style>

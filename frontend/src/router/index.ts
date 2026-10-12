@@ -137,21 +137,21 @@ const staticRoutes: RouteRecordRaw[] = [
   // 设计器 new / :id 两个入口都用同一个组件，id=非数字时视为新建
   { path: '/bi/dashboard/design/:id', component: () => import('@/views/bi/dashboard/Designer.vue'),
     meta: { title: 'BI Designer', permission: 'bi:dashboard:update', name: 'BI Designer', component: 'bi/dashboard/Designer', path: '/bi/dashboard/design' } },
-  // 播放页 / 展示墙走 tab 白名单（stores/tab.ts IGNORED_PREFIXES），不进 tab 条
+  // 播放页走 tab 白名单（stores/tab.ts IGNORED_PREFIXES），不进 tab 条
   // immersive=true → App.vue 用裸 router-view 渲染，脱离 BasicLayout 全屏。
   // 注意不能用 meta.public（那会连带跳过鉴权守卫）。
   { path: '/bi/dashboard/view/:id(\\d+)', component: () => import('@/views/bi/dashboard/View.vue'),
     meta: { title: 'BI View', permission: 'bi:dashboard:view', immersive: true, name: 'BI View', component: 'bi/dashboard/View', path: '/bi/dashboard/view' } },
-  { path: '/bi/dashboard/wall', component: () => import('@/views/bi/dashboard/Wall.vue'),
-    meta: { title: 'BI Wall', permission: 'bi:dashboard:view', immersive: true, name: 'BI Wall', component: 'bi/dashboard/Wall', path: '/bi/dashboard/wall' } },
 
   // ==================== 报表（同样静态路由接管） ====================
   // 设计器：new 与 :id 共用 Design.vue（id=非数字时视为新建，与大屏设计器一致）
   { path: '/bi/report/design/:id', component: () => import('@/views/bi/report/Design.vue'),
     meta: { title: 'Report Designer', permission: 'report:update', name: 'Report Designer', component: 'bi/report/Design', path: '/bi/report/design' } },
-  // 报表播放页：沉浸式全屏（查询头 + 虚拟滚动表格，无侧边栏 chrome）
+  // 报表播放页：**普通页面**（不是 immersive），在 BasicLayout 里渲染，
+  // 布局与发票列表一致（page-container + table-wrap + toolbar）。沉浸式全屏反而
+  // 丢了侧边栏上下文，用户看完报表回不去列表。
   { path: '/bi/report/view/:id(\\d+)', component: () => import('@/views/bi/report/View.vue'),
-    meta: { title: 'Report View', permission: 'report:view', immersive: true, name: 'Report View', component: 'bi/report/View', path: '/bi/report/view' } },
+    meta: { title: 'Report View', permission: 'report:view', name: 'Report View', component: 'bi/report/View', path: '/bi/report/view' } },
 ];
 
 const builtInViews: Record<string, () => Promise<unknown>> = {
@@ -180,7 +180,6 @@ const builtInViews: Record<string, () => Promise<unknown>> = {
   'bi/dashboard/Index':          () => import('@/views/bi/dashboard/Index.vue'),
   'bi/dashboard/Designer':       () => import('@/views/bi/dashboard/Designer.vue'),
   'bi/dashboard/View':           () => import('@/views/bi/dashboard/View.vue'),
-  'bi/dashboard/Wall':           () => import('@/views/bi/dashboard/Wall.vue'),
   'bi/report/Index':             () => import('@/views/bi/report/Index.vue'),
   'bi/report/Design':            () => import('@/views/bi/report/Design.vue'),
   'bi/report/View':              () => import('@/views/bi/report/View.vue'),
@@ -218,6 +217,14 @@ function buildRoutesFromMenus(menus: MenuNode[]): RouteRecordRaw[] {
     }
     if (m.type === 'MENU' && m.path) {
       const compKey = m.component || '';
+      /*
+       * 发布的报表 / 大屏入口（path = /bi/report/view/{id}）由静态参数化路由接管，
+       * 必须按 **path** 跳过而不是按 component：
+       * 这些行的 component 是 null（MenuPublisher 刻意留空，否则侧边栏会拿
+       * `menu.bi.report.View` = 「报表展示」当显示名，每张报表都显示同一句话）。
+       * component 判据保留一份作为存量数据的保险。
+       */
+      if (/^\/bi\/(report|dashboard)\/view\/\d+$/.test(m.path)) continue;
       // 发布的查询页面（path 形如 /data-mgmt/query-page/50）由静态参数化路由
       // /data-mgmt/query-page/:menuId(\d+) 处理 —— 跳过精确路径注册，避免抢路由
       if (compKey === 'data-mgmt/query-page/Index') continue;
@@ -232,12 +239,11 @@ function buildRoutesFromMenus(menus: MenuNode[]): RouteRecordRaw[] {
       if (compKey === 'documents/notes/Index') continue;
       // 表单设计器：精确菜单 path=/design/form 已由下方静态路由接管（new/edit/preview 走参数路由）
       if (compKey === 'design/form/Index') continue;
-      // BI 大屏：Designer / View / Wall 三条菜单行都由静态参数化路由接管
+      // BI 大屏：Designer / View 两条菜单行都由静态参数化路由接管
       // （sys_menu path 带 :id 占位，精确注册会生成非法路由）→ 跳过避免双路由冲突。
       // `bi/dashboard/Index`（path=/bi/dashboard）正常注册，是侧边栏真正要跳转的入口。
       if (compKey === 'bi/dashboard/Designer') continue;
       if (compKey === 'bi/dashboard/View') continue;
-      if (compKey === 'bi/dashboard/Wall') continue;
       // 报表：Design / View 由静态参数化路由接管（同 BI 大屏的理由）。
       // `bi/report/Index`（path=/bi/report）正常注册，是侧边栏入口。
       if (compKey === 'bi/report/Design') continue;

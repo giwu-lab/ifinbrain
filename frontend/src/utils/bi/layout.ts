@@ -155,7 +155,7 @@ export function applyPresetStyle(el: HTMLElement | null, theme: DashboardTheme):
 
 /** ===================== 组件元数据 ===================== */
 
-export type WidgetCategory = 'metric' | 'chart' | 'content';
+export type WidgetCategory = 'metric' | 'chart' | 'content' | 'decoration';
 
 export interface WidgetMeta {
   type: WidgetType;
@@ -167,7 +167,33 @@ export interface WidgetMeta {
   needsData: boolean;
   /** i18n fallback label（t(`bi.widget.${type}`, labelKey) 的第二参） */
   labelKey?: string;
+  /**
+   * 建组件时的样式兜底，在 defaultWidgetStyle 之上再盖一层。
+   *
+   * 为什么需要它：装饰类组件（border / titlebar / divider）天生是
+   * 「透明底 + 不画框头 + 零内边距」，而 defaultWidgetStyle 给所有组件
+   * 一律套上面板底色 + 标题 + padding=10。不覆盖的话，用户刚拖一个角标边框
+   * 出来就是一个带白底蓝标题的方块 —— 视觉完全不对。
+   *
+   * 放在 META 里而不是 makeWidget 里写 if/else，是为了让「加一个组件要改几个地方」
+   * 始终是 1 处：类型联合 + META 一行 + 分发 + 配置面板，不随组件数增长。
+   */
+  styleDefaults?: Partial<WidgetStyle>;
 }
+
+/**
+ * 装饰类组件的统一样式兜底。
+ *
+ * borderColor 必须置 transparent：BiWidgetFrame 无条件给每个组件画
+ * `1px solid borderColor` 的框，装饰类组件自己已经画好边框/线条了，
+ * 不清掉就会变成「角标外面又套一个完整方框」。
+ */
+const DECOR_STYLE: Partial<WidgetStyle> = {
+  transparent: true,
+  titleVisible: false,
+  padding: 0,
+  borderColor: 'transparent',
+};
 
 export const WIDGET_META: Record<WidgetType, WidgetMeta> = {
   kpi:       { type: 'kpi',       icon: 'Odometer',   category: 'metric',  size: { w: 4, h: 3 },  needsData: true },
@@ -177,16 +203,32 @@ export const WIDGET_META: Record<WidgetType, WidgetMeta> = {
   area:      { type: 'area',      icon: 'DataLine',   category: 'chart',   size: { w: 8, h: 5 },  needsData: true },
   pie:       { type: 'pie',       icon: 'PieChart',   category: 'chart',   size: { w: 5, h: 5 },  needsData: true },
   donut:     { type: 'donut',     icon: 'DataAnalysis', category: 'chart', size: { w: 5, h: 5 },  needsData: true },
-  scatter:   { type: 'scatter',   icon: 'Scatter',    category: 'chart',   size: { w: 8, h: 5 },  needsData: true },
+  // 既有 bug 修复：原来写的是 'Scatter'，但 Element Plus Icons v2.3.2 根本没有这个图标
+  // （293 个导出里没有任何 scatter/bubble 类），组件库里的散点图图标一直是个空位。
+  // DataBoard 是最接近的「散点落在网格上」的图形。
+  scatter:   { type: 'scatter',   icon: 'DataBoard',  category: 'chart',   size: { w: 8, h: 5 },  needsData: true },
   radar:     { type: 'radar',     icon: 'Aim',        category: 'chart',   size: { w: 5, h: 5 },  needsData: true },
   gauge:     { type: 'gauge',     icon: 'Compass',    category: 'chart',   size: { w: 5, h: 5 },  needsData: true },
   funnel:    { type: 'funnel',    icon: 'Filter',     category: 'chart',   size: { w: 5, h: 5 },  needsData: true },
   treemap:   { type: 'treemap',   icon: 'Grid',       category: 'chart',   size: { w: 8, h: 5 },  needsData: true },
+  // 柱线双轴：前 N-1 组走左轴柱，最后一组走右轴线。
+  // 单指标列时自动退化成纯折线，不画空轴。
+  combo:     { type: 'combo',     icon: 'Operation',  category: 'chart',   size: { w: 10, h: 5 }, needsData: true },
+  // 堆叠：extra.shape 在「堆叠柱 / 堆叠面积」之间切，两者共用一套 series 构建
+  stack:     { type: 'stack',     icon: 'Files',      category: 'chart',   size: { w: 10, h: 5 }, needsData: true },
   table:     { type: 'table',     icon: 'Tickets',    category: 'content', size: { w: 10, h: 6 }, needsData: true },
   text:      { type: 'text',      icon: 'Document',   category: 'content', size: { w: 6, h: 2 },  needsData: false },
   image:     { type: 'image',     icon: 'Picture',    category: 'content', size: { w: 6, h: 4 },  needsData: false },
   marquee:   { type: 'marquee',   icon: 'Bell',       category: 'content', size: { w: 6, h: 5 },  needsData: true },
-  divider:   { type: 'divider',   icon: 'Minus',      category: 'content', size: { w: 8, h: 1 },  needsData: false },
+  divider:   { type: 'divider',   icon: 'Minus',      category: 'decoration', size: { w: 8, h: 1 }, needsData: false,
+               styleDefaults: DECOR_STYLE },
+  // 角标边框：3 种变体（corner 角标 / full 全框 / line 上下横线）
+  border:    { type: 'border',    icon: 'Crop',       category: 'decoration', size: { w: 8, h: 5 }, needsData: false,
+               styleDefaults: { ...DECOR_STYLE, radius: 0 } },
+  // 大屏标题条：主文案直接用 style.title（与其它组件共用「基础 → 标题」输入框），
+  // 副标题走 extra.subText。默认铺满整行。
+  titlebar:  { type: 'titlebar',  icon: 'SemiSelect', category: 'decoration', size: { w: 16, h: 1 }, needsData: false,
+               styleDefaults: DECOR_STYLE },
 };
 
 export const WIDGET_TYPES = Object.keys(WIDGET_META) as WidgetType[];
@@ -233,7 +275,8 @@ export function makeWidget(
     w: opts?.w ?? meta.size.w,
     h: opts?.h ?? meta.size.h,
     z: opts?.z ?? 0,
-    style: { ...defaultWidgetStyle(title), ...(opts?.style || {}) },
+    // 优先级：默认样式 < 组件自带兜底 < 显式传入
+    style: { ...defaultWidgetStyle(title), ...meta.styleDefaults, ...(opts?.style || {}) },
   };
 }
 
@@ -372,7 +415,12 @@ export function migrateLayout(raw: any): DashboardLayout {
       type,
       id: w.id || newWidgetId(),
       z: Number.isFinite(w.z) ? w.z : i,
-      style: { ...defaultWidgetStyle(w.style?.title || WIDGET_META[type].labelKey || type), ...(w.style || {}) },
+      // 与 makeWidget 保持同一套优先级：默认 < META.styleDefaults < 存量 style
+      style: {
+        ...defaultWidgetStyle(w.style?.title || WIDGET_META[type].labelKey || type),
+        ...WIDGET_META[type].styleDefaults,
+        ...(w.style || {}),
+      },
     };
   }) : [];
 

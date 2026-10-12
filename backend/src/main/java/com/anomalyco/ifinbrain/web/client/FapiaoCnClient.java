@@ -317,6 +317,12 @@ public class FapiaoCnClient {
         public String reviewer;
         public String drawer;
         public String message;
+        /**
+         * 费用类别（接口字段 expense_category_label，SnakeCase 策略自动映射）。
+         *
+         * <p>老版本 fapiao_cn 不返回该字段 —— 留 null 即可，Jackson 不会报错。
+         */
+        public String expenseCategoryLabel;
 
         public static ExtractItem error(String fn, String msg) {
             ExtractItem i = new ExtractItem();

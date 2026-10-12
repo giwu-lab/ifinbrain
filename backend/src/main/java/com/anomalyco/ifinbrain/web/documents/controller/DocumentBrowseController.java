@@ -1,5 +1,6 @@
 package com.anomalyco.ifinbrain.web.documents.controller;
 
+import com.anomalyco.ifinbrain.web.common.PageReq;
 import com.anomalyco.ifinbrain.web.common.Result;
 import com.anomalyco.ifinbrain.web.documents.dto.DocumentBrowseDto;
 import com.anomalyco.ifinbrain.web.documents.service.DocumentService;
@@ -20,10 +21,11 @@ public class DocumentBrowseController {
 
     private final DocumentService service;
 
-    /** path 为空表示档案库根；多级如 "demo/sub1"。 */
+    /** path 为空表示档案库根；多级如 "demo/sub1"。文件分页，子目录不分页。 */
     @GetMapping
     public Result<DocumentBrowseDto> browse(@RequestParam Long categoryId,
-                                            @RequestParam(required = false, defaultValue = "") String path) {
-        return Result.ok(service.browse(categoryId, path));
+                                            @RequestParam(required = false, defaultValue = "") String path,
+                                            PageReq pageReq) {
+        return Result.ok(service.browse(categoryId, path, pageReq));
     }
 }

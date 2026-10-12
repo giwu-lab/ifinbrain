@@ -6,6 +6,7 @@ import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { noteApi, type NoteItem, type NoteRevisionItem } from '@/api/note';
+import { formatDateTime } from '@/utils/time';
 import NoteViewer from './NoteViewer.vue';
 
 const props = defineProps<{ note: NoteItem | null }>();
@@ -57,9 +58,9 @@ async function restore(row: NoteRevisionItem) {
   emit('restored', updated);
 }
 
-function timeText(s?: string) {
-  if (!s) return '';
-  return s.replace('T', ' ').slice(0, 16);
+/** 时间统一走 utils/time.formatDateTime：yyyy-MM-dd HH:mm:ss（AGENTS §8.3） */
+function timeText(s?: string | null) {
+  return formatDateTime(s);
 }
 </script>
 

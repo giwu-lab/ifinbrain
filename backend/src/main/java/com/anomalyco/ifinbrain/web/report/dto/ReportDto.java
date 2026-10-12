@@ -56,10 +56,37 @@ public class ReportDto {
         private Boolean collapsed;
         /** 每行字段数（栅格），默认 4 */
         private Integer columns;
+        /**
+         * 每个参数的**控件覆盖配置**，key = param name。
+         *
+         * <p>为什么存在这里而不是查询的参数 schema：schema 是 SQL 侧的事实（这个占位符
+         * 是数字还是日期），控件是**报表设计态**的选择 —— 同一个 {@code status} 参数，
+         * A 报表要文本框自由输入，B 报表要下拉框选枚举。schema 只有一个，改不了。
+         *
+         * <p>字段缺失 = 跟随 schema 自带的 type（见 header.ts 的 controlOf），
+         * 所以老报表存的是 null/空也照常渲染，不需要数据迁移。
+         */
+        private Map<String, HeaderField> fields;
 
         public static HeaderLayout defaultLayout() {
             return HeaderLayout.builder().visible(null).collapsed(false).columns(4).build();
         }
+    }
+
+    /**
+     * 单个查询头字段的控件配置（HeaderLayout.fields 的 value）。
+     *
+     * <p>没有继承 {@link com.anomalyco.ifinbrain.web.datamgmt.dto.QueryParamSchema}：
+     * 那边是「SQL 事实」，这边是「展示偏好」，两者会分叉（同一个参数两个报表控件不同）。
+     */
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class HeaderField {
+        /** 控件类型：text | number | date | datetime | select */
+        private String type;
+        /** type=select 时的候选值（有序、去重由前端保证） */
+        private List<String> options;
+        /** 控件占位提示，覆盖 schema 的 placeholder */
+        private String placeholder;
     }
 
     /** 列配置。{@code key} 必须与查询结果列的 key 对上，否则该列按 key 找不到时忽略本配置。 */

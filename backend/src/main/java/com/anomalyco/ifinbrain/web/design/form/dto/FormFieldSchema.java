@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 表单字段 schema —— 描述一个表单输入控件的完整定义。
@@ -76,4 +77,59 @@ public class FormFieldSchema {
      * </ul>
      */
     private Boolean requireAllCells;
+
+    // ===================== 条件逻辑（表达式） =====================
+    //
+    // 下面三个都是单表达式，取值语义为布尔：非空且求值为 true 才生效。
+    // 求值失败（语法错 / 引用了不存在的字段）一律按 false 处理 —— 宁可少显示，
+    // 也不要因为一个坏表达式把整张表单卡死。
+
+    /**
+     * 显示条件，如 {@code {{ $form.type === 'company' }}}。
+     * 为空 = 恒显示。false 时字段不渲染，且不参与校验。
+     */
+    private String visibleWhen;
+
+    /**
+     * 禁用条件，如 {@code {{ $form.locked }}}。为空 = 恒可编辑。
+     *
+     * <p>注意与 visibleWhen 正交：禁用只挡交互，值仍会照常提交。
+     */
+    private String disabledWhen;
+
+    /**
+     * 必填条件，如 {@code {{ $form.needInvoice }}}。为空 = 沿用字段级 required。
+     *
+     * <p>与字段级 required 是「或」：两者任一为真即必填。
+     */
+    private String requiredWhen;
+
+    /**
+     * 动态选项源（select / radio / checkbox）。
+     *
+     * <p><b>必须在本 DTO 上声明</b>：Jackson 默认静默丢弃未知字段，
+     * 前端多传一个 optionsSource 而后端不加，保存时配置会被吃掉且接口照样返回 200。
+     *
+     * <p>与静态 {@link #options} 二选一：配了本项就以查询结果为准。
+     */
+    private FormFieldOptionsSource optionsSource;
+
+    // ===================== 栅格布局 / 样式 =====================
+
+    /**
+     * 24 列栅格中的位置。
+     *
+     * <p>可选：老 schema 没有这个字段，加载时由前端按老的 {@code fullWidth}
+     * 语义自动补齐，补齐后渲染只剩一条路径。
+     *
+     * <p><b>必须在本 DTO 上声明</b>：Jackson 默认静默丢弃未知字段。
+     */
+    private FormFieldLayout layout;
+
+    /**
+     * 字段级样式覆盖。没配的属性走主题默认。
+     *
+     * <p><b>必须在本 DTO 上声明</b>：Jackson 默认静默丢弃未知字段。
+     */
+    private Map<String, Object> style;
 }

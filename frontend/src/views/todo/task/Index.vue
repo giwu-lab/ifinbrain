@@ -111,7 +111,7 @@
         </el-table-column>
 
         <!-- 截止时间 -->
-        <el-table-column :label="t('todo.fields.dueAt')" width="160">
+        <el-table-column :label="t('todo.fields.dueAt')" width="175">
           <template #default="{ row }">
             <span v-if="!(row as TodoTask).dueAt" class="muted">—</span>
             <span v-else class="due-cell" :class="dueClass(row as TodoTask)">
@@ -206,7 +206,7 @@
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.size"
-          :page-sizes="[10, 20, 50, 100]"
+          :page-sizes="[10,20,50,100]"
           :total="total"
           layout="total,sizes,prev,pager,next,jumper"
           background
@@ -897,11 +897,10 @@ function dueClass(row: TodoTask) {
   return '';
 }
 
+/** 截止时间统一走 utils/time.formatDateTime：yyyy-MM-dd HH:mm:ss（AGENTS §8.3） */
 function formatDue(row: TodoTask): string {
   if (!row.dueAt) return '';
-  const d = new Date(row.dueAt);
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatDateTime(row.dueAt);
 }
 
 function rowClass({ row }: { row: TodoTask }) {
@@ -982,7 +981,7 @@ onMounted(async () => {
 .todo-title-cell.is-child { padding-left: 24px; }
 .child-connector {
   color: var(--color-text-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 22px;
   margin-right: 2px;
@@ -1185,7 +1184,7 @@ onMounted(async () => {
 
 .muted { color: var(--color-text-muted); }
 .small { font-size: 12px; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.mono { font-family: var(--font-mono); }
 
 /* 时间戳强制单行：el-table 的 cell 默认 white-space: normal，列宽算得再准
    也会因为字体回退（等宽字体缺失时退回比例字体，字符更宽）而折行。

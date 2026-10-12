@@ -154,7 +154,7 @@ function resolveIcon(name?: string) {
   font-weight: 600;
 }
 .outline-item-key {
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   opacity: 0.7;
   overflow: hidden;

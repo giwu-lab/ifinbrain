@@ -130,6 +130,12 @@
             <el-tag effect="plain" size="small">{{ row.invoiceType || '—' }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column column-key="expenseCategoryLabel" :label="t('invoice.colExpenseCategory')" :min-width="minOf('expenseCategoryLabel', 120)">
+          <template #default="{ row }">
+            <CellText v-if="(row as InvoiceGroupItem).expenseCategoryLabel" :text="(row as InvoiceGroupItem).expenseCategoryLabel!" />
+            <span v-else class="muted">—</span>
+          </template>
+        </el-table-column>
         <el-table-column column-key="issueDate" :label="t('invoice.colIssueDate')" prop="issueDate" :width="widthOf('issueDate', 120)">
           <template #default="{ row }">
             <span class="mono-time">{{ row.issueDate || '—' }}</span>
@@ -165,21 +171,23 @@
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column column-key="message" :label="t('invoice.colMessage')" :min-width="minOf('message', 140)">
+        <!-- 报销状态：读后端 reimburse_status（NONE/PENDING/APPROVED/REJECTED）。
+             不用「报销单号非空」判定 —— 单号在提交瞬间就写入了，开关打开时
+             提交只是发起审批，真正完成要等流程回写成 APPROVED。
+             表达方式按 AGENTS §7：文字 + 语义色，不套 el-tag / pill。 -->
+        <el-table-column :label="t('invoice.colReimburseStatus')" :width="100" align="center">
           <template #default="{ row }">
             <el-tooltip
               placement="top"
-              :disabled="!((row as InvoiceGroupItem).message && (row as InvoiceGroupItem).message!.length > 20)"
-              :content="(row as InvoiceGroupItem).message!"
+              :disabled="!((row as InvoiceGroupItem).flowInstanceId && (row as InvoiceGroupItem).reimburseStatus === 'REJECTED')"
+              :content="t('invoice.reimburseRejectedHint')"
             >
-              <el-tag
-                :type="statusTagType((row as InvoiceGroupItem).message)"
-                effect="dark"
-                size="small"
-                class="msg-tag"
+              <span
+                class="rs-mark"
+                :class="'rs-' + ((row as InvoiceGroupItem).reimburseStatus || 'NONE').toLowerCase()"
               >
-                {{ row.message }}
-              </el-tag>
+                {{ t('invoice.reimburseStatus_' + ((row as InvoiceGroupItem).reimburseStatus || 'NONE')) }}
+              </span>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -200,9 +208,12 @@
             <span class="mono-time">{{ (row as InvoiceGroupItem).verificationDate || '—' }}</span>
           </template>
         </el-table-column>
-        <el-table-column column-key="createdAt" :label="t('system.colCreatedAt')" prop="createdAt" :width="widthOf('createdAt', 120)">
+        <!-- 创建时间：走项目标准时间戳 formatDateTime（yyyy-MM-dd HH:mm:ss，AGENTS §8.3）。
+             宽度 176 与 todo 页同款：13px 等宽下 "2026-10-09 21:46:29" 约 148px
+             + 单元格内边距约 24px。列内不折行由全局 .cell 的 nowrap 保证。 -->
+        <el-table-column column-key="createdAt" :label="t('system.colCreatedAt')" prop="createdAt" :width="widthOf('createdAt', 176)">
           <template #default="{ row }">
-            <span class="mono-time">{{ ((row.createdAt as unknown as string) || '').slice(0, 10) }}</span>
+            <span class="mono-time">{{ formatDateTime(row.createdAt) }}</span>
           </template>
         </el-table-column>
         <el-table-column column-key="actions" :label="t('common.actions')" :width="widthOf('actions', 80)" align="center" fixed="right">
@@ -296,24 +307,15 @@ import { invoiceApi, type InvoiceGroupItem } from '@/api/invoice';
 import CellText from '@/components/CellText.vue';
 import ProjectFileViewer from '@/components/ProjectFileViewer.vue';
 import { useColumnWidths } from '@/composables/useColumnWidths';
-import { useFileFormat, useInvoiceStatus, useDictStore, DICT_INVOICE_STATUS } from '@/stores/dict';
+import { useFileFormat } from '@/stores/dict';
+import { formatDateTime } from '@/utils/time';
 
 const { t } = useI18n();
 const auth = useAuthStore();
 
-/** 字典：文件格式 + 发票状态 */
+/** 字典：文件格式 */
 const { items: fileFormats } = useFileFormat();
-const dictStore = useDictStore();
 
-/** 根据 invoice message 字符串算出 el-tag type（由字典驱动） */
-function statusTagType(msg: string | undefined): 'success' | 'danger' | 'warning' {
-  if (!msg) return 'warning';
-  const successItem = dictStore.getByValue(DICT_INVOICE_STATUS, 'success');
-  if (successItem && msg === successItem.value) return 'success';
-  const errorItem = dictStore.getByValue(DICT_INVOICE_STATUS, 'error');
-  if (errorItem && (msg === errorItem.value || msg.startsWith(errorItem.value))) return 'danger';
-  return 'warning';
-}
 const rows = ref<InvoiceGroupItem[]>([]);
 const total = ref(0);
 const loading = ref(false);
@@ -467,21 +469,14 @@ onMounted(reload);
 
 <style scoped>
 /* 单元格「单行 + 省略号」已提升为全项目标准，见 styles/global.css 的
-   「标准表格」区块，本页不再重复定义。 */
-.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.toolbar-right { margin-left: auto; display: inline-flex; gap: 8px; }
-.field { display: inline-flex; align-items: center; gap: 6px; }
-.label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  user-select: none;
-}
-.msg-tag { max-width: 100%; }
-.msg-tag :deep(.el-tag__content) {
-  display: inline-block; max-width: 100%;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+   「标准表格」区块，本页不再重复定义。
+   .toolbar / .toolbar-right / .field / .label 同在 global.css，不在页面里重复。 */
+/* 报销状态：文字 + 语义色。颜色走 theme token（§7.3.1），暗色模式自动适配，禁硬编码。 */
+.rs-mark { font-size: var(--font-size-sm); white-space: nowrap; }
+.rs-none { color: var(--color-text-muted); }
+.rs-pending { color: var(--color-warning); }
+.rs-approved { color: var(--color-success); }
+.rs-rejected { color: var(--color-danger); }
 
 /* 文件格式复选框样式 */
 /* chip 组整体不换行：全局 .cell 的 ellipsis 裁不动 inline-flex 容器 */

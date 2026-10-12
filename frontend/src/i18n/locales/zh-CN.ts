@@ -61,6 +61,8 @@ export default {
     featureStorage: '本地磁盘 / S3 兼容存储一键切换',
     featureRbac: '基于 RBAC 的细粒度权限管理',
     defaultHint: '默认账号 {code}，首次登录后请修改密码',
+    invalidCredentials: '用户名或密码错误',
+    loginFailed: '登录失败，请检查网络后重试',
   },
 
   layout: {
@@ -201,6 +203,12 @@ export default {
     'data-mgmt-query':      '查询',
 
     // 档案管理（P5/P6 会在此增加 archive / list 子键）
+    //
+    // 注意：档案库菜单（`/documents/{slug}`，component `documents/list/Index`）刻意不给 key。
+    // 所有档案库共用同一个 component，没有任何 key 能区分它们；而显示名是管理员填的
+    // 库名（部门档案库 = 部门名），那是**用户数据**不是界面文案，翻译它是错的。
+    // `resolveMenuName` 会回落到 `sys_menu.name`。
+    // 回归守卫：`node scripts/menu-i18n-audit.mjs --expect-uncovered 2`
     documents: {
       _: '档案管理',
       archive: { _: '档案库', Index: '档案库' },
@@ -246,6 +254,7 @@ export default {
     designDesc: '绑定数据源查询、挑选查询头字段、配置列宽与分页护栏。',
     view: '查看',
     copy: '复制',
+    copyDone: '已复制为「{name}」',
     publish: '发布',
     unpublish: '取消发布',
     published: '已发布',
@@ -266,6 +275,11 @@ export default {
     saved: '已保存',
     preview: '预览数据',
     previewFailed: '预览失败',
+    previewOk: '预览成功，返回 {n} 行',
+    previewEmpty: '查询执行成功，但没有返回任何列。请检查该查询的 SELECT 列表。',
+    previewData: '数据预览',
+    previewDataHint: '试跑取回的首屏数据，仅用于确认列与数据，不写入报表。',
+    previewNoData: '还没有预览数据。填好上面的查询条件后点「预览数据」。',
     loadFailed: '加载报表失败',
     queryFailed: '查询失败',
     retry: '重试',
@@ -273,18 +287,48 @@ export default {
     pickDate: '选择日期',
     query: '查询',
     loaded: '已加载 {n} 行',
+    totalRows: '共 {n} 条',
     capped: '已达上限 {n} 行',
     loadingMore: '加载中…',
     allLoaded: '已到末尾',
     noData: '暂无数据',
     missingParam: '请填写查询条件：{name}',
     confirmDelete: '确定删除报表「{name}」吗？',
+    auth: '权限',
+    authDialogTitle: '报表授权：{name}',
     expand: '展开',
     collapse: '收起',
     alignLeft: '左对齐',
     alignCenter: '居中',
     alignRight: '右对齐',
-    fixed: '冻结',
+    moveUp: '上移',
+    moveDown: '下移',
+    pubDir: '挂到目录',
+    pubDirPlaceholder: '不选则用上次的目录',
+    pubDirHint: '发布后会在该目录下生成一个侧边栏入口，报表不出现在这里就等于没人找得到。',
+    pubMenuName: '菜单名称',
+    pubMenuNamePlaceholder: '留空则沿用上次设置',
+    pubSort: '排序',
+    pubPerm: '查看权限',
+    pubPermHint: '在「系统设置 → 角色管理」里给角色勾上这个权限，该角色的侧边栏才会出现这个报表。',
+    publishFailed: '发布失败',
+    confirmUnpublish: '取消发布「{name}」后，它的侧边栏入口会一并下线（可重新发布恢复）。确定吗？',
+    exportCsv: '导出 CSV',
+    exportXlsx: '导出 Excel',
+    exportOk: '已导出 {kind}',
+    exportFail: '导出失败',
+    controlHint: '控件类型默认跟随查询里的参数定义；在这里改只影响本报表，播放页按这里的配置渲染。',
+    resetControl: '恢复跟随查询定义',
+    selectOptions: '输入候选值后回车，可直接新建',
+    selectOptionsEmpty: '下拉框还没有候选值，用户打开报表会看到一个空下拉。',
+    pickOption: '请选择',
+    ctrl: {
+      text: '文本框',
+      number: '数字框',
+      date: '日期',
+      datetime: '日期时间',
+      select: '下拉框',
+    },
     col: {
       name: '报表',
       code: '编码',
@@ -294,6 +338,11 @@ export default {
       maxRows: '最大行数',
       status: '状态',
       updatedAt: '更新时间',
+      key: '列标识',
+      label: '列名',
+      width: '列宽',
+      align: '对齐',
+      fixed: '冻结',
     },
   },
 
@@ -302,6 +351,18 @@ export default {
     dash: {
       title: '大屏管理',
       desc: '拖拽式大屏设计器，支持多种图表主题与大屏轮播展示。',
+      // 多选对齐 / 分布（设计器顶栏，选中 ≥2 个组件时出现）
+      selectedN: '已选 {n}',
+      alignLeft: '左对齐',
+      alignCenterX: '水平居中',
+      alignRight: '右对齐',
+      alignTop: '顶对齐',
+      alignCenterY: '垂直居中',
+      alignBottom: '底对齐',
+      distributeH: '水平等距分布（需选 3 个以上）',
+      distributeV: '垂直等距分布（需选 3 个以上）',
+      auth: '权限',
+      authDialogTitle: '大屏授权：{name}',
       create: '新建大屏',
       name: '名称',
       description: '描述',
@@ -323,6 +384,16 @@ export default {
       unpublished2: '已取消发布',
       deleted: '已删除',
       confirmDelete: '确定要删除大屏「{name}」吗？此操作不可恢复。',
+      // 发布对话框（与大屏报表共用同一套发布语义，文案结构对齐 report.*）
+      pubDir: '挂到目录',
+      pubDirPlaceholder: '不选则用上次的目录',
+      pubDirHint: '发布后会在该目录下生成一个侧边栏入口，大屏不出现在这里就等于没人找得到。',
+      pubMenuName: '菜单名称',
+      pubMenuNamePlaceholder: '留空则用大屏名称',
+      pubSort: '排序',
+      pubPerm: '查看权限',
+      pubPermHint: '在「系统设置 → 角色管理」里给角色勾上这个权限，该角色的侧边栏才会出现这个大屏。',
+      confirmUnpublish: '取消发布「{name}」后，它的侧边栏入口会一并下线（可重新发布恢复）。确定吗？',
       empty: '暂无大屏，点击右上角新建',
       wall: '展示墙',
       backToList: '返回列表',
@@ -354,6 +425,7 @@ export default {
       metric: '指标',
       chart: '图表',
       content: '内容',
+      decoration: '装饰',
     },
     layers: {
       title: '图层',
@@ -376,11 +448,15 @@ export default {
       gauge: '仪表盘',
       funnel: '漏斗图',
       treemap: '矩形树图',
+      combo: '柱线双轴',
+      stack: '堆叠图',
       table: '明细表',
       text: '文本',
       image: '图片',
       marquee: '滚动列表',
       divider: '分隔线',
+      border: '装饰边框',
+      titlebar: '大屏标题条',
     },
     theme: {
       default: '默认（跟随系统）',
@@ -446,6 +522,46 @@ export default {
       setImageUrl: '图片地址',
       fit: '填充方式',
       speed: '滚动速度',
+      // 柱线双轴
+      comboLineSmooth: '折线平滑',
+      comboFixLine: '指定折线指标',
+      comboLineIndex: '折线指标序号',
+      // 堆叠图
+      stackShape: '堆叠形态',
+      stack_shape_bar: '堆叠柱',
+      stack_shape_area: '堆叠面积',
+      // 装饰边框
+      borderStyle: '边框样式',
+      borderVariant_corner: '角标',
+      borderVariant_full: '全框',
+      borderVariant_line: '横线',
+      cornerLen: '角标长度',
+      color: '颜色',
+      thickness: '粗细',
+      // 大屏标题条
+      titleStyle: '标题样式',
+      titleVariant_accent: '竖条',
+      titleVariant_solid: '居中',
+      titleVariant_gradient: '渐隐',
+      subText: '副标题',
+      // 分隔线
+      lineStyle: '线型',
+      line_solid: '实线',
+      line_dashed: '虚线',
+      line_dotted: '点线',
+      withTitle: '带标题',
+      lineTitle: '标题文字',
+      // 联动
+      linkage: '联动',
+      linkRules: '已配置',
+      linkSource: '触发源',
+      linkPickSource: '选择被点击的组件',
+      linkParam: '写入参数',
+      linkPickParam: '选择查询参数',
+      linkAdd: '添加联动',
+      linkNeedQuery: '先给本组件绑定一个带参数的查询，才能作为联动目标。',
+      linkActive: '当前筛选',
+      linkClear: '清除筛选',
     },
     view: {
       refresh: '刷新',
@@ -453,31 +569,13 @@ export default {
       fullscreen: '全屏',
       fsFailed: '全屏失败，请检查浏览器权限',
       hideChrome: '隐藏控件',
+      clearFilter: '清除联动筛选',
       backToEdit: '返回编辑',
       noData: '暂无数据',
       notFound: '大屏不存在',
       loadFailed: '大屏加载失败',
       cached: '缓存 {n}s',
       staleFailed: '更新失败',
-    },
-    wall: {
-      empty: '暂无已发布的大屏，请先在设计器中发布',
-      noneSelected: '有 {n} 个已发布大屏未加入展示墙',
-      pick: '选择大屏',
-      pickTitle: '选择展示墙内容',
-      pickHint: '勾选要上墙的大屏并调整轮播顺序；选择保存在本机。临时指定可用 URL 参数 ?ids=2,5（不写入本机配置）。',
-      order: '轮播顺序',
-      unpicked: '未加入',
-      pickedEmpty: '展示墙暂无内容，请从下方加入',
-      allPicked: '所有已发布大屏都已加入',
-      moveUp: '上移',
-      moveDown: '下移',
-      remove: '移出展示墙',
-      add: '加入展示墙',
-      pickAll: '全选',
-      pickNone: '清空',
-      reset: '恢复默认',
-      refresh: '刷新数据',
     },
   },
 
@@ -486,8 +584,9 @@ export default {
     myTasksHint: '点击查看 →',
     flowTodoCount: '待办流程',
     flowTodoHint: '点击查看 →',
-    rolesCount: '角色数',
     menusCount: '菜单数',
+    invoicesCount: '发票数量',
+    invoicesHint: '按发票号去重',
   },
 
   invoice: {
@@ -495,10 +594,12 @@ export default {
     uploadDesc: '支持 PDF / XML，单次最多 50 个文件 / 每个 10MB',
     dropHere: '将文件拖到此处，或点击选择文件',
     clear: '清空',
-    submit: '开始识别 ({count})',
+    submit: '解析发票 ({count})',
     recordsCount: '{count} 条记录',
     colFile: '文件',
     colType: '票种',
+    colExpenseCategory: '费用类别',
+    expenseCategoryPlaceholder: '选择费用类别',
     colPageCount: '页数',
     colInvoiceNo: '发票号',
     colIssueDate: '开票日期',
@@ -525,16 +626,41 @@ export default {
     ocrExtractFailedMsg: '已发送请求，但解析服务返回错误。请检查 Base URL 与 API Key 是否正确，或确认解析服务在线。',
     ocrExtractFailedGoto: '前往检查',
 
-    verificationNoLabel: '核销单号',
-    verificationNoPlaceholder: '输入核销单号',
-    verificationNoRequired: '请先填写核销单号',
-    verifierLabel: '核销人',
-    verifierPlaceholder: '输入核销人',
-    verificationDateLabel: '核销日期',
+    // 注：key 名沿用历史 verification*（未改名，改名会波及 Repository/列映射），
+    // 展示语义已统一为「报销单号 / 报销人 / 报销日期」。
+    verificationNoLabel: '报销单号',
+    verificationNoPlaceholder: '输入报销单号',
+    verificationNoRequired: '请先填写报销单号',
+    verifierLabel: '报销人',
+    verifierPlaceholder: '输入报销人',
+    verificationDateLabel: '报销日期',
 
-    colVerificationNo: '核销单号',
-    colVerifier: '核销人',
-    colVerificationDate: '核销日期',
+    colVerificationNo: '报销单号',
+    colVerifier: '报销人',
+    colVerificationDate: '报销日期',
+    colReimburseStatus: '报销状态',
+    reimburseStatus_NONE: '未报销',
+    reimburseStatus_PENDING: '审批中',
+    reimburseStatus_APPROVED: '已报销',
+    reimburseStatus_REJECTED: '已驳回',
+    reimburseRejectedHint: '该报销单被审批驳回，可修改后重新发起',
+
+    // 报销弹窗（上传识别页点「报销」后弹出）
+    reimburseTitle: '报销信息（{count} 条）',
+    reimburseNoLabel: '报销单号',
+    reimburseNoPlaceholder: '输入报销单号',
+    reimburserLabel: '报销人',
+    reimburserPlaceholder: '输入报销人',
+    reimburseDateLabel: '报销日期',
+    reimburseConfirm: '确认报销',
+    reimburseRequired: '必填',
+    reimburserStale: '所选人员已不在组织架构中，请重新选择',
+    reimburseFormTitle: '报销申请单',
+    reimburseFormUnavailable: '报销申请单加载失败（表单可能已被删除），仍可只提交报销单号 / 报销人 / 报销日期。',
+    withFlowLabel: '发起审批',
+    withFlowOnHint: '提交后进入审批中，审批通过才算已报销',
+    withFlowOffHint: '提交即完成报销，不走审批',
+    saveSubmittedForApproval: '已提交 {count} 条，等待审批',
 
     colFormat: '文件格式',
     colCreatedDate: '创建日期',
@@ -543,26 +669,26 @@ export default {
     previewFailOfd: 'OFD 格式浏览器暂不支持预览，将下载文件',
 
     blockErrTitle: '存在识别失败的文件',
-    blockErrDesc: '请删除识别失败的文件或修正后重新上传，再保存到数据库。',
-    blockDbDupTitle: '存在核销文件已使用的记录',
-    blockDbDupDesc: '下方「核销文件已使用」卡片中列出的发票号已存在于系统，无法重复保存。请删除对应文件后再保存。',
+    blockErrDesc: '请删除识别失败的文件或修正后重新上传，再报销。',
+    blockDbDupTitle: '存在系统内已有的发票',
+    blockDbDupDesc: '下方「发票已存在于系统」卡片中列出的发票号已存在于系统，无法重复报销。请删除对应文件后再报销。',
     blockDupTitle: '本次上传存在重复发票',
-    blockDupDesc: '下方「重复发票（本批次）」卡片中列出的同一发票号 + 文件格式在本批次内出现多次，请移除重复文件后再保存。',
-    saveBlocked: '当前存在阻断项，无法保存到数据库。请按上方红色提示处理。',
+    blockDupDesc: '下方「重复发票（本批次）」卡片中列出的同一发票号 + 文件格式在本批次内出现多次，请移除重复文件后再报销。',
+    saveBlocked: '当前存在阻断项，无法报销。请按上方红色提示处理。',
 
     resultsOkTitle: '识别成功',
     resultsDupTitle: '重复发票（本批次）',
     resultsErrTitle: '识别异常',
     dupGroupTitle: '发票号 {no}（{ext}）出现 {count} 次',
-    dbDupTitle: '核销文件已使用',
+    dbDupTitle: '发票已存在于系统',
     dbDupHintAll: '下列为本批次上传发票号中已存在于数据库的记录 + 数据库中按「发票号 + 文件格式」分组的重复记录。',
     dbDupHintClean: '当前数据库无重复记录。',
     dbDupHits: '共 {count} 条记录',
     dbDupInvoiceNumbers: '涉及 {count} 个发票号',
     colFileExt: '文件格式',
-    saveBtn: '保存 ({count}) 条到数据库',
-    saveHint: '点击后将按"发票号码_核销单号"重命名文件并入库',
-    saveOk: '已保存 {count} 条',
+    saveBtn: '报销 ({count}) 条',
+    saveHint: '点击后填写报销单号 / 报销人 / 报销日期，文件将按"发票号码_报销单号"重命名并入库',
+    saveOk: '已报销 {count} 条',
     saveNoSuccess: '暂无可保存的识别成功记录',
 
     exportCsv: '导出 CSV',
@@ -574,9 +700,9 @@ export default {
     listTitleDesc: '查看已识别的发票，可改字段、重新下载',
     searchPlaceholder: '搜索发票号 / 销售方 / 购买方',
     queryKeywordLabel: '关键字',
-    queryVerificationNoLabel: '核销单号',
-    queryVerifierLabel: '核销人',
-    queryVerificationDateLabel: '核销期间',
+    queryVerificationNoLabel: '报销单号',
+    queryVerifierLabel: '报销人',
+    queryVerificationDateLabel: '报销期间',
     verificationDateRangePlaceholder: '选择开始与结束日期',
 
     editTitle: '编辑发票',
@@ -590,6 +716,13 @@ export default {
     editTax: '税额',
     editTotal: '价税合计',
     editMessage: '备注',
+  },
+
+  // 部门 - 人员两级树（useOrgTree 共用数据源）
+  orgTree: {
+    unassigned: '未分配部门',
+    searchPlaceholder: '搜索部门或人员',
+    loadFailed: '组织架构加载失败',
   },
 
   dict: {
@@ -629,7 +762,7 @@ export default {
     exportBtn: '导出全部',
     importTitle: '批量导入字典',
     importFormatHint: '支持 JSON / CSV，UTF-8 编码。文件最大 5MB。',
-    importTip: 'JSON: [{...}] 或 CSV: type_code,type_name,...,item_code,label,...',
+    importTip: `JSON: [{'{'}...{'}'}] 或 CSV: type_code,type_name,...,item_code,label,...`,
     importChooseFile: '选择文件',
     importPreview: '将导入 {count} 条记录',
     importDryRun: '预演模式（不写入）',
@@ -667,7 +800,7 @@ export default {
     colEmail: '邮箱',
     colPhone: '电话',
     userDeptLabel: '部门',
-    userDeptPlaceholder: '不选则不归属任何部门',
+    userDeptPlaceholder: '请选择所属部门',
     colRoles: '角色',
     colLastLogin: '最后登录',
     colCreatedAt: '创建时间',
@@ -721,8 +854,13 @@ export default {
     parentRoot: '（顶级）',
     editMenuTitle: '编辑菜单',
     newMenuTitle: '新增菜单',
-    confirmDeleteMenu: '确定要删除该菜单吗？',
+    confirmDeleteMenu: '确定要删除菜单「{name}」吗？',
     roleAdminTag: '管理员',
+
+    // 菜单管理页 —— 名称列显示「i18n 解析名」，DB 原名作为副文本（见 AGENTS §2）
+    expandRow: '展开该菜单',
+    collapseRow: '收起该菜单',
+    dbNameTitle: '数据库中保存的名称（该菜单没有对应的 i18n 文案时，界面显示这一列）',
 
     // 组织架构
     deptTitle: '组织架构',
@@ -866,6 +1004,9 @@ export default {
     // 弹窗
     createTitle: '新建数据源',
     editTitle: '编辑数据源',
+    // 列表页操作条按钮文案；命名沿用 newUser / newRole / newMenu / newDept 惯例。
+    // 不要复用 colName（那是表格列名「名称」，当按钮文案会读成「名称」两个字）
+    newDatasource: '新建数据源',
     deleteConfirm: '确认删除数据源 "{name}" ？删除后无法恢复。',
 
     // 空状态
@@ -1327,11 +1468,14 @@ export default {
     previewSearchNoMatch: '未找到匹配',
     previewXlsxEmpty: '该 sheet 无数据',
 
-    /* 档案库授权列名（view/upload/update/delete） */
+    /* 实体级授权列名。档案库用 view/upload/update/delete，
+       大屏与报表用 view/design/publish/delete —— 两套动词并存于同一个对话框组件。 */
     perm: {
       view: '查看',
       upload: '上传',
       update: '修改',
+      design: '编辑设计',
+      publish: '发布下线',
       delete: '删除',
     },
   },
@@ -1523,6 +1667,72 @@ export default {
       advanced: '高级',
     },
 
+    // 表达式（{{$form.key}}）
+    // ⚠️ 下面几条用反引号模板字符串：vue-i18n 把 {{ 当成「链接消息」语法，
+    //    想显示字面量花括号必须写成 {'{{'} / {'}}'}（成对！只转一层会少一个大括号）。
+    expr: {
+      section: '表达式',
+      hint: `标签 / 占位提示 / 帮助文字里可写 {'{{'}$form.<字段key>{'}}'}，随表单数据实时更新`,
+      refs: '可引用字段：',
+      noRefs: '当前表单还没有其它可引用的字段',
+      undefinedRef: `{'{{'}$form.{key}{'}}'} 引用了不存在的字段「{key}」`,
+    },
+
+    // 条件逻辑
+    cond: {
+      section: '条件逻辑',
+      hint: '填入布尔表达式；留空表示恒成立。求值失败一律按「不成立」处理',
+      visibleWhen: '显示条件',
+      visibleWhenPh: `如 {'{{'}$form.type === "company"{'}}'} —— 为真才显示`,
+      disabledWhen: '禁用条件',
+      disabledWhenPh: `如 {'{{'}$form.locked{'}}'} —— 为真则只读`,
+      requiredWhen: '必填条件',
+      requiredWhenPh: `如 {'{{'}$form.needInvoice{'}}'} —— 与上方「必填」是或的关系`,
+    },
+
+    // 动态选项源
+    optionsSource: {
+      section: '动态选项源',
+      hint: '开启后下拉选项实时取自查询，忽略上方静态选项',
+      enable: '从查询取选项',
+      query: '查询',
+      queryPh: '选择一条已启用的查询',
+      labelField: '文本列',
+      labelFieldPh: '结果集里哪一列当显示文本',
+      valueField: '值列',
+      valueFieldPh: '结果集里哪一列当值',
+      cacheSec: '缓存秒数',
+    },
+
+    // 栅格画布 / 字段样式
+    grid: {
+      widen: '加宽一半',
+      narrow: '减窄一半',
+      badgeVisible: '条件显示',
+      badgeDisabled: '条件禁用',
+      badgeRequired: '条件必填',
+      hiddenByCond: '当前不显示',
+    },
+    style: {
+      section: '栅格与样式',
+      width: '宽度（列）',
+      height: '高度（行）',
+      offset: '位置',
+      col: '列',
+      row: '行',
+      background: '背景',
+      color: '文字颜色',
+      fontSize: '字号 px',
+      align: '对齐',
+      alignLeft: '左',
+      alignCenter: '中',
+      alignRight: '右',
+      padding: '内边距',
+      radius: '圆角',
+      none: '不设置',
+      reset: '清除样式',
+    },
+
     // JSON 模式
     jsonTitle: '当前 schema JSON',
     jsonCopy: '复制',
@@ -1595,9 +1805,11 @@ export default {
     hint: {
       richText: '本期仅提供纯文本富文本，后续可接入 tinymce / wangEditor',
     },
+    loadingOptions: '选项加载中…',
     warning: {
       userLoadFailed: '用户列表加载失败',
       deptLoadFailed: '部门列表加载失败',
+      optionsLoadFailed: '下拉选项加载失败',
     },
 
     // 字段属性面板
@@ -1669,7 +1881,7 @@ export default {
       branches: '条件分支',
       branchLabel: '标签',
       noOutEdge: '本节点还没有出线。在画布上从本节点拖一条线到下一个节点，才能配置分支条件。',
-      branchEdgeHint: '条件写在「出线」上——引擎按顺序取第一条为真的线。留空 = 无条件通过（可作兜底分支）；approved / rejected = 上一环节的审批结果；其余按 SpEL 写，变量名用表单字段的 key，如 ${#amount > 5000}。',
+      branchEdgeHint: `条件写在「出线」上——引擎按顺序取第一条为真的线。留空 = 无条件通过（可作兜底分支）；approved / rejected = 上一环节的审批结果；其余按 SpEL 写，变量名用表单字段的 key，如 ${'$'}{'{'}#amount > 5000{'}'}。`,
     },
 
     approval: {

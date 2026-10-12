@@ -467,7 +467,7 @@ onMounted(reload);
 .test-result .result-line { font-weight: 600; }
 .test-result .result-detail {
   font-size: 12px;
-  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   word-break: break-all;
   color: var(--color-text-secondary);
   margin-top: 2px;

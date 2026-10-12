@@ -1,10 +1,16 @@
 package com.anomalyco.ifinbrain.web.design.form.service;
 
+import com.anomalyco.ifinbrain.web.bi.dto.BiDataQueryReq;
+import com.anomalyco.ifinbrain.web.bi.dto.BiDataResp;
+import com.anomalyco.ifinbrain.web.bi.service.BiDataService;
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.datamgmt.dto.QueryResultDto;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormDesignCreateReq;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormDesignDto;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormDesignUpdateReq;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldColumn;
+import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldOption;
+import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldOptionsSource;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldSchema;
 import com.anomalyco.ifinbrain.web.design.form.entity.SysFormDesign;
 import com.anomalyco.ifinbrain.web.design.form.enums.FieldType;
@@ -15,8 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -26,6 +34,8 @@ public class FormDesignService {
 
     private final SysFormDesignRepository repo;
     private final PermissionChecker perm;
+    /** 只借用取数执行逻辑（queryAuthorized 不鉴权，鉴权在本类里做） */
+    private final BiDataService biDataService;
 
     // ===================== 查询 =====================
 
@@ -161,8 +171,13 @@ public class FormDesignService {
                 throw new BizException(400, "字段 type 不合法: " + f.getType() + "（key=" + f.getKey() + "）");
             }
             if (f.getType().needsOptions()) {
-                if (f.getOptions() == null || f.getOptions().isEmpty()) {
-                    throw new BizException(400, "字段 type=" + f.getType() + " 必须配置 options（key=" + f.getKey() + "）");
+                // 静态 options 与动态 optionsSource 二选一：配了 source 就以查询为准
+                boolean hasSource = f.getOptionsSource() != null;
+                if (!hasSource && (f.getOptions() == null || f.getOptions().isEmpty())) {
+                    throw new BizException(400, "字段 type=" + f.getType() + " 必须配置 options 或 optionsSource（key=" + f.getKey() + "）");
+                }
+                if (hasSource) {
+                    validateOptionsSource(f.getOptionsSource(), "（key=" + f.getKey() + "）");
                 }
             }
             if (f.getType() == FieldType.TABLE) {
@@ -202,6 +217,80 @@ public class FormDesignService {
         }
     }
 
+    /**
+     * 动态选项源校验。
+     *
+     * <p>这几条都在「保存时兜住」——漏了不会在运行时炸，只会让填表人看到一个
+     * 永远空着的下拉，且报错发生在他填表的时候而不是设计的时候。
+     *
+     * @param where 报错时的定位串，直接拼进错误消息
+     */
+    private void validateOptionsSource(FormFieldOptionsSource src, String where) {
+        if (src == null) {
+            throw new BizException(400, "optionsSource 为空" + where);
+        }
+        if (src.getQueryId() == null || src.getQueryId() <= 0) {
+            throw new BizException(400, "optionsSource.queryId 无效" + where);
+        }
+        if (src.getLabelField() == null || src.getLabelField().isBlank()) {
+            throw new BizException(400, "optionsSource.labelField 不能为空" + where);
+        }
+        if (src.getValueField() == null || src.getValueField().isBlank()) {
+            throw new BizException(400, "optionsSource.valueField 不能为空" + where);
+        }
+    }
+
+    /**
+     * 按动态选项源取回选项列表。
+     *
+     * <p>权限用 {@code design:form:view} 而不是复用 BI 的 {@code bi:dataset:view}：
+     * 填表人只该有填表的权限，不该被要求持有大屏数据权限。取数执行逻辑复用
+     * {@code BiDataService#queryAuthorized}（该方法不做鉴权，由本方法负责）。
+     *
+     * <p>安全边界与 BI 组件绑 query 完全一致：**填表人不能自己挑 query**，
+     * queryId 来自设计期固化的 schema，填表请求里带什么都不改变取数目标。
+     */
+    @Transactional(readOnly = true)
+    public List<FormFieldOption> options(FormFieldOptionsSource src) {
+        perm.require("design:form:view");
+        validateOptionsSource(src, "");
+        BiDataQueryReq req = new BiDataQueryReq();
+        req.setQueryId(src.getQueryId());
+        req.setParams(src.getParams());
+        req.setCacheSec(src.getCacheSec());
+
+        BiDataResp resp = biDataService.queryAuthorized(req);
+
+        int labelIdx = columnIndex(resp.getColumns(), src.getLabelField());
+        int valueIdx = columnIndex(resp.getColumns(), src.getValueField());
+        if (labelIdx < 0 || valueIdx < 0) {
+            List<String> actual = resp.getColumns().stream().map(c -> c.getKey()).toList();
+            throw new BizException(400, "查询结果里找不到列：labelField=" + src.getLabelField()
+                    + " valueField=" + src.getValueField() + "（实际返回 " + actual + "）");
+        }
+
+        List<FormFieldOption> out = new ArrayList<>(resp.getRowCount());
+        for (List<Object> row : resp.getRows()) {
+            Object lv = row.get(labelIdx);
+            Object vv = row.get(valueIdx);
+            if (lv == null && vv == null) continue;   // 整行空，跳过
+            out.add(FormFieldOption.builder()
+                    .label(lv == null ? "" : String.valueOf(lv))
+                    .value(vv == null ? "" : String.valueOf(vv))
+                    .build());
+        }
+        return out;
+    }
+
+    /** 按列名找下标；找不到返回 -1 */
+    private int columnIndex(List<QueryResultDto.Column> columns, String key) {
+        if (columns == null || key == null) return -1;
+        for (int i = 0; i < columns.size(); i++) {
+            if (key.equals(columns.get(i).getKey())) return i;
+        }
+        return -1;
+    }
+
     private List<FormFieldSchema> parseFields(String json) {
         if (json == null || json.isBlank()) return List.of();
         try {
@@ -214,7 +303,10 @@ public class FormDesignService {
     }
 
     private String serializeFields(List<FormFieldSchema> fields) {
-        if (fields == null || fields.isEmpty()) return "{\"version\":1,\"fields\":[]}";
+        // 空数组就写空数组：早先这里写的是 {"version":1,"fields":[]}，
+        // 而 parseFields 按 List 读 —— 空表单存进去再读出来会解析失败（只 warn 后
+        // 兜成空 list，碰巧看不出错）。写回与读入同构，省掉这个不一致。
+        if (fields == null || fields.isEmpty()) return "[]";
         try {
             return new tools.jackson.databind.ObjectMapper().writeValueAsString(fields);
         } catch (Exception e) {

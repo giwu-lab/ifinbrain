@@ -1,6 +1,8 @@
 package com.anomalyco.ifinbrain.web.documents.service;
 
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.PageResp;
 import com.anomalyco.ifinbrain.web.documents.dto.ArchiveLibraryCreateReq;
 import com.anomalyco.ifinbrain.web.documents.dto.ArchiveLibraryDto;
 import com.anomalyco.ifinbrain.web.documents.dto.ArchiveLibraryUpdateReq;
@@ -19,6 +21,7 @@ import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import com.anomalyco.ifinbrain.web.storage.StorageSelector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 档案库（原「类目」）Service。
@@ -62,6 +66,12 @@ public class ArchiveLibraryService {
      */
     private static final short STATUS_READY = 1;
 
+    /** 档案库级 view perm 的 code 模板（slug 存在库里，所以权限码是动态拼的） */
+    private static final String LIB_VIEW_PERM = "documents:%s:view";
+
+    /** 档案库启用态 —— 列表与下拉都只看启用的 */
+    private static final short LIB_ENABLED = 1;
+
     private final ArchiveLibraryRepository libraryRepo;
     private final DocumentRecordRepository documentRepo;
     private final SysMenuRepository menuRepo;
@@ -72,6 +82,39 @@ public class ArchiveLibraryService {
     private final PermissionChecker perm;
 
     // ===================== 查询 =====================
+
+    /**
+     * 档案库管理页分页。
+     *
+     * <p>与 {@link #list()} 的可见性口径完全一致（只返回当前用户拥有
+     * {@code documents:{slug}:view} 的启用档案库），但把过滤<b>下推给数据库</b>：
+     * 先用 {@link #authorizedLibrarySlugs()} 反推出有权 slug 集合，再用 {@code SlugIn} 做真正的切片。
+     *
+     * <p>为什么不直接「取全量再在内存里切」：那样 total 与页大小都会失真 —— 用户只有 2 个可见档案库时，
+     * 第 1 页永远拿不满 size，看起来像坏了。分页必须是 DB 层切片。
+     */
+    @Transactional(readOnly = true)
+    public PageResp<ArchiveLibraryDto> page(PageReq req) {
+        List<String> slugs = authorizedLibrarySlugs();
+        if (slugs.isEmpty()) {
+            return PageResp.of(List.of(), 0, req.safePage(), req.safeSize());
+        }
+        Page<ArchiveLibrary> p = libraryRepo
+                .findAllByStatusAndSlugInOrderBySortAscIdAsc(LIB_ENABLED, slugs, req.toPageable());
+        return PageResp.of(p.getContent().stream()
+                        .map(c -> ArchiveLibraryDto.fromEntity(c, fileCount(c.getId())))
+                        .toList(),
+                p.getTotalElements(), req.safePage(), req.safeSize());
+    }
+
+    /** 当前用户可见的启用档案库 slug 集合（= 权限过滤的下推版本） */
+    private List<String> authorizedLibrarySlugs() {
+        Set<String> myPerms = perm.currentPerms();
+        if (myPerms.isEmpty()) return List.of();
+        return libraryRepo.findEnabledSlugs().stream()
+                .filter(slug -> myPerms.contains(String.format(LIB_VIEW_PERM, slug)))
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public List<ArchiveLibraryDto> list() {

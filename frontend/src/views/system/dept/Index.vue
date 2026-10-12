@@ -2,17 +2,7 @@
   <div class="page-container fade-in-up">
     <div class="table-wrap">
       <div class="table-actions">
-        <el-input
-          v-model="keyword"
-          :placeholder="t('system.deptSearchPlaceholder')"
-          size="default"
-          clearable
-          style="width: 220px;"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
+        <!-- 主操作（新增部门）在左，搜索靠右 —— 全项目统一，见 global.css .table-actions -->
         <el-button
           v-if="auth.hasPerm('system:dept:create')"
           type="primary"
@@ -21,6 +11,16 @@
         >
           {{ t('system.newDept') }}
         </el-button>
+        <el-input
+          v-model="keyword"
+          class="header-actions actions-search"
+          :placeholder="t('system.deptSearchPlaceholder')"
+          clearable
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
       </div>
 
       <el-table
@@ -31,6 +31,7 @@
         :tree-props="{ children: 'children' }"
         :default-expand-all="false"
         border
+        size="small"
         row-class-name="dept-row"
         empty-text=""
         @expand-change="handleExpand"
@@ -403,7 +404,7 @@ onMounted(reload);
 .name-icon { color: var(--color-primary); font-size: 16px; margin-right: 4px; }
 .strong { font-weight: 600; color: var(--color-text); }
 .code-chip {
-  font-family: 'SF Mono', Menlo, ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   padding: 1px 6px;
   background: var(--color-bg);
@@ -448,8 +449,7 @@ onMounted(reload);
 :deep(tr.el-table__row--level-1 > td:first-child) { border-left: 2px solid var(--color-border-soft); }
 :deep(tr.el-table__row--level-2 > td:first-child) { border-left: 2px solid var(--color-primary-soft); }
 :deep(tr.el-table__row--level-3 > td:first-child) { border-left: 2px solid var(--color-primary); }
-
-:deep(.dept-row.el-table__row td) { padding: 6px 0 !important; }
-:deep(.dept-row.el-table__row .cell) { padding: 0 12px !important; }
-:deep(.el-table .dept-row th.el-table__cell) { padding: 8px 0 !important; }
+/* 行高 / cell 内边距不再自造：global.css 的「标准表格」区块已锁死 8px/20px，
+ * 且 size="small" 让 .cell 用 EP 的 0 8px —— 与发票列表完全一致。
+ * 原来这里写死 6px + 12px（!important），反而把行压得比别处更紧凑。 */
 </style>

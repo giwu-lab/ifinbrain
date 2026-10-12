@@ -293,7 +293,7 @@ function onSubmit() {
   min-width: 0; flex: 0 1 auto;
 }
 .pp-query-ds {
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   background: #FFFFFF;
   padding: 1px 6px; border-radius: 2px;
@@ -310,7 +310,7 @@ function onSubmit() {
   gap: 8px;
 }
 .pp-field-source {
-  font-size: 13px; color: #6B6B65; font-family: ui-monospace, monospace;
+  font-size: 13px; color: #6B6B65; font-family: var(--font-mono);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .pp-arrow { color: #C8C8C2; text-align: center; }
@@ -330,9 +330,9 @@ function onSubmit() {
   font-size: 12px; color: #6B6B65;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   padding-left: 4px;
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
-.mono { font-family: ui-monospace, monospace; }
+.mono { font-family: var(--font-mono); }
 .muted { color: #8A8A85; }
 .small { font-size: 12px; }
 .xs { font-size: 11px; }

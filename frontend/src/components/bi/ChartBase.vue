@@ -11,6 +11,7 @@ import { onBeforeUnmount, onMounted, ref, shallowRef, watch, nextTick } from 'vu
 import { echarts } from './echartsEntry';
 import type { EChartsType } from 'echarts/core';
 import { buildChartOption, type ChartColors } from '@/utils/bi/chartOption';
+import { emitChartClick } from '@/utils/bi/events';
 import type { BiDataResp, BiWidget, DashboardTheme } from '@/api/bi';
 import { presetVars } from '@/utils/bi/layout';
 
@@ -52,11 +53,35 @@ function render() {
   if (!option) return;
   if (!chart.value) {
     chart.value = echarts.init(el, undefined, { renderer: 'canvas' });
+    bindClick(chart.value);
   }
   const inst = chart.value;
   if (!inst) return;
   // notMerge=true：字段映射变了要清掉旧 series，否则会残留
   inst.setOption(option, true);
+}
+
+/**
+ * 点击 → 广播给联动订阅方。
+ *
+ * 只在 init 之后绑一次：render() 每次 setOption 都会跑，绑在 render 里会
+ * 越叠越多，最后一次点击触发 N 次联动取数。
+ *
+ * 取 params.name 作为分类值：柱/线/堆叠点的是分类轴 label，饼/环点的是
+ * 扇区名，两种都能拿到同一个语义 —— 「用户点了哪一类」。
+ */
+function bindClick(inst: EChartsType) {
+  inst.on('click', (params: any) => {
+    const v = params?.name;
+    if (v === undefined || v === null || v === '') return;
+    emitChartClick({
+      // 读 props 而非闭包快照：主题/数据变了 widget 对象会换，绑一次即可
+      widgetId: props.widget.id,
+      value: String(v),
+      seriesName: String(params?.seriesName ?? ''),
+      dataIndex: Number(params?.dataIndex ?? -1),
+    });
+  });
 }
 
 function resize() {

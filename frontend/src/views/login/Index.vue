@@ -102,6 +102,22 @@
           </el-button>
         </el-form>
 
+        <!-- 登录失败提示：就地显示在卡片里，不用 toast。
+             为什么必须本页兜：登录接口对「密码错」和「用户名不存在」都返回 HTTP 401，
+             而 api/http.ts 的 error 拦截器对「无 refreshToken + 已在 /login」的 401
+             是静默 reject 的（走不到那条 ElMessage），所以不自己处理就是毫无反馈。 -->
+        <el-alert
+          v-if="loginErrorKey"
+          type="error"
+          :closable="false"
+          class="error-alert"
+          show-icon
+        >
+          <template #title>
+            <span class="error-text">{{ t(loginErrorKey) }}</span>
+          </template>
+        </el-alert>
+
         <el-alert
           type="info"
           :closable="false"
@@ -118,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
@@ -140,6 +156,13 @@ const rules = computed<FormRules>(() => ({
   password: [{ required: true, message: t('common.required') }]
 }));
 
+/** 登录失败提示。存 i18n key 而不是文案本身 —— 用户在登录页切语言时提示要跟着变。 */
+type LoginErrorKey = 'login.invalidCredentials' | 'login.loginFailed';
+const loginErrorKey = ref<LoginErrorKey | ''>('');
+
+/* 用户一改动输入就把上一次的失败提示收掉，避免「已经改对了，红字还挂着」 */
+watch(() => [form.username, form.password], () => { loginErrorKey.value = ''; });
+
 const currentLangLabel = computed(() => (locale.value === 'en-US' ? 'English' : '中文'));
 
 function onLang(cmd: string) {
@@ -152,6 +175,7 @@ async function submit() {
   await formRef.value.validate(async (valid) => {
     if (!valid) return;
     loading.value = true;
+    loginErrorKey.value = '';   // 每次重试先清掉上一次的提示
     try {
       await auth.login(form.username, form.password);
       try {
@@ -169,6 +193,11 @@ async function submit() {
       }
     } catch (authErr) {
       console.error('login error:', authErr);
+      // 不透传后端 message：那是英文原文（"Invalid username or password"），
+      // 中文界面上很突兀，而且「密码错」和「账号被停用」在用户眼里是同一件事。
+      const status = (authErr as { response?: { status?: number } })?.response?.status;
+      loginErrorKey.value =
+        status === 401 || status === 403 ? 'login.invalidCredentials' : 'login.loginFailed';
     } finally {
       loading.value = false;
     }
@@ -375,6 +404,15 @@ async function submit() {
   background: #f3f4f6;
   border-color: #e5e7eb;
 }
+/* 失败提示紧跟表单，间距比下面的默认账号提示小一点，视觉上属于「表单的一部分」 */
+.error-alert {
+  margin-top: 14px;
+  border-radius: 8px;
+}
+.error-alert :deep(.el-alert__title) {
+  font-size: 13px;
+  line-height: 1.5;
+}
 .hint-alert :deep(.el-alert__title) {
   font-size: 12px;
   color: var(--color-text-secondary);
@@ -386,7 +424,7 @@ async function submit() {
   background: var(--color-bg-elev);
   padding: 1px 6px;
   border-radius: 4px;
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   color: var(--color-primary);
 }
 

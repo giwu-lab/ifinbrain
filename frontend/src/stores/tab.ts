@@ -6,10 +6,8 @@ const STORAGE_KEY = 'ifinbrain.tabs.v2';
 /** 不入 tab 标签条的路径前缀（单次访问页 / 鉴权页） */
 const IGNORED_PREFIXES = [
   '/login', '/403', '/404',
-  // BI 播放页 / 展示墙：全屏无 chrome 的单次访问页，不占 tab
-  '/bi/dashboard/view', '/bi/dashboard/wall',
-  // 报表播放页：同样是沉浸式单次访问页
-  '/bi/report/view',
+  // BI 大屏播放页：全屏无 chrome 的单次访问页，不占 tab
+  '/bi/dashboard/view',
 ];
 
 export interface Tab {
@@ -19,6 +17,14 @@ export interface Tab {
   fullPath: string;
   /** i18n key（如 'menu.system.user.Index'）；渲染时即时 t() 拿最新翻译 */
   nameKey: string;
+  /**
+   * 页面自覆写的**字面量**标题；为空则退回 nameKey 走 i18n。
+   *
+   * <p>为什么需要：i18n key 是模块级的静态文案，而报表 / 大屏这类「一个路由对应多个业务对象」
+   * 的页面，标题必须跟着数据走（报表叫什么，tab 就该叫什么）。
+   * 页面加载完调 {@link TabStore.setTitle} 写进来。
+   */
+  title?: string;
   /** 锚定标签：不可关闭、刷新不丢 */
   affix: boolean;
   /** 是否可关闭（affix 永远 false） */
@@ -88,6 +94,13 @@ export const useTabStore = defineStore('tab', {
      *  注：当前实现用 <keep-alive> 无 :include 全缓存，不依赖此 getter；保留以备后续切换。 */
     activeIds: (s): string[] => s.tabs.map((t) => t.id),
     hasTabs: (s: TabState) => s.tabs.length > 0,
+    /**
+     * 当前页的自定义标题（无则空串）。
+     * 面包屑读它 —— 面包屑和 tab 说的是同一件事，两处得一致，
+     * 否则会出现「tab 显示订单报表、面包屑显示报表展示」。
+     */
+    activeTitle: (s: TabState): string =>
+      s.tabs.find((t) => t.id === s.activeId)?.title ?? '',
   },
 
   actions: {
@@ -106,10 +119,27 @@ export const useTabStore = defineStore('tab', {
         // 同 path 不同 query：合并（更新 fullPath 与 nameKey）
         existing.fullPath = fullPath;
         existing.nameKey = nameKey;
+        // 清掉页面自设的标题：页面会重新加载并再次声明。
+        // 不清的话，上次写进去的旧对象名会留在标签上（改了报表名却还显示旧的）。
+        existing.title = undefined;
       } else {
         this.tabs.push({ id, fullPath, nameKey, affix, closable });
       }
       this.activeId = id;
+      this._persist();
+    },
+
+    /**
+     * 页面加载完数据后回填自己的标题（报表名 / 大屏名 / 档案库名…）。
+     *
+     * <p>找不到对应 tab 时静默返回：页面可能还没被登记成 tab
+     * （沉浸式页面在 IGNORED_PREFIXES 里，或者 openTab 还没跑），那就没有标签要改。
+     */
+    setTitle(path: string, title: string) {
+      if (!title) return;
+      const tab = this.tabs.find((t) => t.id === pathId(path));
+      if (!tab || tab.title === title) return;
+      tab.title = title;
       this._persist();
     },
 

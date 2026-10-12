@@ -90,6 +90,9 @@ const ctx = reactive<{
 });
 
 function labelOf(tab: Tab): string {
+  // 页面自设的标题优先（报表名 / 大屏名…）。它在 TabBar 里不是特例：
+  // 播放页的标签要是写死成「报表展示」，用户根本分不清开的是哪张报表。
+  if (tab.title) return tab.title;
   // /documents/:slug —— 按 slug 解析档案库实际名称（admin 在档案库管理里设置的中文名）
   const m = /^\/documents\/([^/]+)$/.exec(tab.id);
   if (m && m[1] !== 'archive') {

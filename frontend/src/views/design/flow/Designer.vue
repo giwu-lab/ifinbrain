@@ -473,7 +473,7 @@ onBeforeUnmount(() => globalThis.removeEventListener('keydown', handleKey));
 .json-content {
   margin: 0;
   padding: 8px;
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.6;
   background: var(--color-bg);

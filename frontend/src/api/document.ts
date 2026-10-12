@@ -1,4 +1,5 @@
 import { http } from './http';
+import type { PageResp } from '@/types';
 
 /** Spring Data Page JSON 序列化（content/number/size/totalElements/totalPages） */
 export interface Page<T> {
@@ -63,13 +64,23 @@ export interface FolderItem {
 export interface BrowseResult {
   currentPath: string;
   categorySlug: string;
+  /** 子目录不分页 —— 导航项必须完整可见，否则用户会「找不到目录」 */
   folders: FolderItem[];
+  /** 当前页的 immediate 文件 */
   files: DocumentItem[];
+  /** 当前层文件总条数（不含 folders） */
+  total: number;
+  page: number;
+  size: number;
 }
 
 /** 档案库（原「类目」）CRUD + 授权。端点：/api/archives */
 export const archiveApi = {
+  /** 全量列表：下拉与类目导航用（必须看到全部有权限的档案库，不分页） */
   list:   () => http.get<unknown, ArchiveLibrary[]>('/archives'),
+  /** 档案库管理页：后端真分页，可见性口径与 list() 一致 */
+  page:   (params?: { page?: number; size?: number }) =>
+    http.get<unknown, PageResp<ArchiveLibrary>>('/archives/page', { params }),
   detail: (id: number) => http.get<unknown, ArchiveLibrary>(`/archives/${id}`),
   create: (body: Partial<ArchiveLibrary>) =>
     http.post<unknown, ArchiveLibrary>('/archives', body),
@@ -89,9 +100,14 @@ export const documentApi = {
     http.get<unknown, Page<DocumentItem>>(
       `/documents?categoryId=${categoryId}&page=${page}&size=${size}`,
     ),
-  /** 浏览某档案库某路径：返回 immediate 子文件夹 + 文件 */
-  browse: (categoryId: number, path = '') =>
-    http.get<unknown, BrowseResult>(`/document-browse?categoryId=${categoryId}&path=${encodeURIComponent(path)}`),
+  /**
+ * 浏览某档案库某路径：返回 immediate 子文件夹（不分页）+ immediate 文件（分页）。
+ *
+ * <p>page 从 1 开始（与全项目其它列表一致）；子目录永远全量返回。
+ */
+browse: (categoryId: number, path = '', page = 1, size = 20) =>
+    http.get<unknown, BrowseResult>(
+      `/document-browse?categoryId=${categoryId}&path=${encodeURIComponent(path)}&page=${page}&size=${size}`),
   detail: (id: number) =>
     http.get<unknown, DocumentItem>(`/documents/${id}`),
   upload: (categoryId: number, file: File, folderPath = '') => {

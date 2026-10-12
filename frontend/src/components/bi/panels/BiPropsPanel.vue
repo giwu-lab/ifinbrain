@@ -12,11 +12,16 @@ import { Top, Bottom } from '@element-plus/icons-vue';
 import type { BiWidget } from '@/api/bi';
 import { WIDGET_META } from '@/utils/bi/layout';
 import BiDataBindPanel from './BiDataBindPanel.vue';
+import BiInteractionPanel from './BiInteractionPanel.vue';
 
 const props = defineProps<{
   widget: BiWidget | null;
   canvasCols: number;
   canvasRows: number;
+  /** 画布全部组件 —— 联动的触发源候选 */
+  widgets?: BiWidget[];
+  /** 当前生效的运行时筛选（来自 useBiInteraction）；面板只显示选中组件自己的 */
+  activeFilters?: { widgetId: string; param: string; value: string }[];
 }>();
 
 const emit = defineEmits<{
@@ -24,15 +29,21 @@ const emit = defineEmits<{
   (e: 'style', patch: Partial<BiWidget['style']>): void;
   (e: 'extra', patch: Record<string, any>): void;
   (e: 'layer', op: 'front' | 'back'): void;
+  (e: 'clear-filters'): void;
 }>();
 
 const { t } = useI18n();
 
-const active = ref(['basic', 'style', 'data', 'extra']);
+const active = ref(['basic', 'style', 'data', 'link', 'extra']);
 
 const meta = computed(() => (props.widget ? WIDGET_META[props.widget.type] : null));
 const needsData = computed(() => meta.value?.needsData ?? false);
 const extra = computed(() => props.widget?.extra || {});
+
+/** 只把「当前选中组件」自己的运行时筛选筛出来 */
+const activeFilters = computed(() =>
+  (props.activeFilters || []).filter((a) => !props.widget || a.widgetId === props.widget.id),
+);
 
 /** 各组件类型的额外配置项 */
 function onExtra(k: string, v: any) {
@@ -212,7 +223,10 @@ const textAligns = ['left', 'center', 'right'];
                   :model-value="extra.align || 'center'" size="small"
                   @update:model-value="(v: any) => onExtra('align', v)"
                 >
-                  <el-radio-button v-for="a in textAligns" :key="a" :label="a">{{ t(`bi.props.align_${a}`) }}</el-radio-button>
+                  <!-- 用 value 而不是 label 承载选中值：Element Plus 2.6 起 label 当值是废弃用法
+                   （use-radio.ts 里 useDeprecated 'label act as value'，3.0 移除），
+                   每次渲染都会往控制台打一条 deprecation 警告。 -->
+                  <el-radio-button v-for="a in textAligns" :key="a" :value="a">{{ t(`bi.props.align_${a}`) }}</el-radio-button>
                 </el-radio-group>
               </el-form-item>
               <el-form-item :label="t('bi.props.fontSize')">
@@ -281,7 +295,169 @@ const textAligns = ['left', 'center', 'right'];
                 />
               </el-form-item>
             </template>
+
+            <!-- 柱线双轴 / 堆叠 -->
+            <template v-else-if="widget.type === 'combo'">
+              <el-form-item :label="t('bi.props.comboLineSmooth')">
+                <el-switch
+                  :model-value="extra.lineSmooth !== false"
+                  @update:model-value="(v: any) => onExtra('lineSmooth', v)"
+                />
+              </el-form-item>
+              <!--
+                折线默认落在最后一组指标上。这里只给序号而不给下拉，是因为面板拿不到
+                查询返回的列名（列名要真去跑一次查询才有），下拉里只能显示「指标 1/2/3」。
+                序号 0 起，与「基础 → 指标 (Y)」的排列顺序一致。
+              -->
+              <el-form-item :label="t('bi.props.comboFixLine')">
+                <el-switch
+                  :model-value="extra.lineSeries !== null && extra.lineSeries !== undefined"
+                  @update:model-value="(v: any) => onExtra('lineSeries', v ? 0 : null)"
+                />
+              </el-form-item>
+              <el-form-item
+                v-if="extra.lineSeries !== null && extra.lineSeries !== undefined"
+                :label="t('bi.props.comboLineIndex')"
+              >
+                <el-input-number
+                  :model-value="extra.lineSeries" :min="0" :max="20" :step="1"
+                  controls-position="right" style="width: 100%"
+                  @update:model-value="(v: any) => onExtra('lineSeries', v ?? 0)"
+                />
+              </el-form-item>
+            </template>
+
+            <template v-else-if="widget.type === 'stack'">
+              <el-form-item :label="t('bi.props.stackShape')">
+                <el-radio-group
+                  :model-value="extra.shape || 'bar'" size="small"
+                  @update:model-value="(v: any) => onExtra('shape', v)"
+                >
+                  <el-radio-button value="bar">{{ t('bi.props.stack_shape_bar') }}</el-radio-button>
+                  <el-radio-button value="area">{{ t('bi.props.stack_shape_area') }}</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+            </template>
+
+            <!-- 装饰边框 -->
+            <template v-else-if="widget.type === 'border'">
+              <el-form-item :label="t('bi.props.borderStyle')">
+                <el-radio-group
+                  :model-value="extra.borderStyle || 'corner'" size="small"
+                  @update:model-value="(v: any) => onExtra('borderStyle', v)"
+                >
+                  <el-radio-button value="corner">{{ t('bi.props.borderVariant_corner') }}</el-radio-button>
+                  <el-radio-button value="full">{{ t('bi.props.borderVariant_full') }}</el-radio-button>
+                  <el-radio-button value="line">{{ t('bi.props.borderVariant_line') }}</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item :label="t('bi.props.color')">
+                <el-input
+                  :model-value="extra.color || 'var(--bi-accent)'"
+                  @update:model-value="(v: string) => onExtra('color', v)"
+                />
+              </el-form-item>
+              <el-form-item :label="t('bi.props.thickness')">
+                <el-input-number
+                  :model-value="extra.thickness ?? 2" :min="1" :max="12" :step="1"
+                  controls-position="right" style="width: 100%"
+                  @update:model-value="(v: any) => onExtra('thickness', v)"
+                />
+              </el-form-item>
+              <el-form-item v-if="(extra.borderStyle || 'corner') === 'corner'" :label="t('bi.props.cornerLen')">
+                <el-input-number
+                  :model-value="extra.cornerLen ?? 28" :min="8" :max="120" :step="2"
+                  controls-position="right" style="width: 100%"
+                  @update:model-value="(v: any) => onExtra('cornerLen', v)"
+                />
+              </el-form-item>
+            </template>
+
+            <!-- 大屏标题条 -->
+            <template v-else-if="widget.type === 'titlebar'">
+              <el-form-item :label="t('bi.props.titleStyle')">
+                <el-radio-group
+                  :model-value="extra.titleStyle || 'accent'" size="small"
+                  @update:model-value="(v: any) => onExtra('titleStyle', v)"
+                >
+                  <el-radio-button value="accent">{{ t('bi.props.titleVariant_accent') }}</el-radio-button>
+                  <el-radio-button value="solid">{{ t('bi.props.titleVariant_solid') }}</el-radio-button>
+                  <el-radio-button value="gradient">{{ t('bi.props.titleVariant_gradient') }}</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item :label="t('bi.props.subText')">
+                <el-input
+                  :model-value="extra.subText"
+                  @update:model-value="(v: string) => onExtra('subText', v)"
+                />
+              </el-form-item>
+              <el-form-item :label="t('bi.props.align')">
+                <el-radio-group
+                  :model-value="extra.align || 'left'" size="small"
+                  @update:model-value="(v: any) => onExtra('align', v)"
+                >
+                  <el-radio-button value="left">{{ t('bi.props.align_left') }}</el-radio-button>
+                  <el-radio-button value="center">{{ t('bi.props.align_center') }}</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item :label="t('bi.props.color')">
+                <el-input
+                  :model-value="extra.color || 'var(--bi-text)'"
+                  @update:model-value="(v: string) => onExtra('color', v)"
+                />
+              </el-form-item>
+            </template>
+
+            <!-- 分隔线 -->
+            <template v-else-if="widget.type === 'divider'">
+              <el-form-item :label="t('bi.props.withTitle')">
+                <el-switch
+                  :model-value="extra.withTitle === true"
+                  @update:model-value="(v: any) => onExtra('withTitle', v)"
+                />
+              </el-form-item>
+              <el-form-item v-if="extra.withTitle === true" :label="t('bi.props.lineTitle')">
+                <el-input
+                  :model-value="extra.title"
+                  @update:model-value="(v: string) => onExtra('title', v)"
+                />
+              </el-form-item>
+              <el-form-item v-else :label="t('bi.props.lineStyle')">
+                <el-radio-group
+                  :model-value="extra.lineStyle || 'solid'" size="small"
+                  @update:model-value="(v: any) => onExtra('lineStyle', v)"
+                >
+                  <el-radio-button value="solid">{{ t('bi.props.line_solid') }}</el-radio-button>
+                  <el-radio-button value="dashed">{{ t('bi.props.line_dashed') }}</el-radio-button>
+                  <el-radio-button value="dotted">{{ t('bi.props.line_dotted') }}</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item :label="t('bi.props.color')">
+                <el-input
+                  :model-value="extra.color || 'var(--bi-accent)'"
+                  @update:model-value="(v: string) => onExtra('color', v)"
+                />
+              </el-form-item>
+              <el-form-item :label="t('bi.props.thickness')">
+                <el-input-number
+                  :model-value="extra.thickness ?? 1" :min="1" :max="12" :step="1"
+                  controls-position="right" style="width: 100%"
+                  @update:model-value="(v: any) => onExtra('thickness', v)"
+                />
+              </el-form-item>
+            </template>
           </el-form>
+        </el-collapse-item>
+
+        <!-- 联动 -->
+        <el-collapse-item name="link" :title="t('bi.props.linkage')">
+          <BiInteractionPanel
+            :widget="widget"
+            :widgets="props.widgets || []"
+            :active="activeFilters"
+            @patch="(p) => emit('patch', p)"
+            @clear-filters="emit('clear-filters')"
+          />
         </el-collapse-item>
       </el-collapse>
     </template>

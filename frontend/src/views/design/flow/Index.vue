@@ -39,7 +39,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('design.flowColUpdatedAt')" width="160">
+        <el-table-column :label="t('design.flowColUpdatedAt')" width="175">
           <template #default="{ row }">
             <span class="mono-time">{{ formatTime((row as FlowDefineItem).updatedAt) }}</span>
           </template>
@@ -86,6 +86,16 @@
           </div>
         </template>
       </el-table>
+
+      <el-pagination
+        v-model:current-page="query.page"
+        v-model:page-size="query.size"
+        :total="total"
+        :page-sizes="[10,20,50,100]"
+        layout="total,sizes,prev,pager,next,jumper"
+        @current-change="loadList"
+        @size-change="onSizeChange"
+      />
     </div>
 
     <!--
@@ -181,6 +191,10 @@ const auth = useAuthStore();
 
 const rows = ref<FlowDefineItem[]>([]);
 const loading = ref(false);
+const total = ref(0);
+
+/** 分页状态：后端真分页，size 必须是 ref（const 无法 v-model:page-size） */
+const query = reactive({ page: 1, size: 20 });
 
 /** 操作列宽度：4 icons + 1 dropdown = 224 */
 const WIDTH_ACTIONS = 224;
@@ -194,11 +208,28 @@ function formatTime(s?: string | null) { return formatDateTime(s); }
 async function loadList() {
   loading.value = true;
   try {
-    rows.value = await flowDefineApi.list();
+    const r = await flowDefineApi.list(query);
+    rows.value = r.items;
+    total.value = r.total;
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || String(e));
   } finally {
     loading.value = false; }
+}
+
+/** 切每页条数必须回到第 1 页：停在后面的页码改 size 会落到一个可能已不存在的页 */
+function onSizeChange() {
+  query.page = 1;
+  loadList();
+}
+
+/**
+ * 删掉本页最后一条时把页码退一格，否则停在一个空页上。
+ * 判断用 `<= 1`：remove 返回后被删的那一行还留在内存数组里。
+ */
+function reloadAfterDelete() {
+  if (rows.value.length <= 1 && query.page > 1) query.page -= 1;
+  loadList();
 }
 
 function goCreate() { router.push('/design/flow/new'); }
@@ -234,7 +265,7 @@ async function onCmd(cmd: string, row: FlowDefineItem) {
       );
       await flowDefineApi.remove(row.id);
       ElMessage.success(t('common.deleted'));
-      await loadList();
+      reloadAfterDelete();
     } catch { /* cancelled */ }
   }
 }

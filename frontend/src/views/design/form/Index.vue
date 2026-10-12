@@ -35,7 +35,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('design.formColUpdatedAt')" width="160">
+        <el-table-column :label="t('design.formColUpdatedAt')" width="175">
           <template #default="{ row }">
             <span class="mono-time">{{ formatTime((row as FormDesignItem).updatedAt) }}</span>
           </template>

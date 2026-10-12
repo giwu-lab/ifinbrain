@@ -24,7 +24,7 @@
         <el-button type="primary" @click="reload">{{ t('common.search') }}</el-button>
       </div>
 
-      <el-table :data="rows" v-loading="loading" border stripe>
+      <el-table :data="rows" v-loading="loading" border stripe size="small">
         <el-table-column prop="id" :label="t('system.colId')" width="72" />
         <el-table-column :label="t('system.colUsername')" min-width="160">
           <template #default="{ row }">
@@ -143,7 +143,7 @@
         <el-form-item :label="t('system.colPhone')">
           <el-input v-model="form.phone" />
         </el-form-item>
-        <el-form-item :label="t('system.userDeptLabel')">
+        <el-form-item :label="t('system.userDeptLabel')" prop="deptId">
           <el-tree-select
             v-model="form.deptId"
             :data="deptTree"
@@ -202,7 +202,7 @@ const dialog = reactive({ visible: false, mode: 'create' as 'create' | 'edit', t
 const form = reactive({
   id: 0, username: '', password: '', displayName: '', email: '', phone: '',
   status: 1 as number, roleIds: [] as number[],
-  /** undefined = 未选择（提交时转成 0 表示「清空归属」，见 save） */
+  /** 所属部门；undefined = 未选择（必填，rules.deptId 拦住提交，见 save） */
   deptId: undefined as number | undefined
 });
 const formRef = ref<FormInstance>();
@@ -211,6 +211,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const rules = computed<FormRules>(() => ({
   username: [{ required: true, message: t('common.required') }],
   password: [{ required: true, message: t('common.required') }],
+  // 部门必填（后端 UserCreateReq.deptId @NotNull+@Positive / UserUpdateReq.deptId @Positive）。
+  // trigger 必须带 change：el-tree-select 走的是 change 而不是 blur，
+  // 只写 blur 的话选完部门红色星号错误不会消失，要等点别处才消。
+  deptId: [{ required: true, message: t('common.required'), trigger: 'change' }],
   email: [
     {
       validator: (_r: unknown, v: string, cb: (e?: Error) => void) => {
@@ -274,15 +278,17 @@ async function save() {
   if (!formRef.value) return;
   await formRef.value.validate(async (valid) => {
     if (!valid) return;
+    // 部门必填的第二道防线：rules.deptId 已经拦过，这里防的是校验被绕过
+    // （以及 el-tree-select 在 deptTree 还没加载完时的空值）。
+    const deptId = form.deptId;
+    if (!deptId) {
+      ElMessage.warning(t('common.required'));
+      return;
+    }
     dialog.loading = true;
     try {
       // 邮箱选填：去掉首尾空白后提交，空串由后端落成 NULL
       const email = form.email.trim();
-      // 部门三态（见后端 UserUpdateReq.deptId）：
-      //   undefined = 未选 —— 对 update 而言是「不动」，不能原样丢出去；
-      //   这里统一转 0 = 明确清空，后端据此把 dept_id 置 NULL（null 会被 JSON 丢掉，
-      //   那样用户就没法解除部门归属了）。
-      const deptId = form.deptId ?? 0;
       if (dialog.mode === 'create') {
         await userApi.create({ ...form, email, deptId });
         ElMessage.success(t('common.created'));

@@ -53,6 +53,66 @@ export interface FormFieldColumn {
   options?: FormFieldOption[];
 }
 
+/**
+ * 选择类字段的动态选项源 —— 与后端
+ * `design/form/dto/FormFieldOptionsSource.java` 一一对应。
+ *
+ * 与静态 `options` 二选一：配了本项就以查询结果为准。
+ */
+export interface FormFieldOptionsSource {
+  /** 指向 sys_query.id；不内嵌 SQL，查询改了就自动生效 */
+  queryId: number;
+  /** 查询参数值（对应 sys_query.params_schema[].name） */
+  params?: Record<string, string>;
+  /** 取哪一列当显示文本（结果集列名） */
+  labelField: string;
+  /** 取哪一列当值（结果集列名） */
+  valueField: string;
+  /** 服务端缓存秒数；不填用后端默认 */
+  cacheSec?: number;
+}
+
+/**
+ * 字段在栅格中的位置（24 列栅格，与 el-form 的 span 口径一致）。
+ *
+ * 缺省表示「还没排版」，加载时由 `utils/form/layout.ts#migrateFields`
+ * 按老的 fullWidth 语义自动补齐 —— 补齐后渲染只有一条路径。
+ */
+export interface FormFieldLayout {
+  /** 起始列，0-based */
+  x: number;
+  /** 起始行，0-based，无上界（表单高度随字段数增长） */
+  y: number;
+  /** 跨列数，1..24 */
+  w: number;
+  /** 跨行数，≥1 */
+  h: number;
+}
+
+/** 字段级样式覆盖。没配的属性走主题默认，不硬编码颜色。 */
+export interface FormFieldStyle {
+  /** 背景色；'transparent' 表示透出画布底色 */
+  background?: string;
+  /** 文字颜色 */
+  color?: string;
+  /** 字号 px */
+  fontSize?: number;
+  /** label 文字颜色 */
+  labelColor?: string;
+  /** 标签对齐 */
+  labelAlign?: 'left' | 'center' | 'right';
+  /** 控件对齐 */
+  align?: 'left' | 'center' | 'right';
+  /** 内边距 px */
+  padding?: number;
+  /** 圆角 px */
+  radius?: number;
+  /** 边框，如 '1px solid #e5e7eb'；'none' 表示不画 */
+  border?: string;
+  /** 标签宽度 px；配了会切到 left 布局 */
+  labelWidth?: number;
+}
+
 /** 单个字段 schema */
 export interface FormFieldSchema {
   id: string;
@@ -70,6 +130,28 @@ export interface FormFieldSchema {
   columns?: FormFieldColumn[];
   /** 表格「每行填满必填列」开关（仅 TABLE），与 required 正交 */
   requireAllCells?: boolean;
+  /** 动态选项源（SELECT/RADIO/CHECKBOX）；与静态 options 二选一 */
+  optionsSource?: FormFieldOptionsSource;
+
+  /** 栅格位置（可选，加载时自动迁移） */
+  layout?: FormFieldLayout;
+  /** 样式覆盖（可选） */
+  style?: FormFieldStyle;
+
+  // —— 条件逻辑（单表达式，求值为布尔；失败一律按 false 处理）——
+  /** 显示条件；为空 = 恒显示。false 时字段不渲染、不参与校验 */
+  visibleWhen?: string;
+  /** 禁用条件；为空 = 恒可编辑。只挡交互，值仍照常提交 */
+  disabledWhen?: string;
+  /** 必填条件；为空 = 沿用字段级 required。两者任一为真即必填 */
+  requiredWhen?: string;
+}
+
+/** 表单级栅格配置 */
+export interface FormGridConfig {
+  cols: number;
+  rowHeight: number;
+  gap: number;
 }
 
 /** 表单元数据 DTO */
@@ -113,6 +195,15 @@ export const formDesignApi = {
   remove: (id: number) => http.delete<any, null>(`/design/forms/${id}`),
   publish: (id: number) => http.post<any, FormDesignItem>(`/design/forms/${id}/publish`),
   unpublish: (id: number) => http.post<any, FormDesignItem>(`/design/forms/${id}/unpublish`),
+
+  /**
+   * 按动态选项源取回选项列表。
+   *
+   * 入参就是字段 schema 里的 optionsSource 原样 —— 设计期怎么配的，运行时就怎么取，
+   * 前端不自己拼参数。权限是 design:form:view（填表人不需要 BI 权限）。
+   */
+  options: (src: FormFieldOptionsSource) =>
+    http.post<any, FormFieldOption[]>('/design/forms/options', src),
 };
 
 /**

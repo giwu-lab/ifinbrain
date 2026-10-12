@@ -28,6 +28,20 @@ $cases = @(
 
 $pass = 0
 $fail = 0
+
+# Preflight: this script pins queryId=15 and asserts that its required params are
+# enforced. If someone edits that fixture and flips `required` off, the assertion
+# below fails for the wrong reason and looks like a backend regression. Print the
+# fixture's schema first so drift is obvious at a glance.
+$opts = (Invoke-RestMethod -Method Get -Uri "$b/api/bi/report/query-options" -Headers @{ Authorization = "Bearer $t" }).data
+$fx = $opts | Where-Object { $_.id -eq 15 }
+if (-not $fx) {
+  Write-Output "ABORT fixture query id=15 is gone -- recreate it before trusting any result below"
+  exit 1
+}
+$fxSchema = ($fx.params | ForEach-Object { "$($_.name)=$($_.required)" }) -join ','
+Write-Output "FIXTURE queryId=15 name=$($fx.name) params=$fxSchema"
+
 foreach ($c in $cases) {
     [System.IO.File]::WriteAllText($tmp, $c.j, (New-Object System.Text.UTF8Encoding($false)))
     $raw = curl.exe -s -X POST "$b/api/bi/report/preview" -H "Authorization: Bearer $t" -H "Content-Type: application/json" --data-binary "@$tmp"

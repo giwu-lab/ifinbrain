@@ -63,6 +63,7 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { resolveElIcon } from '@/utils/icon';
+import { resolveMenuName } from '@/utils/menu';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
 
@@ -79,18 +80,9 @@ function iconOf(name?: string) {
   return resolveElIcon(name);
 }
 
+// 菜单显示名解析搬到 @/utils/menu —— 4 个 layout + 两个发布对话框共用一份
 function menuName(m: { name: string; component?: string; path?: string }) {
-  const comp = m.component?.replace(/\//g, '.');
-  const candidates = [
-    comp ? `menu.${comp}` : null,
-    m.path && m.path !== '/' ? `menu.${m.path.replace(/^\//, '')}` : null,
-    m.path && m.path !== '/' ? `menu.${m.path.replace(/^\//, '').replace(/\//g, '.')}._` : null,
-  ].filter(Boolean) as string[];
-  for (const key of candidates) {
-    const translated = t(key);
-    if (translated !== key) return translated;
-  }
-  return m.name;
+  return resolveMenuName(m, t);
 }
 
 function go(index: string) {

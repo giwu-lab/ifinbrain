@@ -1,42 +1,6 @@
 <template>
   <div class="page-container fade-in-up">
     <el-card class="card-table upload-card" shadow="never">
-      <el-form :model="meta" label-width="120px" class="meta-form">
-        <el-row :gutter="20">
-          <el-col :md="12" :lg="8">
-            <el-form-item :label="t('invoice.verificationNoLabel')" required>
-              <el-input
-                v-model="meta.verificationNo"
-                :placeholder="t('invoice.verificationNoPlaceholder')"
-                clearable
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :md="12" :lg="8">
-            <el-form-item :label="t('invoice.verifierLabel')">
-              <el-input
-                v-model="meta.verifier"
-                :placeholder="t('invoice.verifierPlaceholder')"
-                clearable
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :md="12" :lg="8">
-            <el-form-item :label="t('invoice.verificationDateLabel')">
-              <el-date-picker
-                v-model="meta.verificationDate"
-                type="date"
-                value-format="YYYY-MM-DD"
-                format="YYYY-MM-DD"
-                style="width: 100%;"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-
-      <el-divider />
-
       <el-upload
         ref="uploaderRef"
         drag
@@ -59,7 +23,7 @@
         <el-button
           type="primary"
           size="large"
-          :disabled="!files.length || loading || !meta.verificationNo.trim()"
+          :disabled="!files.length || loading"
           :loading="loading"
           :icon="UploadFilled"
           @click="submit"
@@ -120,6 +84,24 @@
         <el-table-column :label="t('invoice.colType')" min-width="140">
           <template #default="{ row }">
             <el-input v-model="row.invoiceType" size="small" placeholder="—" />
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('invoice.colExpenseCategory')" min-width="150">
+          <template #default="{ row }">
+            <el-select
+              v-model="row.expenseCategoryLabel"
+              size="small"
+              clearable
+              class="cat-select"
+              :placeholder="t('invoice.expenseCategoryPlaceholder')"
+            >
+              <el-option
+                v-for="o in categoryOptions(row)"
+                :key="o.value"
+                :label="o.label"
+                :value="o.value"
+              />
+            </el-select>
           </template>
         </el-table-column>
         <el-table-column :label="t('invoice.colPageCount')" width="80" align="right">
@@ -266,21 +248,6 @@
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('invoice.colVerificationNo')" min-width="140">
-          <template #default="{ row }">
-            <span class="text-secondary">{{ meta.verificationNo || '—' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('invoice.colVerifier')" min-width="100">
-          <template #default>
-            <span class="text-secondary">{{ meta.verifier || '—' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('invoice.colVerificationDate')" width="130">
-          <template #default>
-            <span class="text-secondary">{{ meta.verificationDate || '—' }}</span>
-          </template>
-        </el-table-column>
       </el-table>
     </el-card>
 
@@ -369,7 +336,7 @@
         </el-table-column>
         <el-table-column :label="t('invoice.colCreatedDate')" min-width="120">
           <template #default="{ row }">
-            <span class="text-secondary">{{ (row.createdAt || '').slice(0, 10) }}</span>
+            <span class="text-secondary">{{ formatDate(row.createdAt) }}</span>
           </template>
         </el-table-column>
       </el-table>
@@ -478,17 +445,26 @@
         :loading="saving"
         :icon="Folder"
         :disabled="hasBlocking || !successRows.length"
-        @click="saveCommit"
+        @click="openReimburseDialog"
       >
         {{ t('invoice.saveBtn', { count: successRows.length }) }}
       </el-button>
       <span class="save-hint">{{ t('invoice.saveHint') }}</span>
     </div>
+
+    <!-- 报销信息弹窗：报销单号 / 报销人 / 报销日期（三件套确认后才 commit 入库） -->
+    <ReimburseDialog
+      v-model="reimburseVisible"
+      :count="successRows.length"
+      :default-reimburser-id="auth.user?.id"
+      :submitting="saving"
+      @confirm="saveCommit"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import {
@@ -503,13 +479,37 @@ import {
   invoiceApi, type PendingInvoice, type InvoiceItem, type CommitBody,
 } from '@/api/invoice';
 import CellText from '@/components/CellText.vue';
-import { useFileFormat, useInvoiceStatus } from '@/stores/dict';
+import ReimburseDialog from './components/ReimburseDialog.vue';
+import { useAuthStore } from '@/stores/auth';
+import {
+  useFileFormat, useInvoiceStatus, useInvoiceExpenseCategory,
+} from '@/stores/dict';
+import { formatDate } from '@/utils/time';
 
 const { t } = useI18n();
 const router = useRouter();
+const auth = useAuthStore();
 
 const { acceptAttr } = useFileFormat();
 const { isSuccess } = useInvoiceStatus();
+const { options: expenseCategoryOptions } = useInvoiceExpenseCategory();
+
+/**
+ * 某一行可选项 = 字典选项 + 该行当前值的兜底。
+ *
+ * 为什么要有兜底：解析侧的类别清单可能比字典新（字典是管理员维护的、解析侧是
+ * fapiao_cn 升级带进来的），出现字典里没有的文案时，el-select 若找不到匹配项会把
+ * 这一格显示成空白 —— 数据还在、看着像丢了。这里把当前值补成第一个选项，
+ * 保证「能看见、能原样提交」，要换成字典内的类别再手动选。
+ */
+function categoryOptions(row: { expenseCategoryLabel?: string | null }) {
+  const list = expenseCategoryOptions.value;
+  const cur = row.expenseCategoryLabel;
+  if (cur && !list.some((o) => o.value === cur)) {
+    return [{ label: cur, value: cur }, ...list];
+  }
+  return list;
+}
 
 const uploaderRef = ref<UploadInstance>();
 const files = ref<UploadFile[]>([]);
@@ -517,19 +517,8 @@ const results = ref<PendingInvoice[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 
-const meta = reactive({
-  verificationNo: '',
-  verifier: '',
-  verificationDate: todayStr(),
-});
-
-function todayStr() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+/** 报销弹窗可见性（默认报销人 = 当前登录用户，由弹窗从组织树里定位） */
+const reimburseVisible = ref(false);
 
 const successRows = computed(() =>
   results.value.filter((r) => isSuccess(r.message))
@@ -562,7 +551,7 @@ const duplicateRows = computed(() =>
   duplicateGroups.value.flatMap((g) => g.rows)
 );
 
-/** 全库查重：识别成功后从 db 拉（按当前核销单号过滤） */
+/** 全库查重：识别成功后从 db 拉（按发票号查重复，不按报销单号过滤） */
 const dbDupGroups = ref<{
   key: string; invoiceNumber: string; fileExt: string;
   count: number; records: InvoiceItem[];
@@ -572,18 +561,17 @@ const existingInDb = ref<InvoiceItem[]>([]);
 const dbDupLoading = ref(false);
 
 async function loadDbDuplicates() {
-  if (!meta.verificationNo.trim()) {
+  // 判据是「本页有没有识别成功的发票」，不是「有没有填报销单号」——
+  // 报销三件套已移到报销弹窗，此处尚未填写，早期版本用 verificationNo 做门禁
+  // 会导致单号移出页面后全库查重整段被跳过、重复发票可无限入库。
+  if (!successRows.value.length) {
     dbDupGroups.value = [];
     existingInDb.value = [];
     return;
   }
   dbDupLoading.value = true;
   try {
-    dbDupGroups.value = await invoiceApi.duplicates({
-      verificationNo: meta.verificationNo.trim() || undefined,
-      verifier: meta.verifier.trim() || undefined,
-      verificationDate: meta.verificationDate || undefined,
-    });
+    dbDupGroups.value = await invoiceApi.duplicates({});
   } catch (e: unknown) {
     console.warn('load duplicates failed', e);
     dbDupGroups.value = [];
@@ -681,10 +669,6 @@ function onExceed() { ElMessage.warning(t('invoice.uploadError')); }
 async function submit() {
   const raw = files.value.map((f) => f.raw).filter(Boolean) as UploadRawFile[];
   if (!raw.length) return;
-  if (!meta.verificationNo.trim()) {
-    ElMessage.warning(t('invoice.verificationNoRequired'));
-    return;
-  }
   loading.value = true;
   try {
     const resp = await invoiceApi.uploadAndRecognize(raw as File[]);
@@ -721,36 +705,54 @@ async function submit() {
         .then(() => router.push('/invoice/parser'))
         .catch(() => { /* dismissed */ });
     }
-    // 识别成功后查 db 已有重复（按当前核销单号过滤）
+    // 识别成功后查 db 已有重复（按发票号，不按报销单号）
     loadDbDuplicates();
   } finally {
     loading.value = false;
   }
 }
 
-async function saveCommit() {
+/** 点「报销」：前置校验通过后打开报销信息弹窗（三件套在弹窗里填） */
+function openReimburseDialog() {
   if (!successRows.value.length) {
     ElMessage.warning(t('invoice.saveNoSuccess'));
-    return;
-  }
-  if (!meta.verificationNo.trim()) {
-    ElMessage.warning(t('invoice.verificationNoRequired'));
     return;
   }
   if (hasBlocking.value) {
     ElMessage.error(t('invoice.saveBlocked'));
     return;
   }
+  reimburseVisible.value = true;
+}
+
+/**
+ * 弹窗确认报销 → commit：存文件（storageKey = fapiao/{报销单号}/{发票号}_{报销单号}.{ext}）
+ * + 落库，同批复次共享同一组报销三件套。
+ */
+async function saveCommit(payload: {
+  verificationNo: string;
+  verifier: string;
+  verificationDate?: string;
+  formData?: Record<string, any>;
+  withFlow: boolean;
+}) {
   saving.value = true;
   try {
     const body: CommitBody = {
       items: successRows.value,
-      verificationNo: meta.verificationNo.trim(),
-      verifier: meta.verifier.trim() || undefined,
-      verificationDate: meta.verificationDate || undefined,
+      verificationNo: payload.verificationNo,
+      verifier: payload.verifier,
+      verificationDate: payload.verificationDate,
+      formData: payload.formData,
+      withFlow: payload.withFlow,
     };
     const saved = await invoiceApi.commit(body);
-    ElMessage.success(t('invoice.saveOk', { count: saved.length }));
+    ElMessage.success(
+      payload.withFlow
+        ? t('invoice.saveSubmittedForApproval', { count: saved.length })
+        : t('invoice.saveOk', { count: saved.length })
+    );
+    reimburseVisible.value = false;
     // 清理：清掉已保存的文件 + 结果；保留已识别失败的项目供用户查阅
     files.value = [];
     results.value = results.value.filter((r) => !isSuccess(r.message));
@@ -763,7 +765,8 @@ async function saveCommit() {
 <style scoped>
 
 .upload-card { padding: 0; }
-.meta-form { padding: 4px 0 0; }
+/* 费用类别下拉：撑满单元格。EP 的 el-select 默认不撑宽，列宽 150 会显得比相邻列窄一截 */
+.cat-select { width: 100%; }
 :deep(.upload-area) { width: 100%; }
 :deep(.upload-area .el-upload-dragger) {
   background: linear-gradient(135deg, var(--color-primary-softer) 0%, var(--color-bg-elev) 100%);

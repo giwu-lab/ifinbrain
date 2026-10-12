@@ -99,7 +99,7 @@ function emitPatch() {
   white-space: nowrap;
   flex-shrink: 0;
 }
-.mono { font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace; }
+.mono { font-family: var(--font-mono); }
 .danger-icon :deep(.el-icon) { color: var(--color-danger); }
 .hint { font-size: 11px; margin-top: 6px; line-height: 1.5; }
 .small { font-size: 12px; padding: 4px 0; }

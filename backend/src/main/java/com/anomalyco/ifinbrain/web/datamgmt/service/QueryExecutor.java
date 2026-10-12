@@ -205,9 +205,9 @@ public class QueryExecutor {
     /**
      * 分页结果。
      *
-     * <p>刻意<b>不含 total 总行数</b>：算总数必须再跑一次 {@code SELECT count(*)}，
-     * 在大表上是把整个查询成本翻倍，而虚拟滚动只关心「还有没有下一页」。
-     * 需要总数的场景（导出全量）走 {@link #iterateRows} 流式，不经过这里。
+     * <p>仍<b>不含 total 总行数</b>：算总数必须再跑一次 {@code SELECT count(*)}，
+     * 在大表上是把整个查询成本翻倍。增量滚动只关心「还有没有下一页」。
+     * 真需要 total 的场景（页码分页器）单独调 {@link #countRows}，不要塞进来。
      */
     public record PagedResult(List<QueryResultDto.Column> columns,
                               List<List<Object>> rows,
@@ -216,6 +216,60 @@ public class QueryExecutor {
                               boolean hasMore,
                               long durationMs,
                               int timeoutSec) {}
+
+    /**
+     * 数一共有多少行 —— 给「页码分页器」用（{@code el-pagination} 需要 total 才能显示总页数）。
+     *
+     * <p>做法是把渲染后的 SQL 包一层：{@code SELECT COUNT(*) FROM (<原SQL>) _ifin_count}。
+     * 原 SQL 已经过了 {@code SqlSafetyChecker}，这里**不再重复校验**（校验的是文本原样，
+     * 包一层后文本变了，再查一遍只会误伤）；参数仍然走 PreparedStatement，不做拼接。
+     *
+     * <p><b>失败返回 -1 而不是抛异常</b>：派生表包裹不是所有方言都认（Oracle 不支持
+     * 这种写法），而且 count 在大表上可能超时。让整个页面因为「拿不到总页数」而报错
+     * 是本末倒置 —— 调用方拿到 -1 时退化成「有下一页/没下一页」的判断即可。
+     */
+    public long countRows(SysDatasource ds,
+                          String plainPassword,
+                          String sqlTemplate,
+                          List<QueryParamSchema> paramSchema,
+                          Map<String, String> paramValues) {
+
+        List<QueryParamSchema> schema = paramSchema == null ? List.of() : paramSchema;
+        Map<String, String> values = paramValues == null ? Map.of() : paramValues;
+
+        // renderSql 内部会做必填校验；这里不重复 requireNonBlank，失败交给它抛
+        SqlRendered rendered = renderSql(sqlTemplate, schema, values);
+        // 末尾分号会让 `FROM (select ...;) t` 直接语法错，必须先剥掉
+        String inner = rendered.jdbcSql.strip();
+        while (inner.endsWith(";")) {
+            inner = inner.substring(0, inner.length() - 1).strip();
+        }
+        String countSql = "SELECT COUNT(*) FROM (" + inner + ") _ifin_count";
+
+        try {
+            HikariDataSource hikari = connService.getDataSource(ds.getId(), ds, plainPassword);
+            long start = System.currentTimeMillis();
+            try (Connection conn = hikari.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(countSql)) {
+
+                ps.setQueryTimeout(TIMEOUT_SECONDS);
+                for (int i = 0; i < rendered.boundValues.size(); i++) {
+                    ps.setObject(i + 1, rendered.boundValues.get(i));
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) return -1;
+                    long n = rs.getLong(1);
+                    log.info("[query:count] ds={} total={} durationMs={}",
+                            ds.getName(), n, System.currentTimeMillis() - start);
+                    return n;
+                }
+            }
+        } catch (SQLException | BizException ex) {
+            // 降级而不是炸掉：拿不到 total 的分页器退化成 hasMore 判断即可
+            log.warn("[query:count] failed, degrade to unknown: {}", ex.getMessage());
+            return -1;
+        }
+    }
 
     /**
      * executePaged 的收集器：跳过前 offset 行，最多保留 want 行，并用多读的那一行判定 hasMore。

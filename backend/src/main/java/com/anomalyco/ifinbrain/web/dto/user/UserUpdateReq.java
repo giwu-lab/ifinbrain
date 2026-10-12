@@ -1,6 +1,7 @@
 package com.anomalyco.ifinbrain.web.dto.user;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -42,16 +43,23 @@ public class UserUpdateReq {
     private String phone;
 
     /**
-     * 所属部门 id。
+     * 所属部门 id，<b>必填语义</b>（见 {@code UserCreateReq.deptId}）。
      *
-     * <p>三态语义（与本项目 parent_id=0 的约定一致，避开 Long 的 null 二义）：
+     * <p>原来的三态是 null=不动 / 0=清空 / &gt;0=改挂；部门改为必填后，
+     * 「清空」不再是合法操作，只剩两态：
      * <ul>
      *   <li>null（字段没带）= 不动，保持原部门</li>
-     *   <li>0 = <b>清空</b>部门归属，落 NULL</li>
      *   <li>&gt;0 = 改挂到该部门；部门不存在时 service 抛 400</li>
      * </ul>
-     * 前端 el-tree-select 清空后是 undefined，提交前统一 {@code ?? 0}。
+     *
+     * <p><b>这里刻意只写 {@code @Positive} 而不写 {@code @NotNull}</b>：
+     * {@code @Positive} 对 null 放行，所以「本次不传部门」这条 partial-update
+     * 路径不受影响（其它字段如 displayName / email / status 同样按 null 判定不动）；
+     * 加了 {@code @NotNull} 会把每一次局部更新都打成 400。
+     * 而 0 被 {@code @Positive} 拒掉，等于从协议层关闭了「清空部门归属」这条后门 ——
+     * 前端也必须同步不再提交 0（见 views/system/user/Index.vue 的 save）。
      */
+    @Positive
     private Long deptId;
 
     private Short status;

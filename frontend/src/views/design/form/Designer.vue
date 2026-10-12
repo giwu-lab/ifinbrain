@@ -132,16 +132,23 @@
           :mode="mode"
           :canvas-width="store.canvasWidth"
           :zoom="store.zoom"
+          :grid="store.grid"
           @select="store.select"
           @remove="store.removeField"
           @move="onMove"
           @duplicate="onDuplicate"
+          @layout="onLayout"
         />
       </main>
 
       <!-- 右侧：属性 -->
       <div class="right-pane">
-        <FormFieldProps :field="store.selectedField" @patch="onPatch" />
+        <FormFieldProps
+          :field="store.selectedField"
+          :fields="store.fields"
+          :grid="store.grid"
+          @patch="onPatch"
+        />
       </div>
     </div>
   </div>
@@ -212,6 +219,16 @@ function onMove(id: string, direction: 'up' | 'down') {
 
 function onDuplicate(id: string) {
   store.duplicate(id);
+}
+
+/**
+ * 画布拖拽 / 改宽度。
+ *
+ * immediate=false 是拖拽过程中的每帧调用（只改内存），true 是松手时的最终提交。
+ * 分开是为了不让撤销栈被逐像素压满 —— 见 FormCanvas.startDrag 的注释。
+ */
+function onLayout(id: string, patch: any, immediate = true) {
+  store.setLayout(id, patch, immediate);
 }
 
 function onZoom(cmd: string) {

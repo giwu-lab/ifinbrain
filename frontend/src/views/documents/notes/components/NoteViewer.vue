@@ -126,7 +126,7 @@ function jump(id: string) {
 .md-body :deep(li::marker) { color: var(--color-text-muted); }
 
 .md-body :deep(code) {
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   background: var(--color-primary-softer);
   color: var(--color-text);

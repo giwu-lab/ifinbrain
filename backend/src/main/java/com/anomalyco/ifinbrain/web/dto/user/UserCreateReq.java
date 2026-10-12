@@ -2,6 +2,8 @@ package com.anomalyco.ifinbrain.web.dto.user;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -30,10 +32,19 @@ public class UserCreateReq {
     private String phone;
 
     /**
-     * 所属部门 id。null 或 0 = 不归属任何部门（落 NULL）。
-     * 用 0 而不是 null 表示「清空」，与 sys_dept.parent_id=0 的约定一致 ——
-     * 见 {@code UserUpdateReq.deptId}。
+     * 所属部门 id，<b>必填</b>。
+     *
+     * <p>两个注解分工明确：{@code @NotNull} 拦「没传字段」（连 0 都不给），
+     * {@code @Positive} 拦「传了 0 或负数」——0 是本项目 {@code sys_dept.parent_id=0}
+     * 约定里的「根节点」占位值，落到 {@code sys_user.dept_id} 上只会造出一个指向
+     * 空气的用户。两者缺一，缺 {@code @Positive} 时 0 会静默通过并被 service
+     * 归一成 NULL，等于绕过必填。
+     *
+     * <p>对比 {@code UserUpdateReq.deptId}：那里<b>不能</b>加 {@code @NotNull}，
+     * 否则会破坏 partial-update 契约（null = 本次不改这个字段）。
      */
+    @NotNull
+    @Positive
     private Long deptId;
 
     private Short status;

@@ -215,9 +215,9 @@ watch(() => s.value.layout, (v) => {
 
 onMounted(async () => {
   document.addEventListener('fullscreenchange', onFsChange);
-  /* 登录后从 DB 拉一次偏好 */
+  /* 登录后从 DB 拉一次偏好（刷新页面时 auth.user 已在路由守卫里 fetchMe 拿到） */
   if (auth.isLogged && !theme.loaded) {
-    await theme.hydrate();
+    await theme.hydrate(auth.user?.username);
   }
   /* 拉一次未读计数，决定 bell 红点 */
   await loadNotifBadge();
@@ -242,7 +242,8 @@ function onLang(cmd: string) {
 async function handleCmd(cmd: string) {
   if (cmd === 'logout') {
     await auth.logout();
-    theme.reset();
+    // auth.clear() 内部已 theme.purge()：本地主题整体丢弃，落回默认配色，
+    // 避免下一位登录用户继承这一位的深色侧栏/顶栏。
     ElMessage.success(t('common.logout'));
     router.push('/login');
   }
@@ -329,7 +330,7 @@ function onTabRefresh(id?: string) {
   display: inline-block;
   min-width: 24px;
   padding: 1px 6px;
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);

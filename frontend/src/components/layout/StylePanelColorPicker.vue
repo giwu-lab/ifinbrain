@@ -103,7 +103,7 @@ function rgbaToHex(v: string): string {
 .sp-color-row :deep(.el-color-picker) { width: 32px; }
 .sp-color-row :deep(.el-color-picker__trigger) { width: 32px; height: 28px; padding: 2px; }
 .sp-hex {
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text-secondary);
   letter-spacing: 0;
@@ -122,7 +122,7 @@ function rgbaToHex(v: string): string {
   grid-column: 3;
   font-size: 11px;
   color: var(--color-text-muted);
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
 }
 
 .sp-swatches {

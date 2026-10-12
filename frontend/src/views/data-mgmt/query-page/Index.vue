@@ -115,7 +115,7 @@
         v-model:current-page="page"
         v-model:page-size="pageSize"
         :total="result.rows.length"
-        :page-sizes="[20, 50, 100, 200]"
+        :page-sizes="[10,20,50,100]"
         layout="total,sizes,prev,pager,next,jumper"
         class="qp-pager"
         @current-change="onPagerChange"
@@ -355,25 +355,16 @@ onBeforeUnmount(() => {
 .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .page-desc { margin: 4px 0 0; font-size: 13px; }
 .stats { white-space: nowrap; }
-.mono { font-family: ui-monospace, monospace; }
+.mono { font-family: var(--font-mono); }
 .err { color: #B73838; }
 .warn { color: #B73838; }
 .required { color: #B73838; margin: 0 2px; }
-
-.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.toolbar-right { margin-left: auto; display: inline-flex; gap: 8px; }
-.field { display: inline-flex; align-items: center; gap: 6px; }
-.label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  user-select: none;
-}
+/* .toolbar / .toolbar-right / .field / .label 已提入 global.css，本页不再重复。 */
 
 .cell-text {
   display: inline-block; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-family: var(--font-mono);
 }
 
 .empty-hint { padding: 32px; text-align: center; font-size: 13px; }

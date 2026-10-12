@@ -61,6 +61,36 @@
 
         <el-divider direction="vertical" />
 
+        <!-- 多选对齐：只在选中 ≥2 个组件时出现（AGENTS §7：状态在布局中表达，
+             这里用一排图标按钮而不是文字下拉 —— 高频操作直接可点） -->
+        <template v-if="mode === 'build' && store.selectedIds.length >= 2">
+          <span class="align-group">
+            <span class="align-count">{{ t('bi.dash.selectedN', { n: store.selectedIds.length }) }}</span>
+            <el-tooltip v-for="a in ALIGN_ITEMS" :key="a.op" :content="t(a.labelKey)" placement="bottom">
+              <el-button link :icon="a.icon" @click="store.align(a.op)" />
+            </el-tooltip>
+            <el-tooltip
+              :content="t('bi.dash.distributeH')"
+              placement="bottom"
+            >
+              <el-button
+                link :icon="Sort"
+                :disabled="store.selectedIds.length < 3"
+                @click="store.distribute('horizontal')"
+              />
+            </el-tooltip>
+            <el-tooltip :content="t('bi.dash.distributeV')" placement="bottom">
+              <el-button
+                link :icon="DCaret"
+                :disabled="store.selectedIds.length < 3"
+                @click="store.distribute('vertical')"
+              />
+            </el-tooltip>
+          </span>
+
+          <el-divider direction="vertical" />
+        </template>
+
         <el-button :icon="View" @click="onViewCurrent">{{ t('bi.dash.openView') }}</el-button>
         <el-button type="primary" :icon="Document" :loading="saving" @click="onSave">
           {{ t('common.save') }}
@@ -175,8 +205,11 @@
           :show-grid="mode === 'build'"
           :zoom="effectiveZoom"
           @available="onAvailable"
-          :data-for="data.dataFor"
+          :data-for="dataForEffective"
           :on-select="(id) => store.select(id)"
+          :on-toggle-select="store.toggleSelect"
+          :on-set-selection="store.setSelection"
+          :selected-ids="store.selectedIds"
           :on-move="onCanvasMove"
           :on-commit="store.commitGeometry"
         />
@@ -188,10 +221,13 @@
           :widget="store.selectedWidget"
           :canvas-cols="store.canvas.gridCols"
           :canvas-rows="store.canvas.gridRows"
+          :widgets="store.orderedWidgets"
+          :active-filters="activeFilters"
           @patch="onPatch"
           @style="onStyle"
           @extra="onExtra"
           @layer="onLayerOp"
+          @clear-filters="onClearFilters"
         />
       </aside>
     </div>
@@ -201,16 +237,19 @@
 <script setup lang="ts">
 import {
   computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, reactive, ref, watch,
+  type Component,
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import {
-  ArrowLeft, Document, Promotion, RefreshLeft, RefreshRight, View,
+  ArrowLeft, Bottom, DArrowLeft, DArrowRight, DCaret, Document,
+  Promotion, RefreshLeft, RefreshRight, Sort, Top, View,
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
-import { useBiDesignStore } from '@/stores/biDesign';
+import { useBiDesignStore, type BiAlignOp } from '@/stores/biDesign';
 import { useBiData } from '@/composables/useBiData';
+import { useBiInteraction } from '@/composables/useBiInteraction';
 import { biApi, type BiWidget, type DashboardLayout, type ThemePreset } from '@/api/bi';
 import { THEME_PRESETS, validateLayout } from '@/utils/bi/layout';
 import BiCanvas from '@/components/bi/BiCanvas.vue';
@@ -224,8 +263,44 @@ const router = useRouter();
 const auth = useAuthStore();
 const store = useBiDesignStore();
 const data = useBiData();
+const interaction = useBiInteraction(() => store.orderedWidgets);
+
+/**
+ * 提到顶层绑定：模板只会自动解包**顶层** setup 绑定的 ref，
+ * `interaction.activeFilters` 是对象里的 ComputedRef，模板里不解包，
+ * 传给 prop 的是一个 ComputedRef 对象而不是数组。
+ */
+const activeFilters = interaction.activeFilters;
+
+function onClearFilters() {
+  interaction.clearAll();
+  data.refresh(interaction.effective.value);
+}
+
+/**
+ * 画布传进来的是 store 里的原始 widget，但取数要按「合并了联动值」的副本算签名。
+ *
+ * 为什么不直接把 effective 传给 BiCanvas 的 :widgets：那份数组里对有筛选的
+ * 组件是**新对象**，而 BiCanvas 的拖拽 / 缩放 / 锁定判断全都读 widget 本体，
+ * 混进副本迟早出现「拖的是副本、存的是原对象」这类幽灵 bug。
+ * 这里只在查数据时按 id 换一次，渲染与手势继续用原对象。
+ */
+const effById = computed(() => new Map(interaction.effective.value.map((w) => [w.id, w])));
+function dataForEffective(w: BiWidget) {
+  return data.dataFor(effById.value.get(w.id) || w);
+}
 
 const THEME_KEYS = Object.keys(THEME_PRESETS) as ThemePreset[];
+
+/** 六个对齐基准，配图标 + i18n key */
+const ALIGN_ITEMS: { op: BiAlignOp; icon: Component; labelKey: string }[] = [
+  { op: 'left', icon: DArrowLeft, labelKey: 'bi.dash.alignLeft' },
+  { op: 'centerX', icon: DCaret, labelKey: 'bi.dash.alignCenterX' },
+  { op: 'right', icon: DArrowRight, labelKey: 'bi.dash.alignRight' },
+  { op: 'top', icon: Top, labelKey: 'bi.dash.alignTop' },
+  { op: 'centerY', icon: DCaret, labelKey: 'bi.dash.alignCenterY' },
+  { op: 'bottom', icon: Bottom, labelKey: 'bi.dash.alignBottom' },
+];
 
 const leftTab = ref<'palette' | 'layers' | 'meta'>('palette');
 const mode = computed({
@@ -418,7 +493,8 @@ onMounted(async () => {
   if (usable) {
     store.setLoading(true);
     try {
-      const d = await biApi.detail(usable);
+      // 设计器走 /design：要求实体级 design 权限，光有 view 的人打不开设计器
+      const d = await biApi.detailForDesign(usable);
       store.reset(d);
       Object.assign(meta, {
         id: d.id, code: d.code, name: d.name, description: d.description || '',
@@ -451,6 +527,17 @@ onMounted(async () => {
 watch(
   () => JSON.stringify(store.orderedWidgets.map((w) => ({ id: w.id, d: w.data }))),
   () => { data.load(store.orderedWidgets); },
+);
+
+/**
+ * 联动筛选值变化 → 按新 params 重新取数。
+ * 用 refresh（忽略新鲜度）而不是 load：点回同一个分类时值没变不会触发，
+ * 但从 A 切到 B 时新签名没有缓存槽，load 也够用；refresh 更保险，
+ * 避免「刚好命中未过期缓存 → 画面不跟着变」这种看起来像联动失灵的假象。
+ */
+watch(
+  () => interaction.overrideSig.value,
+  () => { data.refresh(interaction.effective.value); },
 );
 
 function goBack() {
@@ -650,7 +737,7 @@ onBeforeUnmount(() => {
 .designer-code {
   font-size: 12px;
   color: var(--color-text-muted);
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
 }
 .dirty-mark {
   color: var(--color-warning);
@@ -731,7 +818,7 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
 }
 .json-input :deep(textarea) {
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.5;
 }

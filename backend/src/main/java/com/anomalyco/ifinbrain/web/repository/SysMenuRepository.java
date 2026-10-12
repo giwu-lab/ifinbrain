@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface SysMenuRepository extends JpaRepository<SysMenu, Long> {
 
@@ -100,4 +101,15 @@ public interface SysMenuRepository extends JpaRepository<SysMenu, Long> {
     /** 所有由 query 一键发布的菜单（query_id 非 NULL） */
     @Query("SELECT m FROM SysMenu m WHERE m.queryId IS NOT NULL")
     List<SysMenu> findAllPublishedPages();
+
+    /**
+     * 按 path 查菜单 —— 报表发布入口靠 path 反查（path = /bi/report/view/{reportId}）。
+     *
+     * <p>刻意不新增 report_id 外键列：path 本身就是「报表 id」的确定性映射，
+     * 反过来还能当稳定可收藏的直链。加一列就得多一套 join 和一处双写。
+     */
+    Optional<SysMenu> findByPath(String path);
+
+    /** 启用中的目录（报表发布的父目录候选） */
+    List<SysMenu> findByTypeAndStatusOrderBySortAscIdAsc(String type, Short status);
 }

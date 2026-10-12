@@ -67,7 +67,16 @@
   --space-8: 16px;
 
   /* 字体 */
+  /* 无衬线：Inter 只作为「意图声明」排在首位 —— 项目并未加载 webfont，
+   * 浏览器逐个回退后实际命中的是系统字体（Windows = Segoe UI，中文再回退到
+   * 微软雅黑）。想真正用上 Inter 需自行引入 @font-face / webfont CDN。 */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* 等宽：时间列、代码块、连接串统一用它。
+   * 关键顺序 —— **具名字体必须排在 ui-monospace 之前**：ui-monospace 是 CSS
+   * 通用族关键字，谁在前谁就直接命中，后面具名字体全部失效。改版前项目里
+   * 有 9 种排列混用，其中一半以 ui-monospace 开头，导致装了 JetBrains Mono
+   * 也永远用不上，同一份代码在不同页面渲染成两种字体。 */
+  --font-mono: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, ui-monospace, monospace;
   --font-size-xs: 12px;
   --font-size-sm: 13px;
   --font-size-base: 14px;
@@ -257,6 +266,32 @@ body {
 }
 .toolbar .filters { display: flex; gap: var(--space-3); align-items: center; }
 
+/* ---- 查询条件字段组 ----
+ *
+ * 「label 在左、控件在右」的横排写法，是列表页查询区的标准形态：
+ * 一行放得下更多字段，扫视时 label 对齐成一条竖线，比「label 在上」的栅格省纵向空间。
+ *
+ * 这四条规则原先在 invoice/List.vue 与 data-mgmt/query-page/Index.vue 里
+ * 逐字各抄了一份，报表播放页要第三份 —— 抽到全局，否则改一次漏两处，
+ * 三个页面的查询区会慢慢长成三个样子。 */
+.toolbar-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  user-select: none;
+}
+
 .muted { color: var(--color-text-muted); }
 .text-secondary { color: var(--color-text-secondary); }
 .danger-text { color: var(--color-danger); }
@@ -276,7 +311,7 @@ body {
  * - 字体保留 mono + tabular-nums，让日期数字宽度一致对齐
  */
 .mono-time {
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 13px;
   color: var(--color-text-secondary);
@@ -446,6 +481,37 @@ body {
   line-height: 20px;
 }
 
+/* ---- 横向滚动条：底部常驻条带，不再压住最后一行 ----
+ * EP 2.9 的表格 DOM（element-plus/es/components/table/src/table.vue）：
+ *   .el-table__body-wrapper > .el-scrollbar > .el-scrollbar__wrap > table.el-table__body
+ *                                                      └ .el-scrollbar__bar.is-horizontal
+ * 横滚条是 .el-scrollbar 的绝对定位子元素（bottom:2px; height:6px）。表格高度
+ * 自适应时滚动视口高度 == 内容高度，于是这 8px 直接盖在最后一行的下半截上。
+ *
+ * 为什么不能真把它挪到 .el-table 之外：bar 的祖先 .el-scrollbar 和
+ * .el-table__body-wrapper 都带 overflow:hidden，后者对 max-height 表格还要靠它
+ * 裁出可视高度；要让 bar 溢出必须逐层改 visible，会连带破坏
+ *   ① 内部纵向滚动表格的 max-height 裁剪（表格直接撑高）、
+ *   ② .el-table 自身的 border-radius 裁剪（项目 §表格容器 那条 overflow:clip）。
+ * 所以改成「在表格内、最后一行下方」预留一条与滚动条等高的条带 ——
+ * 视觉上就是滚动条贴着表格底部，且不遮住任何一行。
+ *
+ * 实现：给滚动视口加 8px 透明下边框。滚动容器的 border 在 scrollport 之外，
+ * 不随内容滚动，所以这条带子是常驻的（纵向滚到中间也不会跑掉），
+ * 同时 clientHeight 少 8px，视口正好让出滚动条的高度。
+ *
+ * 必须显式 box-sizing:border-box —— EP 给 max-height 表格的 wrap 写的是行内
+ * max-height，content-box 下边框会加在盒子外侧，被 overflow:hidden 裁掉。
+ *
+ * 只在真正横向溢出时才留（EP 按 layout.scrollX 打 el-table--scrollable-x），
+ * 不需要横向滚动的表格不会多出一条空白。
+ * 选择器写成整条直接子级链而不是后代链 —— 将来若某个单元格内部放了
+ * el-scrollbar，后代选择器会误给它也加上边框。 */
+.el-table--scrollable-x > .el-table__inner-wrapper > .el-table__body-wrapper > .el-scrollbar > .el-scrollbar__wrap {
+  box-sizing: border-box;
+  border-bottom: 8px solid transparent;
+}
+
 /* ---- 容器内操作条 ----
  * 原先页面头部（.page-header）承担「标题 + 描述 + 操作按钮」三件事。
  * 标题已由顶部多标签栏 / 面包屑表达，重复，所以头部取消，
@@ -493,7 +559,13 @@ body {
   margin: calc(var(--space-6) * -1) calc(var(--space-6) * -1) var(--space-6);
   padding: var(--space-6);
 }
-/* 操作条：容器内顶部一行，按钮右对齐，分隔逻辑同工具栏 */
+/* 操作条：容器内顶部一行，与工具栏同一套分隔逻辑
+ *
+ * 排列约定（全项目统一，页面不要自己写 justify-content）：
+ *   左 = 主操作（type="primary" + Plus 图标，通常只有「新建」一个）
+ *   右 = 搜索框 + 次要操作（用 .header-actions 包裹，靠 margin-left:auto 推过去）
+ * 这样每页扫一眼最左边就是主按钮，视线不用来回跳。
+ */
 .table-actions {
   display: flex;
   align-items: center;
@@ -502,12 +574,21 @@ body {
   margin: calc(var(--space-6) * -1) calc(var(--space-6) * -1) var(--space-6);
   padding: var(--space-6);
 }
+/* EP 默认给相邻按钮 12px 左外边距（.el-button + .el-button），
+ * 叠上 flex gap 就是 24px —— 比其它容器宽一倍。间距由 gap 统一负责，这里抹掉。 */
+.table-actions .el-button + .el-button {
+  margin-left: 0;
+}
 .table-actions .toolbar-right,
 .table-actions .header-actions {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+/* 操作条内的搜索框统一宽度：页面不写 inline style（写死了就没法统一改） */
+.table-actions .actions-search {
+  width: 220px;
 }
 /* 操作条 + 工具栏上下相邻时：两条分割线 + 两段间隙会挨太近，
  * 合并成一条线 + 一段 12px 间隙 */

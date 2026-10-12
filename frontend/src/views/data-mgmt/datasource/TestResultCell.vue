@@ -29,18 +29,16 @@
 import { computed } from 'vue';
 import { CircleCheckFilled, Loading, WarningFilled } from '@element-plus/icons-vue';
 import type { Datasource } from '@/api/datasource';
+import { formatDateTime } from '@/utils/time';
 
 const props = defineProps<{ row: Datasource }>();
 
 const inline = computed(() => true);
 const latest = computed(() => props.row.__lastTestResult);
 
+/** 时间统一走 utils/time.formatDateTime：yyyy-MM-dd HH:mm:ss（AGENTS §8.3） */
 function formatTime(s?: string | null) {
-  if (!s) return '';
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return s;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatDateTime(s);
 }
 </script>
 
@@ -49,7 +47,7 @@ function formatTime(s?: string | null) {
 .tr-state {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 12px;
-  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
 }
 .tr-state .el-icon { flex-shrink: 0; }
 .tr-state.ok     { color: var(--color-success); }

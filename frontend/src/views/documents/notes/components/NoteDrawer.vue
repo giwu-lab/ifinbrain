@@ -15,6 +15,7 @@ import { useRouter } from 'vue-router';
 import { Plus } from '@element-plus/icons-vue';
 import { noteApi, type NoteItem } from '@/api/note';
 import { useAuthStore } from '@/stores/auth';
+import { formatDateTime } from '@/utils/time';
 
 const props = defineProps<{ categoryId: number | null; categoryName?: string }>();
 const visible = defineModel<boolean>({ default: false });
@@ -51,8 +52,9 @@ function openInManager() {
   void router.push({ path: '/documents/notes' });
 }
 
-function timeText(s?: string) {
-  return s ? s.replace('T', ' ').slice(0, 16) : '';
+/** 时间统一走 utils/time.formatDateTime：yyyy-MM-dd HH:mm:ss（AGENTS §8.3） */
+function timeText(s?: string | null) {
+  return formatDateTime(s);
 }
 </script>
 
@@ -97,7 +99,7 @@ function timeText(s?: string) {
           <el-table-column :label="t('note.author')" width="120" show-overflow-tooltip>
             <template #default="{ row }">{{ row.ownerName }}</template>
           </el-table-column>
-          <el-table-column :label="t('note.lastEditor')" width="150">
+          <el-table-column :label="t('note.lastEditor')" width="170">
             <template #default="{ row }">
               <span class="mono-time">{{ timeText(row.updatedAt) }}</span>
             </template>

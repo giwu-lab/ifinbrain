@@ -1,5 +1,7 @@
 package com.anomalyco.ifinbrain.web.design.flow.controller;
 
+import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.PageResp;
 import com.anomalyco.ifinbrain.web.common.Result;
 import com.anomalyco.ifinbrain.web.design.flow.dto.FlowDefineCreateReq;
 import com.anomalyco.ifinbrain.web.design.flow.dto.FlowDefineDto;
@@ -21,9 +23,10 @@ public class FlowDefineController {
     private final FlowDefineService service;
     private final PermissionChecker perm;
 
+    /** 列表页：真分页，支持 keyword（名称 / 编码 / 描述）与 sortBy+sortDir */
     @GetMapping
-    public Result<List<FlowDefineDto>> list() {
-        return Result.ok(service.list());
+    public Result<PageResp<FlowDefineDto>> list(PageReq req) {
+        return Result.ok(service.page(req));
     }
 
     @GetMapping("/{id}")

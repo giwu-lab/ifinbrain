@@ -8,7 +8,6 @@ import com.anomalyco.ifinbrain.web.design.flow.entity.SysFlowHistory;
 import com.anomalyco.ifinbrain.web.design.flow.entity.SysFlowInstance;
 import com.anomalyco.ifinbrain.web.design.flow.entity.SysFlowTask;
 import com.anomalyco.ifinbrain.web.design.flow.repository.*;
-import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -49,14 +48,19 @@ public class FlowEngineService {
     private final SysFlowHistoryRepository historyRepo;
     private final ConditionEvaluator evaluator;
     private final CallbackInvoker callbackInvoker;
-    private final PermissionChecker perm;
     private final ObjectMapper jackson = new ObjectMapper();
+
+    /**
+     * 业务状态回写监听器（Spring 自动注入全部实现）。
+     *
+     * <p>无实现时注入空列表，本组件仍正常工作 —— 流程引擎不依赖任何业务模块。
+     */
+    private final List<FlowStateListener> stateListeners;
 
     // ===================== Deploy =====================
 
     @Transactional
     public SysFlowDefine deploy(Long flowId) {
-        perm.require("design:flow:deploy");
         SysFlowDefine def = defineRepo.findById(flowId)
                 .orElseThrow(() -> new BizException(404, "流程不存在"));
         if (def.getStatus() == null || def.getStatus() == 0) {
@@ -70,16 +74,20 @@ public class FlowEngineService {
 
     @Transactional
     public SysFlowInstance start(StartFlowReq req, String defaultStartBy) {
-        perm.require("design:flow:deploy");
         if (req.getCode() == null) throw new BizException(400, "code 必填");
         SysFlowDefine def = defineRepo.findByCode(req.getCode())
                 .orElseThrow(() -> new BizException(404, "流程不存在: " + req.getCode()));
         if (def.getStatus() == null || def.getStatus() == 0) {
             throw new BizException(400, "流程未发布，无法启动");
         }
-        boolean exists = instanceRepo.findAll().stream().anyMatch(i ->
-                def.getId().equals(i.getFlowId()) && req.getBusinessKey().equals(i.getBusinessKey()));
-        if (exists) throw new BizException(400, "流程实例已存在（同一 code + businessKey）");
+        // 只拦「进行中」的实例。历史实现是「同一 code + businessKey 存在过就拒绝」，
+        // 那意味着单据一旦被驳回就永远无法重新发起（终态实例也占着坑）。
+        // 终态实例按 instanceId 隔离审批历史，重发不会丢历史。
+        boolean running = instanceRepo.findAll().stream().anyMatch(i ->
+                def.getId().equals(i.getFlowId())
+                        && req.getBusinessKey().equals(i.getBusinessKey())
+                        && "RUNNING".equals(i.getState()));
+        if (running) throw new BizException(400, "该单据已有进行中的流程，请勿重复发起");
 
         FlowJson json = parse(def.getFlowJson());
         if (json.getNodes() == null || json.getNodes().isEmpty()) {
@@ -114,7 +122,6 @@ public class FlowEngineService {
 
     @Transactional
     public SysFlowTask approve(Long taskId, ApproveTaskReq req, String operator) {
-        perm.require("design:flow:deploy");
         SysFlowTask task = taskRepo.findById(taskId).orElseThrow(() -> new BizException(404, "任务不存在"));
         if (!"PENDING".equals(task.getStatus())) throw new BizException(400, "任务已处理");
         SysFlowInstance inst = instanceRepo.findById(task.getInstanceId()).orElseThrow(() -> new BizException(400, "实例不存在"));
@@ -141,7 +148,6 @@ public class FlowEngineService {
 
     @Transactional
     public SysFlowTask reject(Long taskId, ApproveTaskReq req, String operator) {
-        perm.require("design:flow:deploy");
         SysFlowTask task = taskRepo.findById(taskId).orElseThrow(() -> new BizException(404, "任务不存在"));
         if (!"PENDING".equals(task.getStatus())) throw new BizException(400, "任务已处理");
         SysFlowInstance inst = instanceRepo.findById(task.getInstanceId()).orElseThrow(() -> new BizException(400, "实例不存在"));
@@ -162,6 +168,7 @@ public class FlowEngineService {
         inst.setCurrentNodeId(task.getNodeId());
         inst.setFinishedAt(LocalDateTime.now());
         instanceRepo.save(inst);
+        notifyFinished(inst, req.getComment());
 
         return taskRepo.findById(taskId).orElseThrow();
     }
@@ -204,6 +211,7 @@ public class FlowEngineService {
             inst.setFinishedAt(LocalDateTime.now());
             instanceRepo.save(inst);
             log.info("[flow] instance {} finished APPROVED (no outgoing edge matched)", inst.getId());
+            notifyFinished(inst, null);
             return;
         }
 
@@ -214,6 +222,7 @@ public class FlowEngineService {
             inst.setFinishedAt(LocalDateTime.now());
             instanceRepo.save(inst);
             appendHistory(inst.getId(), next.getId(), next.getData().getLabel(), "COMPLETE", operator, null);
+            notifyFinished(inst, null);
         } else if (nt2 == NodeType.APPROVAL) {
             inst.setCurrentNodeId(next.getId());
             instanceRepo.save(inst);
@@ -222,6 +231,31 @@ public class FlowEngineService {
             inst.setCurrentNodeId(next.getId());
             instanceRepo.save(inst);
             advance(inst, json, next, result, vars, operator);
+        }
+    }
+
+    /**
+     * 通知业务监听器：实例已到终态。
+     *
+     * <p><b>异常不外抛</b>：审批动作此刻已经落库（实例已 save）。因为业务侧一条派生
+     * 状态写失败而把整个审批回滚，用户会看到「点了通过却提示实例已结束」，且问题无法定位。
+     * 这里吞掉异常并记 error，回写失败可以靠日志里的 businessKey 事后补。
+     *
+     * <p><b>comment 只在驳回时有值</b>：通过路径不把审批意见往下传（advance() 不持有
+     * task 的 comment），业务侧真正需要的是驳回原因，通过意见价值不大。
+     */
+    private void notifyFinished(SysFlowInstance inst, String comment) {
+        if (stateListeners == null || stateListeners.isEmpty()) return;
+        for (FlowStateListener l : stateListeners) {
+            try {
+                if (!l.supports(inst.getFlowCode())) continue;
+                l.onFlowFinished(inst.getId(), inst.getFlowCode(), inst.getBusinessKey(),
+                        inst.getState(), comment);
+            } catch (Exception e) {
+                log.error("[flow] state listener failed: listener={} flowCode={} businessKey={} state={}, err={}",
+                        l.getClass().getSimpleName(), inst.getFlowCode(), inst.getBusinessKey(),
+                        inst.getState(), e.getMessage(), e);
+            }
         }
     }
 

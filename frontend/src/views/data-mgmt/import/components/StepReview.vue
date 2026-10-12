@@ -221,7 +221,7 @@ function downloadErrors() {
 }
 
 .target-full {
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   color: var(--color-text);
 }

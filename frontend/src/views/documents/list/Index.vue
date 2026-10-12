@@ -2,40 +2,45 @@
   <div class="page-container fade-in-up docs-page">
     <div class="table-wrap docs-table-wrap">
       <div class="table-actions">
-        <!-- RAG 问答：后端 RAG 关闭时整组端点不存在，探测失败即隐藏入口 -->
-        <el-button
-          v-if="ragEnabled"
-          :icon="MagicStick"
-          @click="ragVisible = true"
-        >
-          {{ t('documents.rag.openBtn') }}
-        </el-button>
-        <el-button
-          v-if="ragEnabled && canUpdate && category"
-          :icon="Refresh"
-          :loading="reindexing"
-          @click="confirmReindex"
-        >
-          {{ t('documents.rag.reindexBtn') }}
-        </el-button>
+        <!-- 主操作（新建文件夹）在左；RAG / 重建索引 / 笔记是次要入口，靠右 —— 全项目统一 -->
         <el-button
           v-if="canUpload && category"
+          type="primary"
           :icon="FolderAdd"
           @click="openFolderDialog()"
         >
           {{ t('documents.createFolder') }}
         </el-button>
-        <!-- 笔记入口：无 note:view 权限的人看不到（菜单同样受 note:view 管控） -->
-        <el-button
-          v-if="auth.hasPerm('note:view') && category"
-          :icon="EditPen"
-          @click="noteDrawerVisible = true"
-        >
-          {{ t('note.drawerTitle') }}
-        </el-button>
+        <div class="header-actions">
+          <!-- RAG 问答：后端 RAG 关闭时整组端点不存在，探测失败即隐藏入口 -->
+          <el-button
+            v-if="ragEnabled"
+            :icon="MagicStick"
+            @click="ragVisible = true"
+          >
+            {{ t('documents.rag.openBtn') }}
+          </el-button>
+          <el-button
+            v-if="ragEnabled && canUpdate && category"
+            :icon="Refresh"
+            :loading="reindexing"
+            @click="confirmReindex"
+          >
+            {{ t('documents.rag.reindexBtn') }}
+          </el-button>
+          <!-- 笔记入口：无 note:view 权限的人看不到（菜单同样受 note:view 管控） -->
+          <el-button
+            v-if="auth.hasPerm('note:view') && category"
+            :icon="EditPen"
+            @click="noteDrawerVisible = true"
+          >
+            {{ t('note.drawerTitle') }}
+          </el-button>
+        </div>
       </div>
+      <!-- 表格 + 分页作为一组：有内容才渲染，空目录 / 无权限走下面的空态 -->
+      <template v-if="folders.length > 0 || rows.length > 0">
       <el-table
-        v-if="folders.length > 0 || rows.length > 0"
         :data="tableData"
         v-loading="loading"
         border
@@ -89,7 +94,7 @@
         <el-table-column v-if="rows.length > 0" :label="t('documents.colUploadedAt')" width="200">
           <template #default="{ row }">
             <template v-if="(row as any).__kind === 'file'">
-              <span class="mono-time">{{ (row as DocumentItem).createdAt }}</span>
+              <span class="mono-time">{{ formatDateTime((row as DocumentItem).createdAt) }}</span>
             </template>
           </template>
         </el-table-column>
@@ -154,6 +159,20 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 分页只针对「文件」：子目录是导航项，后端刻意不分页（见 DocumentBrowseDto）。
+           total === 0（当前层只有子目录）时整栏不渲染。 -->
+      <el-pagination
+        v-if="total > 0"
+        v-model:current-page="query.page"
+        v-model:page-size="query.size"
+        :total="total"
+        :page-sizes="[10,20,50,100]"
+        layout="total,sizes,prev,pager,next,jumper"
+        @current-change="reloadDocs"
+        @size-change="onSizeChange"
+      />
+      </template>
 
       <!-- 空状态：当前路径下没有任何文件 / 文件夹 -->
       <div v-else-if="!loading && (noPerm || (category && !canView))" class="empty-state no-perm">
@@ -286,6 +305,7 @@ import { ragApi } from '@/api/rag';
 import ProjectFileViewer from '@/components/ProjectFileViewer.vue';
 import RagChatDrawer from '@/components/documents/RagChatDrawer.vue';
 import NoteDrawer from '@/views/documents/notes/components/NoteDrawer.vue';
+import { formatDateTime } from '@/utils/time';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -298,6 +318,9 @@ const folders = ref<FolderItem[]>([]);
 const category = ref<ArchiveLibrary | null>(null);
  const noPerm = ref(false);            // 当前 slug 档案库存在但用户无 view perm
  const currentPath = ref('');          // 档案库内当前路径（空 = 根）
+const total = ref(0);                 // 当前层文件总条数（不含子目录）
+/** 分页状态：size 必须是 ref（const 无法 v-model:page-size）；page 从 1 开始 */
+const query = reactive({ page: 1, size: 20 });
 
  /** 档案库级 4 权限 —— 由后端 FileController 同步校验（per-archive view 是 preview/download 的硬要求） */
 const canView   = computed(() => !!category.value && auth.hasPerm(`documents:${category.value.slug}:view`));
@@ -358,11 +381,15 @@ const breadcrumbs = computed(() => {
 
 /** 表格数据 = 文件夹 + 文件（用 __kind 区分，文件夹排前） */
 const tableData = computed(() => {
-  const folderRows = folders.value.map((f) => ({
-    __kind: 'folder' as const,
-    name: f.name,
-    path: f.path,
-  }));
+  // 子目录只在第 1 页出现。后端对子目录刻意不分页（导航项必须完整可见），
+  // 若每页都把它们渲染一遍，用户会看到同一批文件夹在每一页重复刷出来。
+  const folderRows = query.page === 1
+    ? folders.value.map((f) => ({
+        __kind: 'folder' as const,
+        name: f.name,
+        path: f.path,
+      }))
+    : [];
   const fileRows = rows.value.map((r) => ({
     ...r,
     __kind: 'file' as const,
@@ -432,6 +459,8 @@ async function loadBySlug(slug: string) {
     noPerm.value = false;
     // 读取 URL query 中的 path（每次进入/点击文件夹都重新 load）
     currentPath.value = ((route.query.path as string) ?? '').trim();
+    // 换档案库 / 换目录 = 换数据集，页码必须回第 1 页
+    query.page = 1;
     await reloadDocs();
   } catch {
     // 401/403 时拦截器已处理；这里只 reset 状态
@@ -446,16 +475,31 @@ async function loadBySlug(slug: string) {
 
 async function reloadDocs() {
   if (!category.value) return;
-  const data: BrowseResult = await documentApi.browse(category.value.id, currentPath.value);
+  const data: BrowseResult = await documentApi.browse(
+    category.value.id, currentPath.value, query.page, query.size);
   folders.value = data.folders;
   rows.value = data.files;
+  total.value = data.total ?? data.files.length;
 }
 
-/** 监听 URL query.path 变化（双击文件夹跳转后） */
+/** 切每页条数必须回到第 1 页：停在后面的页码改 size 会落到一个可能已不存在的页 */
+function onSizeChange() {
+  query.page = 1;
+  reloadDocs();
+}
+
+/** 删掉本页最后一条时把页码退一格，否则停在一个空页上 */
+async function reloadAfterDelete() {
+  if (rows.value.length <= 1 && query.page > 1) query.page -= 1;
+  await reloadDocs();
+}
+
+/** 监听 URL query.path 变化（双击文件夹跳转后）——换目录等于换数据集，页码必须回 1 */
 watch(() => route.query.path, (v) => {
   const next = ((v as string) ?? '').trim();
   if (next !== currentPath.value) {
     currentPath.value = next;
+    query.page = 1;
     reloadDocs();
   }
 });
@@ -711,7 +755,7 @@ async function confirmDelete(row: DocumentItem) {
   try {
     await documentApi.remove(row.id);
     ElMessage.success(t('documents.deleteSuccess'));
-    await reloadDocs();
+    await reloadAfterDelete();
     // 顺便刷新档案库 fileCount
     if (category.value) {
       const all = await archiveApi.list();
@@ -764,7 +808,7 @@ onMounted(() => {
   color: var(--color-text);
 }
 .mono {
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text-secondary);
 }
@@ -791,52 +835,15 @@ onMounted(() => {
   border-color: var(--color-danger);
 }
 
-/* ===== 页面布局（参照数据源/档案库页，§7.2） ===== */
-.docs-page {
-  /* 页面至少填满 el-main（视口 - 64px 顶栏）：
-   * - 表格只有 2 行时，不会留下大片空白在页面底部
-   * - 弹窗居中时落在实际页面内容上，不会"飘"在视口空白处 */
-  min-height: calc(100vh - 64px);
-  display: flex;
-  flex-direction: column;
-}
-.docs-page .page-header {
-  display: flex; justify-content: space-between; align-items: center;
-  /* 吸顶：标题 + 操作按钮始终可见 */
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: var(--color-bg);
-  /* 紧凑 padding：让页头总高度 = 标题高度 + 小呼吸 */
-  padding: 8px 0;
-  margin-bottom: 0;
-  flex-shrink: 0;
-}
-.docs-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
-.docs-page .page-desc  { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
-.docs-table-wrap {
-  /* 与吸顶页头之间不留多余间距（紧贴） */
-  margin-top: 0;
-  /* 让表格 wrap 也参与 flex 分配（剩余空间吃掉） */
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.docs-table-wrap > .el-table,
-.docs-table-wrap > .el-table > .el-table__inner-wrapper,
-.docs-table-wrap > .el-table > .el-table__inner-wrapper > .el-table__body-wrapper {
-  flex: 1;
-}
-
-/* 表头不吸顶 —— <el-table> 的内部布局对 position:sticky 极敏感，
- * 把 header-wrapper 设 sticky 会让 tbody 跑到表头上方（实测 bug）。
- * 退而求其次：只让页头吸顶；表头随页面滚动自然消失/出现。 */
-:deep(.docs-table-wrap .el-table__header-wrapper) {
-  background: var(--color-bg);
-}
-:deep(.docs-table-wrap .el-table__header-wrapper table) {
-  background: var(--color-bg);
-}
+/* 页面布局 / 表格容器样式**全部继承 global.css**，本页不覆写
+ * （与发票列表页 invoice/List.vue、档案库页 documents/archive/Index.vue 保持一致，
+ *  见 AGENTS §7.1 / §8.5.1）。
+ *
+ * 之前这里自定义过一套竖向撑满（min-height: calc(100vh - 64px) + flex:1 链路 +
+ * el-table / inner-wrapper / body-wrapper 逐层 flex:1），理由是"表格只有 2 行时
+ * 不要在页面底部留大片空白"。但 EP 的 .el-table 默认 height:fit-content，被 flex 拉高后
+ * 表体撑不满，边框内反而留下一大片空白 —— 竖向看起来"没撑满"。
+ * 全局 .table-wrap 按内容高度渲染，行数少时容器跟着矮，这正是发票列表的观感。 */
 
 /* ===== 拖拽上传区（参考上传识别页 invoice/Upload.vue） ===== */
 .upload-area {

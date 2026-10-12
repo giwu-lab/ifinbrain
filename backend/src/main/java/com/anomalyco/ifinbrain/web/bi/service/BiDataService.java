@@ -84,7 +84,20 @@ public class BiDataService {
      */
     public BiDataResp query(BiDataQueryReq req) {
         perm.require("bi:dataset:view");
+        return queryAuthorized(req);
+    }
 
+    /**
+     * 取数执行逻辑（**不做权限检查**）。
+     *
+     * <p>供已经自行鉴权、且权限语义与 {@code bi:dataset:view} 不同的调用方复用 ——
+     * 目前只有表单模块的动态选项（{@code design/forms/options}）。
+     *
+     * <p>⚠️ <b>调用方必须自己 perm.require</b>。这里刻意不设默认放行，是为了让
+     * 「谁有权读这条 SQL」这个问题在调用点上可见，而不是藏在一个公共工具方法里。
+     * 表单填表人只需要 {@code design:form:view}，不该被要求持有 BI 大屏权限。
+     */
+    public BiDataResp queryAuthorized(BiDataQueryReq req) {
         int ttlSec = normalizeTtl(req.getCacheSec());
         String key = cacheKey(req.getQueryId(), req.getParams());
 

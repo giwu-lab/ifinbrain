@@ -206,7 +206,7 @@ watch(w.datasourceId, (nv, ov) => {
 }
 
 .mono-col {
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 

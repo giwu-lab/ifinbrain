@@ -12,7 +12,7 @@
         </el-button>
       </div>
 
-      <el-table :data="rows" v-loading="loading" border stripe>
+      <el-table :data="rows" v-loading="loading" border stripe size="small">
         <el-table-column prop="id" :label="t('system.colId')" width="80" />
         <el-table-column :label="t('system.colCode')" prop="code" width="140">
           <template #default="{ row }">
@@ -385,7 +385,7 @@ onMounted(async () => {
 }
 :deep(.perm-grid .el-checkbox) { margin-right: 0; }
 :deep(.perm-code) {
-  font-family: 'SF Mono', Menlo, ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 12px; color: var(--color-text, #1a1a1a);
   margin-right: 6px;
 }
@@ -412,5 +412,5 @@ onMounted(async () => {
   min-width: 56px; font-weight: 500;
   padding-top: 2px;
 }
-.perm-tag { font-family: 'SF Mono', Menlo, ui-monospace, monospace; }
+.perm-tag { font-family: var(--font-mono); }
 </style>

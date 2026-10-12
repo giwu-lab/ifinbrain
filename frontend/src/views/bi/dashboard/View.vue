@@ -13,7 +13,7 @@
         <div class="stage" :style="stageStyle">
           <div ref="themeHost" class="stage-inner" :style="themeStyle">
             <BiWidgetFrame
-              v-for="w in widgets"
+              v-for="w in shown"
               :key="w.id"
               :widget="w"
               :theme="store.theme"
@@ -56,6 +56,18 @@
     <!-- 隐藏态的唤出入口：鼠标靠右上角 -->
     <div v-if="hideChrome" class="chrome-hotzone" @click="hideChrome = false"></div>
 
+    <!-- 联动筛选生效提示：不给出口的话，点了图之后画面变了却没有任何解释，
+         用户第一反应是「页面坏了」。 -->
+    <transition name="fade">
+      <div v-if="!hideChrome && filterLabel" class="filter-bar">
+        <el-icon><Filter /></el-icon>
+        <span class="filter-text">{{ filterLabel }}</span>
+        <el-tooltip :content="t('bi.view.clearFilter')" placement="bottom">
+          <el-button link :icon="Close" @click="interaction.clearAll()" />
+        </el-tooltip>
+      </div>
+    </transition>
+
     <div v-if="!meta.id && !loading" class="fatal">{{ t('bi.view.notFound') }}</div>
   </div>
 </template>
@@ -71,10 +83,11 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import { Edit, FullScreen, Hide, Refresh } from '@element-plus/icons-vue';
+import { Close, Edit, Filter, FullScreen, Hide, Refresh } from '@element-plus/icons-vue';
 import { biApi, type BiDashboardDto, type BiWidget } from '@/api/bi';
 import { useBiDesignStore } from '@/stores/biDesign';
 import { useBiData } from '@/composables/useBiData';
+import { useBiInteraction } from '@/composables/useBiInteraction';
 import { gridRectPx, presetVars } from '@/utils/bi/layout';
 import BiWidgetFrame from '@/components/bi/BiWidgetFrame.vue';
 import dayjs from 'dayjs';
@@ -94,6 +107,30 @@ const hideChrome = ref(false);
 const clock = ref('');
 
 const widgets = computed(() => store.orderedWidgets);
+const interaction = useBiInteraction(widgets);
+
+/**
+ * 渲染与取数统一用这一份：URL 透传参数 + 联动筛选值，两层都只是覆盖 params，
+ * 之后再交给 useBiData 按签名去重。两者互不干扰 —— URL 是「进入时的初始条件」，
+ * 联动是「进来之后用户点的」，后者的优先级更高（写在后面）。
+ */
+const shown = computed<BiWidget[]>(() => {
+  const url = urlParams();
+  const eff = interaction.effective.value;
+  if (!Object.keys(url).length) return eff;
+  return eff.map((w) => {
+    if (!w.data?.queryId) return w;
+    return { ...w, data: { ...w.data, params: { ...url, ...(w.data.params || {}) } } };
+  });
+});
+
+/** 「正在按 X 过滤」的文字。多个筛选用、分隔，最多显示 3 个避免撑爆工具条 */
+const filterLabel = computed(() => {
+  const list = interaction.activeFilters.value;
+  if (!list.length) return '';
+  const head = list.slice(0, 3).map((f) => `${f.param}=${f.value}`).join('、');
+  return list.length > 3 ? `${head} …` : head;
+});
 
 /**
  * 视口尺寸做成响应式：scale 依赖它。
@@ -162,27 +199,25 @@ function urlParams(): Record<string, string> {
   return out;
 }
 
-/** 把透传参数并进每个组件的 params（不覆盖组件自己配的固定值） */
-function widgetsWithUrlParams(): BiWidget[] {
-  const extra = urlParams();
-  if (!Object.keys(extra).length) return widgets.value;
-  return widgets.value.map((w) => {
-    if (!w.data?.queryId) return w;
-    const merged = { ...extra, ...(w.data.params || {}) };
-    return { ...w, data: { ...w.data, params: merged } };
-  });
-}
-
 // ===================== 加载 / 刷新 =====================
 
 let timer: number | null = null;
 
 async function loadAll(force = false) {
-  const list = widgetsWithUrlParams();
+  const list = shown.value;
   if (force) refreshing.value = true;
   await (force ? refresh(list) : load(list));
   refreshing.value = false;
 }
+
+/**
+ * 点图表 → 联动筛选变化 → 按新 params 重新取数。
+ * 用 refresh 忽略缓存新鲜度，避免「点到同值命中未过期缓存、画面不跟着变」的假象。
+ */
+watch(
+  () => interaction.overrideSig.value,
+  () => { loadAll(true); },
+);
 
 function setupAutoRefresh(sec: number) {
   if (timer) { clearInterval(timer); timer = null; }
@@ -293,6 +328,29 @@ onBeforeUnmount(() => {
 .ctrl-clock {
   font-size: 12px;
   color: var(--bi-text-muted);
+}
+/* 联动筛选提示：贴在右上角控件条下方，视觉上同属一组 */
+.filter-bar {
+  position: fixed;
+  top: 48px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 320px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bi-panel) 88%, transparent);
+  border: 1px solid var(--bi-border);
+  backdrop-filter: blur(3px);
+  color: var(--bi-text-secondary);
+  z-index: 999;
+}
+.filter-text {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .chrome-hotzone {
   position: fixed;

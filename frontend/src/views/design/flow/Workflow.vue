@@ -25,12 +25,12 @@
                   <code class="mono">{{ (row as FlowInstanceItem).businessKey }}</code>
                 </template>
               </el-table-column>
-              <el-table-column :label="t('design.flowColCurrent')" min-width="160">
+              <el-table-column :label="t('design.flowColCurrent')" min-width="175">
                 <template #default="{ row }">
                   {{ (row as FlowInstanceItem).currentNodeLabel || (row as FlowInstanceItem).currentNodeId || '—' }}
                 </template>
               </el-table-column>
-              <el-table-column :label="t('design.flowColFinishedAt')" min-width="160">
+              <el-table-column :label="t('design.flowColFinishedAt')" min-width="175">
                 <template #default="{ row }">
                   <span class="mono-time">{{ formatTime((row as FlowInstanceItem).finishedAt) }}</span>
                 </template>
@@ -86,7 +86,7 @@
                 {{ (row as FlowTaskItem).startedBy }}
               </template>
             </el-table-column>
-            <el-table-column :label="t('design.flowColCreatedAt')" min-width="160">
+            <el-table-column :label="t('design.flowColCreatedAt')" min-width="175">
               <template #default="{ row }">
                 <span class="mono-time">{{ formatTime((row as FlowTaskItem).createdAt) }}</span>
               </template>
@@ -130,17 +130,17 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column :label="t('design.flowColCurrent')" min-width="160">
+            <el-table-column :label="t('design.flowColCurrent')" min-width="175">
               <template #default="{ row }">
                 {{ (row as FlowInstanceItem).currentNodeLabel || (row as FlowInstanceItem).currentNodeId || '—' }}
               </template>
             </el-table-column>
-            <el-table-column :label="t('design.flowColStartedAt')" min-width="160">
+            <el-table-column :label="t('design.flowColStartedAt')" min-width="175">
               <template #default="{ row }">
                 <span class="mono-time">{{ formatTime((row as FlowInstanceItem).startedAt) }}</span>
               </template>
             </el-table-column>
-            <el-table-column :label="t('design.flowColFinishedAt')" min-width="160">
+            <el-table-column :label="t('design.flowColFinishedAt')" min-width="175">
               <template #default="{ row }">
                 <span class="mono-time">{{ formatTime((row as FlowInstanceItem).finishedAt) }}</span>
               </template>
@@ -314,7 +314,7 @@
             </el-table-column>
             <el-table-column :label="t('design.flowColOperator')" width="80" prop="operator" />
             <el-table-column :label="t('design.flowColComment')" min-width="180" prop="comment" />
-            <el-table-column :label="t('design.flowColCreatedAt')" width="140">
+            <el-table-column :label="t('design.flowColCreatedAt')" width="175">
               <template #default="{ row }"><span class="mono-time">{{ formatTime((row as any).createdAt) }}</span></template>
             </el-table-column>
             <template #empty>

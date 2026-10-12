@@ -42,30 +42,39 @@
           >
             <template #default="{ node, data }">
               <span class="tree-node-row" :class="{ leaf: !data.children?.length }">
-                <el-icon class="tree-icon" v-if="data.children?.length"><Folder /></el-icon>
-                <el-icon class="tree-icon leaf-icon" v-else><Document /></el-icon>
-                <span class="tree-label">{{ data.name }}</span>
-                <el-tag size="small" effect="plain" class="tree-code">{{ data.code }}</el-tag>
-                <span class="tree-count">{{ data.itemCount ?? 0 }}</span>
-                <span class="tree-actions" v-if="auth.hasPerm('dict:update') || auth.hasPerm('dict:delete')">
-                  <!-- 编辑：图标直显 -->
-                  <el-tooltip v-if="auth.hasPerm('dict:update')" :content="t('common.edit')" placement="top">
-                    <el-button size="small" link :icon="Edit" @click.stop="onEditType(data)" />
-                  </el-tooltip>
-                  <!-- 删除：保留在 ··· 下拉（仅对有子条目的 type 显示 —— 空 type 不让删） -->
-                  <el-dropdown v-if="auth.hasPerm('dict:delete') && data.children?.length" trigger="click" @command.stop="(cmd: string) => onTypeCmd(cmd, data)">
-                    <el-button :icon="MoreFilled" size="small" link />
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item command="delete" divided>
-                          <span class="danger-text">
-                            <el-icon><Delete /></el-icon>{{ t('common.delete') }}
-                          </span>
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
+                <span class="tree-node-main">
+                  <el-icon class="tree-icon" v-if="data.children?.length"><Folder /></el-icon>
+                  <el-icon class="tree-icon leaf-icon" v-else><Document /></el-icon>
+                  <span class="tree-label">{{ data.name }}</span>
+                  <el-tag size="small" effect="plain" class="tree-code">{{ data.code }}</el-tag>
+                  <span class="tree-count">{{ data.itemCount ?? 0 }}</span>
+                  <span class="tree-actions" v-if="auth.hasPerm('dict:update') || auth.hasPerm('dict:delete')">
+                    <!-- 编辑：图标直显 -->
+                    <el-tooltip v-if="auth.hasPerm('dict:update')" :content="t('common.edit')" placement="top">
+                      <el-button size="small" link :icon="Edit" @click.stop="onEditType(data)" />
+                    </el-tooltip>
+                    <!-- 删除：保留在 ··· 下拉（仅对有子条目的 type 显示 —— 空 type 不让删） -->
+                    <el-dropdown v-if="auth.hasPerm('dict:delete') && data.children?.length" trigger="click" @command.stop="(cmd: string) => onTypeCmd(cmd, data)">
+                      <el-button :icon="MoreFilled" size="small" link />
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item command="delete" divided>
+                            <span class="danger-text">
+                              <el-icon><Delete /></el-icon>{{ t('common.delete') }}
+                            </span>
+                          </el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                  </span>
                 </span>
+                <!--
+                  备注独占第二行：单行不换行、放不下末尾 …（完整文案挂 title，hover 看全）。
+                  为什么放在这里而不是右栏表头：备注解释的是**这个类型**的用途，
+                  选中之前就该看到 —— 像 invoice_reimburse_form「改这里即换表单」这种
+                  约定，漏看一次就会误以为不用管。
+                -->
+                <span v-if="data.remark" class="tree-remark" :title="data.remark">{{ data.remark }}</span>
               </span>
             </template>
           </el-tree>
@@ -278,6 +287,7 @@ import type { UploadFile, UploadInstance } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
 import { dictApi, type DictItem, type DictType } from '@/api/dict';
 import { useDictStore } from '@/stores/dict';
+import { formatDateTime } from '@/utils/time';
 
 const { t } = useI18n();
 const auth = useAuthStore();
@@ -329,9 +339,9 @@ const filteredTypes = computed(() => {
   );
 });
 
+/** 缓存时间：store 里存的是 Date.now() 毫秒数，formatDateTime 直接吃 number */
 function formatTime(ts: number) {
-  const d = new Date(ts);
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+  return formatDateTime(ts);
 }
 
 async function loadTypes() {
@@ -657,7 +667,9 @@ watch(() => types.value.length, (n) => {
 }
 .dict-pane {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  /* 360 → 440：360 放不下 invoice_expense_category（24 字符 mono code ≈ 160px），
+     code tag 会被 pane 裁掉右半边。加宽后右栏表格仍留足宽度。 */
+  grid-template-columns: 440px 1fr;
   gap: 12px;
   height: 100%;
   background: var(--color-bg-elev);
@@ -685,16 +697,33 @@ watch(() => types.value.length, (n) => {
   padding: 6px 0;
 }
 
+/* EP 把 .el-tree-node__content 写死 height:24px，两行内容会被裁掉第二行 —— 放开高度 */
+.type-tree :deep(.el-tree-node__content) { height: auto; min-height: 26px; }
+
+/* 两行：上行 = 图标 + 名称 + code + 数量 + 操作；下行 = 备注 */
 .tree-node-row {
-  display: inline-flex; align-items: center; gap: 6px;
-  width: 100%;
+  display: flex; flex-direction: column; gap: 1px;
+  width: 100%; min-width: 0;
   font-size: 13px;
-  padding-right: 8px;
+  padding: 3px 8px 3px 0;
+  box-sizing: border-box;
 }
+.tree-node-main { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .tree-icon { color: var(--color-primary); flex-shrink: 0; }
 .tree-icon.leaf-icon { color: var(--color-text-secondary); }
 .tree-label { font-weight: 500; flex-shrink: 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tree-code { font-family: monospace; font-size: 11px; }
+.tree-code { font-family: var(--font-mono); font-size: 11px; }
+/* 备注：单行、放不下末尾 …；完整文案在 title 里 */
+.tree-remark {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* 首行行首是图标，第二行要对齐名称而不是图标 */
+  padding-left: 22px;
+}
 .tree-count { color: var(--color-text-secondary); font-size: 12px; margin-left: auto; }
 .tree-actions { display: inline-flex; gap: 0; margin-left: 8px; opacity: 0.6; transition: opacity .15s; }
 .tree-node-row:hover .tree-actions { opacity: 1; }

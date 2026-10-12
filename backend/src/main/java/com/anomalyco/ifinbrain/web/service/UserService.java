@@ -82,7 +82,7 @@ public class UserService {
                 .displayName(req.getDisplayName())
                 .email(blankToNull(req.getEmail()))
                 .phone(req.getPhone())
-                .deptId(resolveDeptId(req.getDeptId()))
+                .deptId(requireDeptId(req.getDeptId()))
                 .status(req.getStatus() == null ? (short) 1 : req.getStatus())
                 .build();
         userRepo.save(u);
@@ -97,8 +97,8 @@ public class UserService {
         // 邮箱选填：null = 本次没带这个字段（不动）；空串 = 用户主动清空（置 NULL）。
         if (req.getEmail() != null) u.setEmail(blankToNull(req.getEmail()));
         if (req.getPhone() != null) u.setPhone(req.getPhone());
-        // 部门三态：null = 不动；0 = 清空；>0 = 改挂。见 UserUpdateReq.deptId。
-        if (req.getDeptId() != null) u.setDeptId(resolveDeptId(req.getDeptId()));
+        // 部门必填：null = 本次不动；>0 = 改挂（@Positive 已挡掉 0，即「清空」不再是合法操作）。
+        if (req.getDeptId() != null) u.setDeptId(requireDeptId(req.getDeptId()));
         if (req.getStatus() != null) u.setStatus(req.getStatus());
         if (req.getPassword() != null && !req.getPassword().isBlank()) {
             // 长度下限从 DTO 移到这里（见 UserUpdateReq.password 的注释）：
@@ -135,13 +135,22 @@ public class UserService {
     }
 
     /**
-     * 部门 id 归一化：null / 0 = 不归属任何部门（落 NULL）；正数必须在 sys_dept 里存在。
+     * 部门 id 校验：部门必填，null / 0 / 负数一律拒绝，正数还必须在 sys_dept 里存在。
      *
-     * <p>sys_user.dept_id 上没有外键（与本库其它关联表一致），所以这里必须自己校验，
+     * <p>DTO 上的 {@code @NotNull} + {@code @Positive}（create）已经挡掉了绝大多数，
+     * 这里是不依赖校验器的第二道：Bean Validation 只覆盖走 {@code @Valid} 的 controller
+     * 入口，service 被别的调用方直接复用时并没有这层保护。
+     *
+     * <p>sys_user.dept_id 上没有外键（与本库其它关联表一致），所以「存在性」必须自己校验，
      * 否则一次手滑的请求就能写进一个不存在的部门 id，之后谁也查不出这个用户属于哪。
+     *
+     * <p>历史数据里 dept_id 为 NULL 的用户仍然存在（系统预设 admin 等），本方法只在
+     * <b>写入</b>路径上生效，不做存量回填 —— 需要时可另跑一次数据迁移。
      */
-    private Long resolveDeptId(Long deptId) {
-        if (deptId == null || deptId == 0L) return null;
+    private Long requireDeptId(Long deptId) {
+        if (deptId == null || deptId <= 0L) {
+            throw new BizException(400, "部门不能为空");
+        }
         if (!deptRepo.existsById(deptId)) {
             throw new BizException(400, "部门不存在: " + deptId);
         }

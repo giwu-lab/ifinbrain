@@ -1,4 +1,5 @@
 import { http } from './http';
+import type { PageResp } from '@/types';
 
 /** 节点类型（与后端 NodeType 同步） */
 export type NodeType = 'START' | 'END' | 'APPROVAL' | 'CONDITION';
@@ -93,8 +94,10 @@ export interface FlowDefineUpdateBody {
 }
 
 export const flowDefineApi = {
-  list: () => http.get<any, FlowDefineItem[]>('/design/flows'),
-  /** 当前用户「可发起」流程清单：status=1 + 当前用户有流程级 deploy perm */
+  /** 列表页：后端真分页。keyword 命中名称 / 编码 / 描述 */
+  list: (params?: { page?: number; size?: number; keyword?: string }) =>
+    http.get<any, PageResp<FlowDefineItem>>('/design/flows', { params }),
+  /** 当前用户「可发起」流程清单：status=1 + 当前用户有流程级 deploy perm（不分页，下拉用） */
   launchable: () => http.get<any, FlowDefineItem[]>('/design/flows/launchable'),
   detail: (id: number) => http.get<any, FlowDefineItem>(`/design/flows/${id}`),
   detailByCode: (code: string) => http.get<any, FlowDefineItem>(`/design/flows/by-code/${code}`),

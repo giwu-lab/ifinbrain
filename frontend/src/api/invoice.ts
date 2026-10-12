@@ -23,6 +23,8 @@ export interface InvoiceItem {
   reviewer?: string;
   drawer?: string;
   message?: string;
+  /** 费用类别（fapiao_cn 的 expense_category_label）；老数据 / 未识别时为空 */
+  expenseCategoryLabel?: string | null;
   verificationNo?: string;
   verifier?: string;
   verificationDate?: string;
@@ -38,6 +40,9 @@ export type PendingInvoice = Omit<InvoiceItem, 'id' | 'verificationNo' | 'verifi
 };
 
 /** 分组列表项：同一发票号码合并为一行 */
+/** 报销状态：NONE 未报销 / PENDING 审批中 / APPROVED 已报销 / REJECTED 已驳回 */
+export type ReimburseStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface InvoiceGroupItem {
   invoiceNumber: string;
   ids: number[];
@@ -61,9 +66,17 @@ export interface InvoiceGroupItem {
   reviewer?: string;
   drawer?: string;
   message?: string;
+  /** 费用类别（fapiao_cn 的 expense_category_label）；老数据 / 未识别时为空 */
+  expenseCategoryLabel?: string | null;
   verificationNo?: string;
   verifier?: string;
   verificationDate?: string;
+  /** 动态报销申请单字段值；未填申请单时为 null */
+  formData?: Record<string, any> | null;
+  /** 报销状态；后端老数据/异常时可能缺失，前端按 NONE 兜底 */
+  reimburseStatus?: ReimburseStatus | null;
+  /** 关联的审批流实例 id；未走流程时为 null */
+  flowInstanceId?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -82,6 +95,13 @@ export interface CommitBody {
   verificationNo: string;
   verifier?: string;
   verificationDate?: string;
+  /**
+   * 动态「报销申请单」的字段值（key = 表单字段 key）。
+   * 由字典 `invoice_reimburse_form` 绑定的表单决定，不配置表单时可不传。
+   */
+  formData?: Record<string, any>;
+  /** 是否同时发起审批流程；true 时提交后为「审批中」，审批通过才转「已报销」 */
+  withFlow?: boolean;
 }
 
 export const invoiceApi = {

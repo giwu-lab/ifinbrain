@@ -60,6 +60,8 @@ login: {
     featureStorage: 'Local disk / S3-compatible storage at the flip of a switch',
     featureRbac: 'Fine-grained RBAC permission management',
     defaultHint: 'Default account {code}, change your password at first login',
+    invalidCredentials: 'Incorrect username or password',
+    loginFailed: 'Sign-in failed, check your connection and try again',
   },
 
   layout: {
@@ -195,6 +197,12 @@ header: {
     'data-mgmt-query':      'Queries',
 
     // Document Management (P5/P6 add archive / list subkeys)
+    //
+    // NOTE: archive-library menus (`/documents/{slug}`, component `documents/list/Index`)
+    // deliberately have NO key here. All libraries share one component, so no key can
+    // distinguish them, and the label is the admin-entered library name -- user data,
+    // not UI copy. Translating it would be wrong; `resolveMenuName` falls back to
+    // `sys_menu.name` instead. Regression guard: `node scripts/menu-i18n-audit.mjs --expect-uncovered 2`
     documents: {
       _: 'Documents',
       archive: { _: 'Archive Library', Index: 'Archive Library' },
@@ -242,6 +250,7 @@ report: {
   designDesc: 'Bind a query, pick header fields, configure column widths and paging guards.',
   view: 'View',
   copy: 'Copy',
+  copyDone: 'Duplicated as "{name}"',
   publish: 'Publish',
   unpublish: 'Unpublish',
   published: 'Published',
@@ -262,6 +271,11 @@ report: {
   saved: 'Saved',
   preview: 'Preview data',
   previewFailed: 'Preview failed',
+  previewOk: 'Preview succeeded, {n} rows returned',
+  previewEmpty: 'The query ran but returned no columns. Check its SELECT list.',
+  previewData: 'Data preview',
+  previewDataHint: 'First page from the trial run, for checking columns and data only. Nothing is persisted.',
+  previewNoData: 'No preview data yet. Fill in the conditions above, then click "Preview data".',
   loadFailed: 'Failed to load report',
   queryFailed: 'Query failed',
   retry: 'Retry',
@@ -269,18 +283,52 @@ report: {
   pickDate: 'Pick a date',
   query: 'Query',
   loaded: '{n} rows loaded',
+  totalRows: '{n} in total',
   capped: 'Reached the {n} row limit',
   loadingMore: 'Loading…',
   allLoaded: 'End of data',
   noData: 'No data',
   missingParam: 'Please fill in: {name}',
   confirmDelete: 'Delete report "{name}"?',
+  auth: 'Permissions',
+  authDialogTitle: 'Report Authorization: {name}',
   expand: 'Expand',
   collapse: 'Collapse',
   alignLeft: 'Left',
   alignCenter: 'Center',
   alignRight: 'Right',
-  fixed: 'Fixed',
+  moveUp: 'Move up',
+  moveDown: 'Move down',
+  pubDir: 'Publish into',
+  pubDirPlaceholder: 'Keep the current directory',
+  pubDirHint:
+    'Publishing adds a sidebar entry under this directory. A report that is not published anywhere is a report nobody can find.',
+  pubMenuName: 'Menu name',
+  pubMenuNamePlaceholder: 'Leave blank to keep the current one',
+  pubSort: 'Sort',
+  pubPerm: 'View permission',
+  pubPermHint:
+    'Grant this permission to a role under System → Roles; only then does the entry appear in that role\'s sidebar.',
+  publishFailed: 'Publish failed',
+  confirmUnpublish:
+    'Unpublishing "{name}" also takes its sidebar entry offline (republishing restores it). Continue?',
+  exportCsv: 'Export CSV',
+  exportXlsx: 'Export Excel',
+  exportOk: '{kind} exported',
+  exportFail: 'Export failed',
+  controlHint:
+    'Control types follow the query definition by default. Changing one here applies to this report only, and the play page renders exactly what you set.',
+  resetControl: 'Follow the query definition again',
+  selectOptions: 'Type a value and press Enter to add it',
+  selectOptionsEmpty: 'This dropdown has no options yet, so viewers will see an empty list.',
+  pickOption: 'Please select',
+  ctrl: {
+    text: 'Text box',
+    number: 'Number',
+    date: 'Date',
+    datetime: 'Date & time',
+    select: 'Dropdown',
+  },
   col: {
     name: 'Report',
     code: 'Code',
@@ -290,6 +338,11 @@ report: {
     maxRows: 'Max rows',
     status: 'Status',
     updatedAt: 'Updated',
+    key: 'Column',
+    label: 'Header',
+    width: 'Width',
+    align: 'Align',
+    fixed: 'Fixed',
   },
 },
 
@@ -298,6 +351,18 @@ report: {
     dash: {
       title: 'Dashboards',
       desc: 'Drag-and-drop dashboard designer with chart themes and carousel playback.',
+      // Multi-select alignment / distribute (designer topbar, shown when >= 2 widgets selected)
+      selectedN: '{n} selected',
+      alignLeft: 'Align left',
+      alignCenterX: 'Center horizontally',
+      alignRight: 'Align right',
+      alignTop: 'Align top',
+      alignCenterY: 'Center vertically',
+      alignBottom: 'Align bottom',
+      distributeH: 'Distribute horizontally (needs 3+)',
+      distributeV: 'Distribute vertically (needs 3+)',
+      auth: 'Permissions',
+      authDialogTitle: 'Dashboard Authorization: {name}',
       create: 'New Dashboard',
       name: 'Name',
       description: 'Description',
@@ -319,6 +384,16 @@ report: {
       unpublished2: 'Unpublished',
       deleted: 'Deleted',
       confirmDelete: 'Delete dashboard "{name}"? This cannot be undone.',
+      // Publish dialog (same publishing semantics as reports; wording mirrors report.*)
+      pubDir: 'Parent directory',
+      pubDirPlaceholder: 'Leave empty to keep the previous one',
+      pubDirHint: 'Publishing creates a sidebar entry under this directory. A dashboard missing from the sidebar is a dashboard nobody can find.',
+      pubMenuName: 'Menu label',
+      pubMenuNamePlaceholder: 'Leave empty to use the dashboard name',
+      pubSort: 'Sort',
+      pubPerm: 'View permission',
+      pubPermHint: 'Grant this permission to a role under System Settings -> Roles; the entry only shows in that role\'s sidebar once granted.',
+      confirmUnpublish: 'Unpublishing "{name}" also takes its sidebar entry offline (republishing restores it). Continue?',
       empty: 'No dashboard yet. Create one from the top right.',
       wall: 'Video Wall',
       backToList: 'Back to list',
@@ -350,6 +425,7 @@ report: {
       metric: 'Metric',
       chart: 'Charts',
       content: 'Content',
+      decoration: 'Decoration',
     },
     layers: {
       title: 'Layers',
@@ -372,11 +448,15 @@ report: {
       gauge: 'Gauge',
       funnel: 'Funnel',
       treemap: 'Treemap',
+      combo: 'Combo (Bar + Line)',
+      stack: 'Stacked',
       table: 'Detail Table',
       text: 'Text',
       image: 'Image',
       marquee: 'Scrolling List',
       divider: 'Divider',
+      border: 'Decorative Border',
+      titlebar: 'Screen Title Bar',
     },
     theme: {
       default: 'Default (follows app theme)',
@@ -442,6 +522,46 @@ report: {
       setImageUrl: 'Image URL',
       fit: 'Fit',
       speed: 'Scroll speed',
+      // Combo (bar + line)
+      comboLineSmooth: 'Smooth line',
+      comboFixLine: 'Pin line series',
+      comboLineIndex: 'Line series index',
+      // Stacked
+      stackShape: 'Stack shape',
+      stack_shape_bar: 'Stacked bar',
+      stack_shape_area: 'Stacked area',
+      // Decorative border
+      borderStyle: 'Border style',
+      borderVariant_corner: 'Corners',
+      borderVariant_full: 'Full frame',
+      borderVariant_line: 'Rules',
+      cornerLen: 'Corner length',
+      color: 'Color',
+      thickness: 'Thickness',
+      // Screen title bar
+      titleStyle: 'Title style',
+      titleVariant_accent: 'Accent bar',
+      titleVariant_solid: 'Centered',
+      titleVariant_gradient: 'Fading rule',
+      subText: 'Subtitle',
+      // Divider
+      lineStyle: 'Line style',
+      line_solid: 'Solid',
+      line_dashed: 'Dashed',
+      line_dotted: 'Dotted',
+      withTitle: 'With title',
+      lineTitle: 'Title text',
+      // Linkage
+      linkage: 'Linkage',
+      linkRules: 'Configured',
+      linkSource: 'Trigger',
+      linkPickSource: 'Pick the clicked widget',
+      linkParam: 'Target param',
+      linkPickParam: 'Pick a query param',
+      linkAdd: 'Add linkage',
+      linkNeedQuery: 'Bind a query that has parameters before this widget can act as a linkage target.',
+      linkActive: 'Active filter',
+      linkClear: 'Clear filter',
     },
     view: {
       refresh: 'Refresh',
@@ -449,31 +569,13 @@ report: {
       fullscreen: 'Fullscreen',
       fsFailed: 'Fullscreen failed. Check browser permission.',
       hideChrome: 'Hide controls',
+      clearFilter: 'Clear linkage filter',
       backToEdit: 'Back to editor',
       noData: 'No data',
       notFound: 'Dashboard not found',
       loadFailed: 'Failed to load dashboard',
       cached: 'cached {n}s',
       staleFailed: 'Update failed',
-    },
-    wall: {
-      empty: 'No published dashboard yet. Publish one from the designer.',
-      noneSelected: '{n} published dashboard(s) are not on the wall',
-      pick: 'Pick dashboards',
-      pickTitle: 'Wall content',
-      pickHint: 'Tick the dashboards to show and reorder them. The choice is saved on this device. Use the URL parameter ?ids=2,5 for a one-off override (not saved).',
-      order: 'Rotation order',
-      unpicked: 'Not on the wall',
-      pickedEmpty: 'The wall is empty. Add one from the list below.',
-      allPicked: 'Every published dashboard is already on the wall',
-      moveUp: 'Move up',
-      moveDown: 'Move down',
-      remove: 'Remove from wall',
-      add: 'Add to wall',
-      pickAll: 'Select all',
-      pickNone: 'Clear',
-      reset: 'Reset to default',
-      refresh: 'Refresh data',
     },
   },
 
@@ -482,8 +584,9 @@ report: {
     myTasksHint: 'View Tasks →',
     flowTodoCount: 'Pending Approvals',
     flowTodoHint: 'Open Runtime →',
-    rolesCount: 'Roles',
     menusCount: 'Menus',
+    invoicesCount: 'Invoices',
+    invoicesHint: 'Unique by invoice no.',
   },
 
   invoice: {
@@ -491,10 +594,12 @@ report: {
     uploadDesc: 'PDF / XML, max 50 files / 10MB per file',
     dropHere: 'Drop files here, or click to select files',
     clear: 'Clear',
-    submit: 'Upload & Recognize ({count})',
+    submit: 'Parse Invoice ({count})',
     recordsCount: '{count} record(s)',
     colFile: 'File',
     colType: 'Type',
+    colExpenseCategory: 'Expense Category',
+    expenseCategoryPlaceholder: 'Select category',
     colPageCount: 'Pages',
     colInvoiceNo: 'Invoice No',
     colIssueDate: 'Issue Date',
@@ -521,16 +626,41 @@ report: {
     ocrExtractFailedMsg: 'The request was sent but the parser returned an error. Verify the Base URL and API Key, or that the parser service is online.',
     ocrExtractFailedGoto: 'Open settings',
 
-    verificationNoLabel: 'Verification No.',
-    verificationNoPlaceholder: 'Enter verification No.',
-    verificationNoRequired: 'Please enter the verification number',
-    verifierLabel: 'Verifier',
-    verifierPlaceholder: 'Enter verifier name',
-    verificationDateLabel: 'Verification Date',
+    // Note: keys keep their historical verification* names (renaming would ripple
+    // through Repository queries and column mappings); display text is now reimbursement.
+    verificationNoLabel: 'Reimbursement No.',
+    verificationNoPlaceholder: 'Enter reimbursement No.',
+    verificationNoRequired: 'Please enter the reimbursement number',
+    verifierLabel: 'Reimburser',
+    verifierPlaceholder: 'Enter reimburser name',
+    verificationDateLabel: 'Reimbursement Date',
 
-    colVerificationNo: 'Verification No.',
-    colVerifier: 'Verifier',
-    colVerificationDate: 'Verification Date',
+    colVerificationNo: 'Reimbursement No.',
+    colVerifier: 'Reimburser',
+    colVerificationDate: 'Reimbursement Date',
+    colReimburseStatus: 'Reimbursement',
+    reimburseStatus_NONE: 'Not reimbursed',
+    reimburseStatus_PENDING: 'Pending approval',
+    reimburseStatus_APPROVED: 'Reimbursed',
+    reimburseStatus_REJECTED: 'Rejected',
+    reimburseRejectedHint: 'This reimbursement was rejected. Edit and resubmit.',
+
+    // Reimbursement dialog (opened by the "Reimburse" button on the upload page)
+    reimburseTitle: 'Reimbursement ({count} record(s))',
+    reimburseNoLabel: 'Reimbursement No.',
+    reimburseNoPlaceholder: 'Enter reimbursement No.',
+    reimburserLabel: 'Reimburser',
+    reimburserPlaceholder: 'Enter reimburser name',
+    reimburseDateLabel: 'Reimbursement Date',
+    reimburseConfirm: 'Confirm reimbursement',
+    reimburseRequired: 'Required',
+    reimburserStale: 'The selected person is no longer in the organization. Please pick another.',
+    reimburseFormTitle: 'Reimbursement details',
+    reimburseFormUnavailable: 'Could not load the reimbursement form (it may have been deleted). You can still submit with reimbursement No. / reimburser / date only.',
+    withFlowLabel: 'Start approval',
+    withFlowOnHint: 'Submitted as pending; only becomes reimbursed after approval',
+    withFlowOffHint: 'Reimbursed immediately, no approval',
+    saveSubmittedForApproval: '{count} record(s) submitted for approval',
 
     colFormat: 'Format',
     colCreatedDate: 'Created Date',
@@ -539,26 +669,26 @@ report: {
     previewFailOfd: 'OFD preview not supported by browser. File will be downloaded.',
 
     blockErrTitle: 'Recognition failed for some files',
-    blockErrDesc: 'Remove failed files or fix them and re-upload before saving to the database.',
-    blockDbDupTitle: 'Some files have already been used for verification',
-    blockDbDupDesc: 'The invoice numbers listed in the "Used verification files" card already exist in the system and cannot be saved again. Remove the corresponding files before saving.',
+    blockErrDesc: 'Remove failed files or fix them and re-upload before reimbursing.',
+    blockDbDupTitle: 'Some invoices already exist in the system',
+    blockDbDupDesc: 'The invoice numbers listed in the "Invoices already in system" card already exist and cannot be reimbursed twice. Remove the corresponding files before reimbursing.',
     blockDupTitle: 'Duplicate invoices in this batch',
-    blockDupDesc: 'The same invoice number + format appears more than once within this batch (see "Duplicates (this batch)" card). Remove duplicate files before saving.',
-    saveBlocked: 'Saving is blocked. Please resolve the red alerts above.',
+    blockDupDesc: 'The same invoice number + format appears more than once within this batch (see "Duplicates (this batch)" card). Remove duplicate files before reimbursing.',
+    saveBlocked: 'Reimbursement is blocked. Please resolve the red alerts above.',
 
     resultsOkTitle: 'Recognized',
     resultsDupTitle: 'Duplicates (this batch)',
     resultsErrTitle: 'Recognition errors',
     dupGroupTitle: 'Invoice {no} ({ext}) appears {count} times',
-    dbDupTitle: 'Used verification files',
+    dbDupTitle: 'Invoices already in system',
     dbDupHintAll: 'Records in the database matching the invoice numbers in this batch, plus duplicates grouped by (invoice number + file format).',
     dbDupHintClean: 'No duplicates currently in the database.',
     dbDupHits: '{count} record(s)',
     dbDupInvoiceNumbers: '{count} invoice number(s)',
     colFileExt: 'Format',
-    saveBtn: 'Save ({count}) to database',
-    saveHint: 'Files will be renamed to "invoiceNo_verificationNo" and persisted',
-    saveOk: 'Saved {count} record(s)',
+    saveBtn: 'Reimburse ({count})',
+    saveHint: 'You will be asked for reimbursement No. / reimburser / date; files are renamed to "invoiceNo_reimbursementNo" and persisted',
+    saveOk: 'Reimbursed {count} record(s)',
     saveNoSuccess: 'No successful records to save',
 
     exportCsv: 'Export CSV',
@@ -570,9 +700,9 @@ report: {
     listTitleDesc: 'View recognized invoices, edit them, or re-download',
     searchPlaceholder: 'Search invoice / seller / buyer',
     queryKeywordLabel: 'Keyword',
-    queryVerificationNoLabel: 'Verif. No.',
-    queryVerifierLabel: 'Verifier',
-    queryVerificationDateLabel: 'Verif. Period',
+    queryVerificationNoLabel: 'Reimb. No.',
+    queryVerifierLabel: 'Reimburser',
+    queryVerificationDateLabel: 'Reimb. Period',
     verificationDateRangePlaceholder: 'Pick start and end dates',
 
     editTitle: 'Edit Invoice',
@@ -586,6 +716,13 @@ report: {
     editTax: 'Tax',
     editTotal: 'Total',
     editMessage: 'Remark',
+  },
+
+  // Department > user tree (shared data source for useOrgTree)
+  orgTree: {
+    unassigned: 'Unassigned',
+    searchPlaceholder: 'Search department or person',
+    loadFailed: 'Failed to load organization tree',
   },
 
   dict: {
@@ -625,7 +762,7 @@ report: {
     exportBtn: 'Export all',
     importTitle: 'Batch import dictionary',
     importFormatHint: 'Supports JSON / CSV, UTF-8. Max 5MB.',
-    importTip: 'JSON: [{...}] or CSV: type_code,type_name,...,item_code,label,...',
+    importTip: `JSON: [{'{'}...{'}'}] or CSV: type_code,type_name,...,item_code,label,...`,
     importChooseFile: 'Choose file',
     importPreview: 'Will import {count} record(s)',
     importDryRun: 'Dry run (no writes)',
@@ -663,7 +800,7 @@ report: {
     colEmail: 'Email',
     colPhone: 'Phone',
     userDeptLabel: 'Department',
-    userDeptPlaceholder: 'Leave empty for no department',
+    userDeptPlaceholder: 'Select a department',
     colRoles: 'Roles',
     colLastLogin: 'Last Login',
     colCreatedAt: 'Created',
@@ -717,8 +854,14 @@ report: {
     parentRoot: '(root)',
     editMenuTitle: 'Edit Menu',
     newMenuTitle: 'New Menu',
-    confirmDeleteMenu: 'Delete this menu?',
+    confirmDeleteMenu: 'Delete the menu "{name}"?',
     roleAdminTag: 'Admin',
+
+    // Menu management — the name column renders the resolved i18n label, with the
+    // raw DB value kept as secondary text (see AGENTS §2).
+    expandRow: 'Expand this menu',
+    collapseRow: 'Collapse this menu',
+    dbNameTitle: 'Name stored in the database (shown as-is when no i18n key matches)',
 
     // Organization
     deptTitle: 'Organization',
@@ -855,6 +998,8 @@ report: {
 
     createTitle: 'New datasource',
     editTitle: 'Edit datasource',
+    // 列表页操作条按钮文案；命名沿用 newUser / newRole / newMenu / newDept 惯例
+    newDatasource: 'New datasource',
     deleteConfirm: 'Delete datasource "{name}"? This cannot be undone.',
 
     emptyTitle: 'No datasources yet',
@@ -1310,11 +1455,15 @@ report: {
     previewSearchNoMatch: 'No matches found',
     previewXlsxEmpty: 'No data in this sheet',
 
-    /* Category authorization column names */
+    /* Entity-level authorization column names. Archives use
+       view/upload/update/delete; dashboards and reports use
+       view/design/publish/delete — both verbs live in one shared dialog. */
     perm: {
       view: 'View',
       upload: 'Upload',
       update: 'Update',
+      design: 'Edit design',
+      publish: 'Publish',
       delete: 'Delete',
     },
   },
@@ -1481,6 +1630,68 @@ report: {
       advanced: 'Advanced',
     },
 
+    // ⚠️ backticks: vue-i18n reads {{ as *linked-message* syntax. To print literal
+    // braces you must write {'{{'} / {'}}'} — and in PAIRS, otherwise one brace is lost.
+    expr: {
+      section: 'Expressions',
+      hint: `Use {'{{'}$form.<field key>{'}}'} in label / placeholder / help — it updates live with the form data`,
+      refs: 'Referencable fields:',
+      noRefs: 'This form has no other fields to reference yet',
+      undefinedRef: `{'{{'}$form.{key}{'}}'} references a field that does not exist: "{key}"`,
+    },
+
+    cond: {
+      section: 'Conditional Logic',
+      hint: 'Boolean expressions; leave empty to always apply. Any evaluation failure counts as false',
+      visibleWhen: 'Visible when',
+      visibleWhenPh: `e.g. {'{{'}$form.type === "company"{'}}'} — shown only when true`,
+      disabledWhen: 'Disabled when',
+      disabledWhenPh: `e.g. {'{{'}$form.locked{'}}'} — read-only when true`,
+      requiredWhen: 'Required when',
+      requiredWhenPh: `e.g. {'{{'}$form.needInvoice{'}}'} — OR-ed with the Required checkbox`,
+    },
+
+    optionsSource: {
+      section: 'Dynamic Option Source',
+      hint: 'When enabled, options come from a live query; the static list above is ignored',
+      enable: 'Load options from query',
+      query: 'Query',
+      queryPh: 'Pick an enabled query',
+      labelField: 'Label column',
+      labelFieldPh: 'Which result column is the display text',
+      valueField: 'Value column',
+      valueFieldPh: 'Which result column is the value',
+      cacheSec: 'Cache (sec)',
+    },
+
+    grid: {
+      widen: 'Widen by half',
+      narrow: 'Narrow by half',
+      badgeVisible: 'conditional',
+      badgeDisabled: 'disabled',
+      badgeRequired: 'required',
+      hiddenByCond: 'currently hidden',
+    },
+    style: {
+      section: 'Layout & Style',
+      width: 'Width (columns)',
+      height: 'Height (rows)',
+      offset: 'Position',
+      col: 'Col',
+      row: 'Row',
+      background: 'Background',
+      color: 'Text color',
+      fontSize: 'Font size (px)',
+      align: 'Alignment',
+      alignLeft: 'Left',
+      alignCenter: 'Center',
+      alignRight: 'Right',
+      padding: 'Padding',
+      radius: 'Radius',
+      none: 'Not set',
+      reset: 'Clear style',
+    },
+
     jsonTitle: 'Current schema JSON',
     jsonCopy: 'Copy',
 
@@ -1549,9 +1760,11 @@ report: {
     hint: {
       richText: 'Plain-text only for now. tinymce / wangEditor integration planned.',
     },
+    loadingOptions: 'Loading options…',
     warning: {
       userLoadFailed: 'Failed to load user list',
       deptLoadFailed: 'Failed to load department list',
+      optionsLoadFailed: 'Failed to load dropdown options',
     },
 
     field: {

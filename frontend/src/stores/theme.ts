@@ -58,6 +58,8 @@ const DEFAULT_SETTINGS: ThemeSettings = {
 };
 
 const STORAGE_KEY = 'ifinbrain.theme.v1';
+/** localStorage 缓存的归属账号 —— 同一浏览器换人登录时用来判定「这份缓存能不能信」 */
+const OWNER_KEY = 'ifinbrain.theme.owner';
 
 function loadFromStorage(): ThemeSettings {
   try {
@@ -68,6 +70,17 @@ function loadFromStorage(): ThemeSettings {
   } catch {
     return cloneDefault();
   }
+}
+
+function loadOwner(): string {
+  try { return localStorage.getItem(OWNER_KEY) || ''; } catch { return ''; }
+}
+
+function saveOwner(username: string) {
+  try {
+    if (username) localStorage.setItem(OWNER_KEY, username);
+    else localStorage.removeItem(OWNER_KEY);
+  } catch { /* ignore */ }
 }
 
 function cloneDefault(): ThemeSettings {
@@ -102,6 +115,53 @@ function looksDarkish(c: string): boolean {
 
 function saveToStorage(s: ThemeSettings) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+}
+
+/**
+ * 让 header / menu / primary 色板跟随「**生效**模式」。
+ *
+ * 用 effectiveMode（而不是 patch.mode 字面量）判定，所以三条路径都覆盖：
+ *   light → dark / dark → light / auto（跟随系统）→ 解析出亮或暗
+ * 只改「还是默认值」的那一项，用户手动调过色就不覆盖。
+ */
+function colorsForMode(s: ThemeSettings, mode: 'light' | 'dark'): ThemeSettings {
+  const out = { ...s };
+  if (mode === 'dark') {
+    if (looksLightish(out.headerColor)) out.headerColor = DARK_DEFAULTS.headerColor;
+    if (looksLightish(out.menuColor))   out.menuColor   = DARK_DEFAULTS.menuColor;
+    if (out.primaryColor.toLowerCase() === LIGHT_DEFAULTS.primaryColor) {
+      out.primaryColor = DARK_DEFAULTS.primaryColor;
+    }
+  } else {
+    if (looksDarkish(out.headerColor)) out.headerColor = LIGHT_DEFAULTS.headerColor;
+    if (looksDarkish(out.menuColor))   out.menuColor   = LIGHT_DEFAULTS.menuColor;
+  }
+  return out;
+}
+
+/**
+ * 读取历史数据时的自愈：DB / localStorage 里可能存着 v1 登出 bug 留下的
+ * 「浅色内容 + 深色默认侧栏」（或反向）坏状态，这里按生效模式翻回同侧默认色。
+ *
+ * 只认「**恰好等于** DARK/LIGHT 默认色」这一种，命中就整组换回；
+ * 自定义色不动 —— 否则会覆盖用户「浅色内容 + 自选深色侧栏」的合法搭配。
+ */
+function reconcileStoredColors(s: ThemeSettings): ThemeSettings {
+  const isDefault = (a: string, b: string) => a.trim().toLowerCase() === b.toLowerCase();
+  const hitDark  = isDefault(s.headerColor, DARK_DEFAULTS.headerColor)  || isDefault(s.menuColor, DARK_DEFAULTS.menuColor);
+  const hitLight = isDefault(s.headerColor, LIGHT_DEFAULTS.headerColor) || isDefault(s.menuColor, LIGHT_DEFAULTS.menuColor);
+  if (effectiveMode(s) === 'light' && hitDark) {
+    return { ...s, headerColor: LIGHT_DEFAULTS.headerColor, menuColor: LIGHT_DEFAULTS.menuColor };
+  }
+  if (effectiveMode(s) === 'dark' && hitLight) {
+    return {
+      ...s,
+      headerColor: DARK_DEFAULTS.headerColor,
+      menuColor: DARK_DEFAULTS.menuColor,
+      primaryColor: isDefault(s.primaryColor, LIGHT_DEFAULTS.primaryColor) ? DARK_DEFAULTS.primaryColor : s.primaryColor,
+    };
+  }
+  return s;
 }
 
 /* ============================================================
@@ -188,6 +248,7 @@ function effectiveMode(s: ThemeSettings): 'light' | 'dark' {
  * ========================================================== */
 export const useThemeStore = defineStore('theme', () => {
   const settings = ref<ThemeSettings>(loadFromStorage());
+  const owner = ref<string>(loadOwner());
   const loaded = ref(false);
 
   const mode = computed<'light' | 'dark'>(() => effectiveMode(settings.value));
@@ -195,67 +256,91 @@ export const useThemeStore = defineStore('theme', () => {
   let _mq: MediaQueryList | null = null;
   let _mqHandler: ((e: MediaQueryListEvent) => void) | null = null;
   let _syncTimer: ReturnType<typeof setTimeout> | null = null;
+  /** 上一次落地的生效模式 —— auto 跟随系统切换时用它判断「亮↔暗」方向 */
+  let _lastEffective: 'light' | 'dark' = effectiveMode(settings.value);
+
+  /** 状态提交的唯一出口：内存 + localStorage + :root 三处一起落地 */
+  function commit(next: ThemeSettings) {
+    settings.value = next;
+    _lastEffective = effectiveMode(next);
+    saveToStorage(next);
+    applyToRoot(next);
+  }
 
   function applyInitial() {
+    _lastEffective = effectiveMode(settings.value);
     applyToRoot(settings.value);
     installSystemThemeListener();
   }
 
-  async function hydrate() {
+  /**
+   * 登录后从 DB 拉一次偏好。`ownerKey` = 当前登录用户名。
+   *
+   * 取值优先级：
+   *   1. DB 有记录        → DB 权威（跨设备一致）
+   *   2. DB 无记录 + 缓存属于同一个人 → 用本地缓存（离线兜底，不丢用户刚调的值）
+   *   3. DB 无记录 + 缓存属于别人     → **回默认**，绝不让 A 的配色泄漏给 B
+   */
+  async function hydrate(ownerKey?: string) {
+    let fromDb: ThemeSettings | null = null;
     try {
       const pref = await preferenceApi.get();
-      if (pref?.themeJson) {
-        const parsed = JSON.parse(pref.themeJson);
-        settings.value = { ...cloneDefault(), ...settings.value, ...parsed };
-        saveToStorage(settings.value);
-      }
+      if (pref?.themeJson) fromDb = migrateSettings(JSON.parse(pref.themeJson));
     } catch {
-      /* 未登录或 403 —— 保持 localStorage 状态 */
-    } finally {
-      applyToRoot(settings.value);
-      installSystemThemeListener();
-      loaded.value = true;
+      /* 未登录或 403 —— 退到本地缓存 */
     }
+
+    let next: ThemeSettings;
+    if (fromDb) {
+      next = fromDb;
+    } else if (!ownerKey || !owner.value || owner.value === ownerKey) {
+      next = { ...settings.value };
+    } else {
+      next = cloneDefault();
+    }
+
+    if (ownerKey) {
+      owner.value = ownerKey;
+      saveOwner(ownerKey);
+    }
+    commit(reconcileStoredColors(next));
+    installSystemThemeListener();
+    loaded.value = true;
   }
 
   async function update(patch: Partial<ThemeSettings>) {
-    let next = { ...settings.value, ...patch };
-
-    /* smart dark switch — 切到 dark：
-     *  若 headerColor / menuColor 当前是白色默认 → 自动用深色默认；
-     *  若 primaryColor 是 #2563eb（亮色默认）→ 提亮为 #60a5fa。
-     * 切到 light 不反向还原：用户可能手动调过暗色配置，留给用户主动重置。 */
-    if (patch.mode === 'dark' && settings.value.mode !== 'dark') {
-      if (looksLightish(next.headerColor)) next.headerColor = DARK_DEFAULTS.headerColor;
-      if (looksLightish(next.menuColor))   next.menuColor   = DARK_DEFAULTS.menuColor;
-      if (next.primaryColor.toLowerCase() === LIGHT_DEFAULTS.primaryColor) {
-        next.primaryColor = DARK_DEFAULTS.primaryColor;
-      }
-    }
-    /* 反向：切回 light 时，若 header/menu 仍是「深色默认」 → 自动还原白色默认 */
-    if (patch.mode === 'light' && settings.value.mode === 'dark') {
-      if (looksDarkish(next.headerColor)) next.headerColor = LIGHT_DEFAULTS.headerColor;
-      if (looksDarkish(next.menuColor))   next.menuColor   = LIGHT_DEFAULTS.menuColor;
-    }
-
-    settings.value = next;
-    saveToStorage(settings.value);
-    applyToRoot(settings.value);
+    const merged = { ...settings.value, ...patch };
+    /* smart dark switch —— 按「生效模式是否翻转」判定，覆盖 auto（跟随系统）这条路径 */
+    const nextEff = effectiveMode(merged);
+    commit(nextEff === _lastEffective ? merged : colorsForMode(merged, nextEff));
     scheduleSync();
   }
 
+  /** StylePanel 的「重置」：只回默认字段，**保留当前模式**，色板按该模式取同侧默认
+   *  —— 旧实现把 mode 归位成 light 却按 dark 取色，产出「浅色内容 + 深色侧栏」坏状态。 */
   async function reset() {
-    /* 根据当前 mode 选择合适的默认色组，避免用户在暗色下重置后变成白色 */
-    const isDark = effectiveMode(settings.value) === 'dark';
-    settings.value = {
-      ...cloneDefault(),
-      headerColor: isDark ? DARK_DEFAULTS.headerColor : LIGHT_DEFAULTS.headerColor,
-      menuColor:   isDark ? DARK_DEFAULTS.menuColor   : LIGHT_DEFAULTS.menuColor,
-      primaryColor: isDark ? DARK_DEFAULTS.primaryColor : LIGHT_DEFAULTS.primaryColor,
-    };
-    saveToStorage(settings.value);
-    applyToRoot(settings.value);
+    const base: ThemeSettings = { ...cloneDefault(), mode: settings.value.mode };
+    commit(colorsForMode(base, effectiveMode(base)));
     try { await preferenceApi.reset(); } catch { /* ignore */ }
+  }
+
+  /**
+   * 登出清理：本地主题整体丢弃 + 立即落回默认配色。
+   *
+   * 不调后端 DELETE —— 偏好是**上一位用户自己的**设置，登出不该替他删掉，
+   * 下次登录由 hydrate 从 DB 原样恢复。
+   */
+  function purge() {
+    if (_syncTimer) { clearTimeout(_syncTimer); _syncTimer = null; }
+    settings.value = cloneDefault();
+    owner.value = '';
+    _lastEffective = 'light';
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(OWNER_KEY);
+    } catch { /* ignore */ }
+    applyToRoot(settings.value);
+    loaded.value = false;
   }
 
   function scheduleSync() {
@@ -273,14 +358,18 @@ export const useThemeStore = defineStore('theme', () => {
     const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
     if (!mq) return;
     const handler = () => {
-      if (settings.value.mode === 'auto') applyToRoot(settings.value);
+      if (settings.value.mode !== 'auto') return;
+      const nowEff = effectiveMode(settings.value);
+      /* 系统切了亮暗：侧栏/顶栏配色要跟着翻，否则 auto 下会出现深色侧栏配浅色内容 */
+      if (nowEff === _lastEffective) applyToRoot(settings.value);
+      else commit(colorsForMode(settings.value, nowEff));
     };
     mq.addEventListener?.('change', handler);
     _mq = mq;
     _mqHandler = handler;
   }
 
-  return { settings, loaded, mode, applyInitial, hydrate, update, reset };
+  return { settings, owner, loaded, mode, applyInitial, hydrate, update, reset, purge };
 });
 
 /* 给 settings.json 做向后兼容的迁移钩子（schema 演进时调用） */

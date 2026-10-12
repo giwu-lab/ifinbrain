@@ -133,7 +133,7 @@ async function onCmd(cmd: string, row: NoteItem) {
           v-model:current-page="page"
           v-model:page-size="size"
           :total="total"
-          :page-sizes="[10, 20, 50, 100]"
+          :page-sizes="[10,20,50,100]"
           layout="total, sizes, prev, pager, next, jumper"
           @current-change="onPageChange"
           @size-change="onSizeChange"

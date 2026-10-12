@@ -53,9 +53,26 @@ public class InvoiceGroupDto {
 
     private String message;
 
+    /** 费用类别（fapiao_cn 的 expense_category_label）；老数据 / 未识别时为 null */
+    private String expenseCategoryLabel;
+
     private String verificationNo;
     private String verifier;
     private LocalDate verificationDate;
+
+    /**
+     * 动态报销申请单的字段值（已从 form_data 的 JSON 串解析成对象）。
+     *
+     * <p>未填申请单的记录为 null —— 列里存 null 就出 null，不兜底成空对象，
+     * 否则前端分不清「没填单」和「填了空单」。
+     */
+    private Map<String, Object> formData;
+
+    /** 报销状态：NONE 未报销 / PENDING 审批中 / APPROVED 已报销 / REJECTED 已驳回 */
+    private String reimburseStatus;
+
+    /** 关联的审批流实例 id；未走流程时为 null。列表「查看流程」用它跳详情 */
+    private Long flowInstanceId;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

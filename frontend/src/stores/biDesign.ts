@@ -10,6 +10,12 @@ import {
 
 export type BiDesignerMode = 'build' | 'preview' | 'json';
 
+/** 对齐基准；栅格模型下只需改 x / y，不涉及像素包围盒 */
+export type BiAlignOp =
+  | 'left' | 'centerX' | 'right'
+  | 'top' | 'centerY' | 'bottom';
+export type BiDistributeOp = 'horizontal' | 'vertical';
+
 /** 撤销栈容量：M2 验收要求「撤销 10 步不崩」，50 步足够且不会撑爆内存 */
 const HISTORY_CAP = 50;
 
@@ -23,6 +29,12 @@ export const useBiDesignStore = defineStore('biDesign', () => {
   const widgets = ref<BiWidget[]>([]);
   const layout = ref<DashboardLayout>(defaultLayout());
   const selectedId = ref<string | null>(null);
+  /**
+   * 多选集合。selectedId 继续表示「主选中项」（右侧属性面板只看它），
+   * 始终保证 selectedIds 含 selectedId —— 这样单选路径一行不用改，
+   * 只在框选 / Ctrl 多选时才出现第二、第三个。
+   */
+  const selectedIds = ref<string[]>([]);
   const dirty = ref(false);
   const loading = ref(false);
   const zoom = ref(1);
@@ -54,6 +66,7 @@ export const useBiDesignStore = defineStore('biDesign', () => {
     layout.value = base;
     widgets.value = base.widgets;
     selectedId.value = null;
+    selectedIds.value = [];
     dirty.value = false;
     history.value = [];
     historyIndex.value = -1;
@@ -65,7 +78,98 @@ export const useBiDesignStore = defineStore('biDesign', () => {
   function clearDirty() { dirty.value = false; }
   function setMode(m: BiDesignerMode) { mode.value = m; }
   function setZoom(z: number) { zoom.value = Math.max(0.5, Math.min(1.5, z)); }
-  function select(id: string | null) { selectedId.value = id; }
+
+  function setSelection(ids: string[], primary?: string | null) {
+    const valid = ids.filter((id) => widgets.value.some((w) => w.id === id));
+    selectedIds.value = valid;
+    selectedId.value = primary !== undefined
+      ? (primary && valid.includes(primary) ? primary : (valid[0] ?? null))
+      : (valid[0] ?? null);
+  }
+
+  function select(id: string | null) { setSelection(id ? [id] : [], id); }
+
+  /** Ctrl / Shift 点选：在集合里增删，不清空其它选中 */
+  function toggleSelect(id: string) {
+    if (selectedIds.value.includes(id)) {
+      const next = selectedIds.value.filter((x) => x !== id);
+      setSelection(next, selectedId.value === id ? (next[0] ?? null) : selectedId.value);
+    } else {
+      setSelection([...selectedIds.value, id], id);
+    }
+  }
+
+  function clearSelection() { setSelection([], null); }
+
+  /** 当前被选中的组件实体（按画布顺序） */
+  const selectedWidgets = computed(() =>
+    orderedWidgets.value.filter((w) => selectedIds.value.includes(w.id)));
+
+  // ===================== 对齐 / 分布 =====================
+
+  /**
+   * 把选中组件按某个基准对齐。栅格模型下就是改 x / y，不需要算像素包围盒。
+   *
+   * 一次对齐 = 一次 commit，撤销栈里是一条而不是 N 条 —— 拖回来是一步的事。
+   */
+  function align(op: BiAlignOp) {
+    const list = selectedWidgets.value;
+    if (list.length < 2) return;
+    const c = canvas.value;
+    const minX = Math.min(...list.map((w) => w.x));
+    const minY = Math.min(...list.map((w) => w.y));
+    const maxRight = Math.max(...list.map((w) => w.x + w.w));
+    const maxBottom = Math.max(...list.map((w) => w.y + w.h));
+
+    widgets.value = widgets.value.map((w) => {
+      if (!selectedIds.value.includes(w.id)) return w;
+      switch (op) {
+        case 'left':   return { ...w, x: minX };
+        case 'right':  return { ...w, x: maxRight - w.w };
+        case 'centerX': return { ...w, x: Math.round((minX + maxRight - w.w) / 2) };
+        case 'top':    return { ...w, y: minY };
+        case 'bottom': return { ...w, y: maxBottom - w.h };
+        case 'centerY': return { ...w, y: Math.round((minY + maxBottom - w.h) / 2) };
+      }
+    }).map((w) => clampWidget(w, c));
+    syncWidgetsToLayout();
+    commit();
+  }
+
+  /**
+   * 等距分布：首尾不动，中间几个把剩余空间均分。
+   * 少于 3 个没有「中间」可言，直接不动 —— 按 2 个算出来的结果就是重叠。
+   */
+  function distribute(op: BiDistributeOp) {
+    const list = [...selectedWidgets.value];
+    if (list.length < 3) return;
+    const c = canvas.value;
+    const horizontal = op === 'horizontal';
+    // 先按起始坐标排序；起点相同的按尺寸排，保证结果稳定不跳
+    list.sort((a, b) => (horizontal ? a.x - b.x || a.w - b.w : a.y - b.y || a.h - b.h));
+
+    const first = list[0];
+    const last = list[list.length - 1];
+    const spanStart = horizontal ? first.x : first.y;
+    const spanEnd = horizontal ? last.x + last.w : last.y + last.h;
+    const totalSize = list.reduce((s, w) => s + (horizontal ? w.w : w.h), 0);
+    const gap = (spanEnd - spanStart - totalSize) / (list.length - 1);
+
+    const pos = new Map<string, number>();
+    let cur = spanStart;
+    for (const w of list) {
+      pos.set(w.id, Math.round(cur));
+      cur += (horizontal ? w.w : w.h) + gap;
+    }
+
+    widgets.value = widgets.value.map((w) => {
+      const p = pos.get(w.id);
+      if (p === undefined) return w;
+      return horizontal ? { ...w, x: p } : { ...w, y: p };
+    }).map((w) => clampWidget(w, c));
+    syncWidgetsToLayout();
+    commit();
+  }
 
   // ===================== 撤销 / 重做 =====================
 
@@ -144,6 +248,9 @@ export const useBiDesignStore = defineStore('biDesign', () => {
 
   function removeWidget(id: string) {
     widgets.value = widgets.value.filter((w) => w.id !== id);
+    // 多选里可能正选着被删的那个：一起摘掉，否则 setSelection 的
+    // 「valid 过滤」会让 selectedIds 与 selectedId 悄悄对不上
+    selectedIds.value = selectedIds.value.filter((x) => x !== id);
     if (selectedId.value === id) selectedId.value = null;
     commit();
   }
@@ -247,6 +354,7 @@ export const useBiDesignStore = defineStore('biDesign', () => {
     layout.value = migrated;
     widgets.value = migrated.widgets;
     selectedId.value = null;
+    selectedIds.value = [];
     const v = validateLayout(migrated);
     if (v.ok) commit();
     return v;
@@ -254,15 +362,19 @@ export const useBiDesignStore = defineStore('biDesign', () => {
 
   return {
     // 状态
-    meta, widgets, layout, selectedId, selectedWidget, orderedWidgets,
+    meta, widgets, layout, selectedId, selectedIds, selectedWidget, selectedWidgets, orderedWidgets,
     dirty, loading, zoom, mode, canvas, theme,
     canUndo, canRedo,
     // 生命周期
-    reset, setLoading, markDirty, clearDirty, setMode, setZoom, select,
+    reset, setLoading, markDirty, clearDirty, setMode, setZoom,
+    // 选择
+    select, setSelection, toggleSelect, clearSelection,
     // 历史
     commit, undo, redo, saveHistory,
     // 组件
     addWidget, removeWidget, duplicateWidget, updateWidget, commitGeometry,
+    // 对齐 / 分布
+    align, distribute,
     // 图层
     bringToFront, sendToBack, moveLayer,
     // 画布 / 主题

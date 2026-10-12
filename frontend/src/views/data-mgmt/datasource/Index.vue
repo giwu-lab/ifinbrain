@@ -8,7 +8,7 @@
           :icon="Plus"
           @click="openCreate"
         >
-          {{ t('dataMgmt.colName') }}
+          {{ t('dataMgmt.newDatasource') }}
         </el-button>
       </div>
       <el-table
@@ -16,6 +16,7 @@
         v-loading="loading"
         border
         stripe
+        size="small"
         class="ds-table"
         empty-text="—"
       >
@@ -265,6 +266,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'elem
 import { CircleCheckFilled, Coin, Connection, Plus, WarningFilled, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { datasourceApi, type DbType, type Datasource } from '@/api/datasource';
+import { formatDateTime } from '@/utils/time';
 import TestResultCell from './TestResultCell.vue';
 
 const { t } = useI18n();
@@ -353,12 +355,9 @@ function dbTypeLabel(t2: DbType) {
        :                       t('dataMgmt.dbTypePostgresql');
 }
 
+/** 时间统一走 utils/time.formatDateTime：yyyy-MM-dd HH:mm:ss（AGENTS §8.3） */
 function formatTime(s?: string | null) {
-  if (!s) return '—';
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return s;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatDateTime(s);
 }
 
 async function reload() {
@@ -571,9 +570,9 @@ onMounted(reload);
 /* 列表区：plain 1px 边框容器；避开 SaaS-card 套娃 */
 .ds-table { width: 100%; }
 .ds-name { font-weight: 500; color: var(--color-text); }
-.type-tag { font-family: ui-monospace, 'JetBrains Mono', monospace; }
+.type-tag { font-family: var(--font-mono); }
 .ds-endpoint {
-  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text-secondary);
   background: var(--color-border-soft);
@@ -601,7 +600,7 @@ onMounted(reload);
 }
 .dialog-test-result {
   font-size: 12px;
-  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   color: var(--color-danger);
 }
 .dialog-test-result.ok { color: var(--color-success); }

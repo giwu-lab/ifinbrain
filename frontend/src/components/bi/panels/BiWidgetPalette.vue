@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** 左栏 Tab1：组件库。按 metric / chart / content 三类分组，点击即加入画布。 */
+/** 左栏 Tab1：组件库。按 metric / chart / content / decoration 分组，点击即加入画布。 */
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { WidgetType } from '@/api/bi';
@@ -13,6 +13,7 @@ const GROUPS: { key: WidgetCategory; labelKey: string }[] = [
   { key: 'metric', labelKey: 'bi.palette.metric' },
   { key: 'chart', labelKey: 'bi.palette.chart' },
   { key: 'content', labelKey: 'bi.palette.content' },
+  { key: 'decoration', labelKey: 'bi.palette.decoration' },
 ];
 
 const groups = computed(() =>

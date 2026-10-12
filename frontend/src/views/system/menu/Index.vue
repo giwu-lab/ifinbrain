@@ -19,10 +19,12 @@
         :tree-props="{ children: 'children' }"
         :default-expand-all="false"
         border
+        stripe
+        size="small"
         row-class-name="menu-row"
         @expand-change="handleExpand"
       >
-        <el-table-column :label="t('system.colMenuName')" prop="name" min-width="180">
+        <el-table-column :label="t('system.colMenuName')" prop="name" min-width="220">
           <template #default="{ row }">
             <div class="name-cell">
               <!-- 自定义展开按钮（替代 EP 默认左侧的 indent + 箭头，省一列） -->
@@ -30,7 +32,8 @@
                 v-if="(row as MenuItem).children?.length"
                 class="tree-toggle"
                 type="button"
-                :aria-label="expandedIds.has(row.id) ? 'Collapse' : 'Expand'"
+                :aria-label="expandedIds.has(row.id) ? t('system.collapseRow') : t('system.expandRow')"
+                :title="expandedIds.has(row.id) ? t('system.collapseRow') : t('system.expandRow')"
                 @click.stop="toggleRow(row as MenuItem)"
               >
                 <ArrowRight v-if="!expandedIds.has(row.id)" :size="14" class="tree-arrow" />
@@ -40,7 +43,13 @@
               <el-icon v-if="(row as MenuItem).icon" class="name-icon">
                 <component :is="iconOf((row as MenuItem).icon)" />
               </el-icon>
-              <span class="strong">{{ row.name }}</span>
+              <!-- 面向用户的显示名走 i18n（与侧边栏同一套 key）；DB 原名作副文本 -->
+              <span class="strong">{{ menuName(row as MenuItem) }}</span>
+              <span
+                v-if="menuName(row as MenuItem) !== (row as MenuItem).name"
+                class="db-name"
+                :title="t('system.dbNameTitle')"
+              >{{ (row as MenuItem).name }}</span>
               <el-tag
                 v-if="(row as MenuItem).type !== 'MENU'"
                 size="small"
@@ -188,6 +197,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { Plus, ArrowDown, ArrowRight, Edit, Delete, MoreFilled } from '@element-plus/icons-vue';
 import { resolveElIcon } from '@/utils/icon';
+import { resolveMenuName } from '@/utils/menu';
 import IconPicker from '@/components/IconPicker.vue';
 import PermissionSelect from '@/components/PermissionSelect.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -210,11 +220,35 @@ const dialog = reactive({ visible: false, mode: 'create' as 'create' | 'edit', t
 const form = reactive<Partial<MenuItem>>({ id: 0, parentId: 0, name: '', type: 'MENU', path: '', component: '', icon: '', sort: 0, permission: '', status: 1 });
 const formRef = ref<FormInstance>();
 
-const parentOpts = computed(() => [{ id: 0, name: t('system.parentRoot'), children: tree.value }]);
-const treeProps = { value: 'id' as const, label: 'name' as const, children: 'children' as const };
+const parentOpts = computed(() => [{ id: 0, label: t('system.parentRoot'), children: labelTree(tree.value) }]);
+const treeProps = { value: 'id' as const, label: 'label' as const, children: 'children' as const };
+
+/**
+ * 把菜单树重映射成下拉要的 `{ id, label, children }`。
+ * label 走 `menuName()`，否则父菜单下拉里又是一排 DB 原文（'Dictionaries'…）。
+ * `children` 只在非空时才给 —— el-tree-select 收到空数组会渲染成「能展开但没内容」的叶子。
+ */
+function labelTree(nodes: MenuItem[]): { id: number; label: string; children?: { id: number; label: string; children?: unknown[] }[] }[] {
+  return nodes.map(n => ({
+    id: n.id,
+    label: menuName(n),
+    ...(n.children?.length ? { children: labelTree(n.children) } : {}),
+  }));
+}
 
 function iconOf(name?: string) {
   return resolveElIcon(name);
+}
+
+/**
+ * 菜单显示名 —— 与 4 个 layout 共用 `resolveMenuName`（AGENTS §2）。
+ *
+ * `sys_menu.name` 是给管理员看的兜底原文（V6/V50 迁移塞的是 'Dictionaries'、
+ * 'Organization' 这类英文），真正面向用户的名字走 `menu.*` i18n key。
+ * 这里必须跟侧边栏用同一份解析，否则会出现「侧边栏中文、菜单管理页英文」。
+ */
+function menuName(m: MenuItem) {
+  return resolveMenuName(m, t);
 }
 
 /** 权限码 → 中文名映射（用于列表展示 code 旁的中文说明） */
@@ -261,7 +295,7 @@ function openCreate(parentId = 0) {
 }
 
 function openEdit(row: MenuItem) {
-  dialog.mode = 'edit'; dialog.title = `${t('system.editMenuTitle')}: ${row.name}`;
+  dialog.mode = 'edit'; dialog.title = `${t('system.editMenuTitle')}: ${menuName(row)}`;
   Object.assign(form, {
     id: row.id, parentId: row.parentId, name: row.name, type: row.type,
     path: row.path, component: row.component, icon: row.icon,
@@ -292,7 +326,7 @@ async function onCmd(cmd: string, row: MenuItem) {
   if (cmd === 'delete') {
     try {
       await ElMessageBox.confirm(
-        t('system.confirmDeleteMenu'),
+        t('system.confirmDeleteMenu', { name: menuName(row) }),
         t('common.confirmDelete'),
         { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') }
       );
@@ -308,11 +342,19 @@ onMounted(reload);
 .name-cell { display: flex; align-items: center; gap: 8px; }
 .name-icon { color: var(--color-primary); font-size: 16px; }
 .strong { font-weight: 600; color: var(--color-text); }
+/* DB 原名副文本：i18n 解析名与 sys_menu.name 不一致时才出现（如 zh 下显示「组织架构 Organization」）。
+ * 不用 tag/pill（AGENTS §7），纯弱化文本 + title 说明来历。 */
+.db-name {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  cursor: help;
+}
 .path-code {
   background: var(--color-bg);
   padding: 2px 8px;
   border-radius: 4px;
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text-secondary);
 }
@@ -372,7 +414,7 @@ onMounted(reload);
   border-left: 2px solid var(--color-primary);
 }
 .perm-code {
-  font-family: 'SF Mono', Menlo, ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   margin-left: 8px;
   padding: 1px 6px;
@@ -381,8 +423,7 @@ onMounted(reload);
   border-radius: 3px;
 }
 
-/* 紧凑表格：缩窄行高 / cell padding */
-:deep(.menu-row.el-table__row td) { padding: 6px 0 !important; }
-:deep(.menu-row.el-table__row .cell) { padding: 0 12px !important; }
-:deep(.el-table.menu-row th.el-table__cell) { padding: 8px 0 !important; }
+/* 行高 / cell 内边距不再自造：global.css 的「标准表格」区块已锁死 8px/20px，
+ * 且 size="small" 让 .cell 用 EP 的 0 8px —— 与发票列表完全一致。
+ * 原来这里写死 6px + 12px（!important），反而把行压得比别处更紧凑。 */
 </style>

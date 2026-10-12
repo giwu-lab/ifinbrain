@@ -69,7 +69,8 @@ public interface InvoiceRecordRepository extends JpaRepository<InvoiceRecord, Lo
                    "       invoice_type, invoice_number, issue_date, buyer_name, buyer_tax_id, " +
                    "       seller_name, seller_tax_id, amount_without_tax, tax_amount, total_amount, " +
                    "       total_amount_upper, payee, reviewer, drawer, message, uploader_id, " +
-                   "       created_at, updated_at, verification_no, verifier, verification_date " +
+                   "       created_at, updated_at, verification_no, verifier, verification_date, " +
+                   "       expense_category_label " +
                    "FROM invoice_record i WHERE " +
                    "(:keyword IS NULL OR :keyword = '' OR i.invoice_number LIKE '%' || :keyword || '%' OR i.seller_name LIKE '%' || :keyword || '%' OR i.buyer_name LIKE '%' || :keyword || '%') AND " +
                    "(:seller IS NULL OR :seller = '' OR i.seller_name LIKE '%' || :seller || '%') AND " +
@@ -120,6 +121,7 @@ public interface InvoiceRecordRepository extends JpaRepository<InvoiceRecord, Lo
             i.setVerificationNo(asString(r[24]));
             i.setVerifier(asString(r[25]));
             i.setVerificationDate(asLocalDate(r[26]));
+            i.setExpenseCategoryLabel(asString(r[27]));   // 追加列，固定在末尾
             out.add(i);
         }
         return out;
@@ -235,4 +237,32 @@ public interface InvoiceRecordRepository extends JpaRepository<InvoiceRecord, Lo
     /** 按 id 集合批量查明细（用于 listGrouped 的第二步：拿到 rep_id 列表后一次性查询）。 */
     @Query("SELECT i FROM InvoiceRecord i WHERE i.id IN :ids")
     List<InvoiceRecord> findAllByIdIn(@Param("ids") java.util.Collection<Long> ids);
+
+    /**
+     * 按报销单号改报销状态 —— 审批流回写用。
+     *
+     * <p>一次 UPDATE 覆盖该报销单下的**全部**记录（含同一发票号的 PDF/XML/OFD 多条）：
+     * 列表是按发票号分组的，只改代表行会让同组其它行状态不一致。
+     *
+     * <p>限定 {@code oldStatus = 'PENDING'}：避免把已经定终态的单据被重复回调改回去。
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE InvoiceRecord i SET i.reimburseStatus = :newStatus WHERE i.verificationNo = :businessKey AND i.reimburseStatus = :oldStatus")
+    int updateReimburseStatusByBusinessKey(@Param("businessKey") String businessKey,
+                                           @Param("newStatus") String newStatus,
+                                           @Param("oldStatus") String oldStatus);
+
+    /**
+     * 按报销单号回填流程实例 id —— 同样是批量 UPDATE，不能走实体的脏检查。
+     *
+     * <p>原因：流程启动后可能**当场**跑完（start 节点直连 END 就会如此），
+     * {@link com.anomalyco.ifinbrain.web.service.InvoiceReimburseListener} 会立刻把
+     * 状态批量刷成 APPROVED；随后若再通过实体 setter 写 flowInstanceId，
+     * Hibernate 的脏检查会发出「全列 UPDATE」，把内存里过期的 PENDING 写回去，
+     * 把监听器的回写结果覆盖掉。
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE InvoiceRecord i SET i.flowInstanceId = :instanceId WHERE i.verificationNo = :businessKey")
+    int updateFlowInstanceIdByBusinessKey(@Param("businessKey") String businessKey,
+                                          @Param("instanceId") Long instanceId);
 }

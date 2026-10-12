@@ -1,5 +1,7 @@
 package com.anomalyco.ifinbrain.web.documents.controller;
 
+import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.common.PageResp;
 import com.anomalyco.ifinbrain.web.common.Result;
 import com.anomalyco.ifinbrain.web.documents.dto.ArchiveLibraryCreateReq;
 import com.anomalyco.ifinbrain.web.documents.dto.ArchiveLibraryDto;
@@ -23,9 +25,20 @@ public class ArchiveLibraryController {
 
     private final ArchiveLibraryService service;
 
+    /**
+     * 全量列表：给下拉与导航用（档案文件页的类目导航、Pinia archive store）。
+     *
+     * <p>这些场景要看到全部有权限的档案库才能建出完整导航，分页会漏项 —— 所以与列表页分开。
+     */
     @GetMapping
     public Result<List<ArchiveLibraryDto>> list() {
         return Result.ok(service.list());
+    }
+
+    /** 档案库管理页分页：DB 层切片，可见性口径与全量 list() 完全一致 */
+    @GetMapping("/page")
+    public Result<PageResp<ArchiveLibraryDto>> page(PageReq req) {
+        return Result.ok(service.page(req));
     }
 
     @GetMapping("/{id}")

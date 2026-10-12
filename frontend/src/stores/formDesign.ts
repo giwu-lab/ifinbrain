@@ -1,6 +1,23 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
-import { formDesignApi, type FormFieldSchema, type FormDesignItem, type FieldType } from '@/api/formDesign';
+import {
+  formDesignApi,
+  type FormFieldSchema,
+  type FormDesignItem,
+  type FieldType,
+  type FormGridConfig,
+} from '@/api/formDesign';
+import {
+  DEFAULT_GRID,
+  clampLayout,
+  findFreeSlot,
+  hasCollision,
+  layoutRows,
+  migrateFields,
+  type FormGridLayout,
+} from '@/utils/form/layout';
+import { renameFieldKey } from '@/utils/expr';
+import { EXPR_ATTRS, useFormExpr } from '@/composables/useFormExpr';
 
 let fieldSeq = 0;
 
@@ -18,6 +35,12 @@ function makeDefaultField(type: FieldType): FormFieldSchema {
     defaultValue: '',
     placeholder: '',
     fullWidth: true,
+    // 条件逻辑与选项源一律显式留空：写清楚「这些开关存在但没配」，
+    // 免得属性面板分不清 undefined（没配）和 ''（用户清空了）。
+    visibleWhen: undefined,
+    disabledWhen: undefined,
+    requiredWhen: undefined,
+    optionsSource: undefined,
   };
   if (type === 'SELECT' || type === 'RADIO' || type === 'CHECKBOX') {
     base.options = [];
@@ -75,9 +98,23 @@ export const useFormDesignStore = defineStore('formDesign', () => {
 
   // ===================== Reset / 初始化 =====================
 
+  /** 表单级栅格配置 */
+  const grid = ref<FormGridConfig>({ ...DEFAULT_GRID });
+
+  /** 画布占了几行 —— 供 FormCanvas 决定容器高度 */
+  const gridRows = computed(() => layoutRows(fields.value, grid.value));
+
+  /**
+   * 加载表单。
+   *
+   * 关键：`migrateFields` 在这里跑一次，把老 schema 的 `fullWidth` 语义铺成
+   * 栅格坐标。迁移后**每个字段都有 layout**，渲染层只需要一条路径 ——
+   * 不做「有 layout 走新逻辑、没 layout 走老逻辑」的双分支。
+   */
   function reset(item?: FormDesignItem) {
     meta.value = item ?? null;
-    fields.value = item?.fields ? structuredClone(item.fields) : [];
+    const raw = item?.fields ? structuredClone(item.fields) : [];
+    fields.value = migrateFields(raw, grid.value);
     selectedId.value = null;
     dirty.value = false;
     history.value = [];
@@ -136,8 +173,23 @@ export const useFormDesignStore = defineStore('formDesign', () => {
 
   // ===================== 字段操作 =====================
 
+  /** 除自己以外所有字段占的位（找空位用） */
+  function occupied(excludeId?: string): FormGridLayout[] {
+    return fields.value.filter(f => f.id !== excludeId && f.layout).map(f => f.layout!);
+  }
+
+  /** 字段类型的默认跨列数：整行元素占满，两个短字段并排占一半 */
+  function defaultSpan(type: FieldType, cfg = grid.value): number {
+    if (type === 'DIVIDER' || type === 'TABLE' || type === 'RICH_TEXT' || type === 'TEXTAREA') {
+      return cfg.cols;
+    }
+    return Math.floor(cfg.cols / 2);
+  }
+
   function addField(type: FieldType, insertAt?: number) {
     const f = makeDefaultField(type);
+    const span = defaultSpan(type);
+    f.layout = findFreeSlot(occupied(), span, 1, grid.value);
     if (insertAt == null || insertAt < 0 || insertAt > fields.value.length) {
       fields.value.push(f);
     } else {
@@ -161,8 +213,48 @@ export const useFormDesignStore = defineStore('formDesign', () => {
     commit();
   }
 
+  /**
+   * 移动 / 缩放字段。
+   *
+   * @param commitNow 拖拽过程中传 false（只改内存），松手再 commit 一次 ——
+   *                  否则鼠标每动一像素压一帧撤销栈，10 步就满了。
+   */
+  function setLayout(id: string, patch: Partial<FormGridLayout>, commitNow = true) {
+    const f = fields.value.find(x => x.id === id);
+    if (!f) return;
+    f.layout = clampLayout({ ...(f.layout ?? { x: 0, y: 0, w: 24, h: 1 }), ...patch }, grid.value);
+    if (commitNow) commit();
+  }
+
+  /**
+   * 移动字段到指定栅格位，重叠则挤开下方字段。
+   *
+   * 挤开而不是拒绝：拖拽时撞到别人直接弹回去手感很差。
+   * `pushDown` 逐轮把重叠的字段推到下方，直到无重叠为止。
+   */
+  function moveTo(id: string, target: Partial<FormGridLayout>) {
+    const f = fields.value.find(x => x.id === id);
+    if (!f) return;
+    const moving = clampLayout({ ...(f.layout ?? { x: 0, y: 0, w: 24, h: 1 }), ...target }, grid.value);
+    f.layout = moving;
+
+    // 最多推 20 轮，防止互相顶死时死循环
+    for (let round = 0; round < 20; round++) {
+      const hit = hasCollision(fields.value, id, moving);
+      if (!hit) break;
+      hit.layout = { ...hit.layout!, y: moving.y + moving.h };
+    }
+    commit();
+  }
+
   function select(id: string | null) { selectedId.value = id; }
 
+  /**
+   * 大纲里的上下移动。
+   *
+   * 栅格模型下列表顺序与空间位置是两件事：字段数组决定渲染层级与大纲顺序，
+   * layout 决定画布落位。这里只改数组顺序，**保留原坐标**。
+   */
   function moveField(id: string, direction: 'up' | 'down') {
     const idx = fields.value.findIndex(f => f.id === id);
     if (idx < 0) return;
@@ -173,14 +265,30 @@ export const useFormDesignStore = defineStore('formDesign', () => {
     commit();
   }
 
+  // 注：删除字段后**不**自动上移下方字段。栅格是用户刻意排出来的，
+  // 留个洞让用户自己拖，比系统自作主张重排更可预期。
+
+  /**
+   * 复制字段。
+   *
+   * 除了改 key，还要把表达式里对旧 key 的引用一并改写 —— 否则
+   * label 写成 `{{$form.amount}}` 的字段被复制后，新字段仍指向原字段，
+   * 用户看不出任何异常，但数据是错的。表达式属性清单见 EXPR_ATTRS。
+   */
   function duplicate(id: string) {
     const src = fields.value.find(f => f.id === id);
     if (!src) return;
     const idx = fields.value.findIndex(f => f.id === id);
     const copy = JSON.parse(JSON.stringify(src));
     copy.id = newFieldId();
-    copy.key = `${copy.key}_copy`;
+    const newKey = `${copy.key}_copy`;
+    for (const attr of EXPR_ATTRS) {
+      copy[attr] = renameFieldKey(copy[attr] ?? '', src.key, newKey);
+    }
+    copy.key = newKey;
     copy.label = `${copy.label} (copy)`;
+    // 复制件必须落到一个空位，不能沿用原坐标 —— 否则会和原件重叠
+    copy.layout = findFreeSlot(occupied(id), src.layout?.w ?? defaultSpan(src.type), src.layout?.h ?? 1, grid.value);
     fields.value.splice(idx + 1, 0, copy);
     selectedId.value = copy.id;
     commit();
@@ -195,10 +303,40 @@ export const useFormDesignStore = defineStore('formDesign', () => {
       if (!seen.add(f.key)) return `字段 key 重复: ${f.key}`;
       if (!f.label || !f.label.trim()) return `字段 key=${f.key} 未设置 label`;
       if ((f.type === 'SELECT' || f.type === 'RADIO' || f.type === 'CHECKBOX')
+          && !f.optionsSource
           && (!f.options || f.options.length === 0)) {
-        return `字段 "${f.label}" (${f.type}) 必须配置至少一个选项`;
+        return `字段 "${f.label}" (${f.type}) 必须配置至少一个选项，或开启动态选项源`;
+      }
+      // 动态选项源在设计期只能校验「填全了」，列名对不对要等运行时取数才知道
+      if (f.optionsSource) {
+        const s = f.optionsSource;
+        if (!s.queryId || s.queryId <= 0) {
+          return `字段 "${f.label}" 的动态选项源未选择查询`;
+        }
+        if (!s.labelField?.trim()) return `字段 "${f.label}" 的动态选项源未填写文本列`;
+        if (!s.valueField?.trim()) return `字段 "${f.label}" 的动态选项源未填写值列`;
+      }
+    // 栅格重叠：两个字段压在同一块区域，填表人会看到一个盖住另一个
+      if (f.layout) {
+        const hit = hasCollision(fields.value, f.id, f.layout);
+        if (hit) {
+          return `字段 "${f.label}" 与「${hit.label || hit.key}」在画布上重叠`;
+        }
       }
     }
+
+    // 表达式校验：未定义字段引用 + 语法错误。
+    // 两类都是静态可判定的（不依赖用户填了什么），所以保存前就能拦下，
+    // 不必等到运行时表单渲染才发现。空上下文即可 —— 这里只做静态扫描。
+    const exprIssues = useFormExpr({}).issues(fields.value);
+    if (exprIssues.length) {
+      const it = exprIssues[0];
+      const detail = it.kind === 'undefined-ref'
+        ? `{{$form.${it.detail}}} 引用了不存在的字段 "${it.detail}"`
+        : it.detail;
+      return `表达式错误 (${it.attr}): ${detail}`;
+    }
+
     return null;
   }
 
@@ -207,12 +345,15 @@ export const useFormDesignStore = defineStore('formDesign', () => {
     meta, fields, selectedId, selectedField, dirty, loading,
     // designer state
     designerMode, deviceMode, canvasWidth, zoom,
+    // 栅格
+    grid, gridRows,
     history, historyIndex, canUndo, canRedo,
     // ops
     reset, setLoading, markDirty, clearDirty,
     setMode, setDevice, setZoom,
     commit, saveHistory, undo, redo,
     addField, removeField, updateField, select, moveField, duplicate,
+    setLayout, moveTo, defaultSpan,
     validate,
   };
 });

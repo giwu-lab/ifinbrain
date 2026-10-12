@@ -2,7 +2,7 @@
   <div class="page-container fade-in-up qy-page">
     <div class="table-wrap qy-table-wrap">
       <div class="table-actions">
-        <el-button v-if="auth.hasPerm('data:query:create')" type="primary" @click="openNew">
+        <el-button v-if="auth.hasPerm('data:query:create')" type="primary" :icon="Plus" @click="openNew">
           {{ t('dataMgmt.qyCreate') }}
         </el-button>
       </div>
@@ -11,7 +11,9 @@
       <template v-if="items.length > 0">
       <el-table
         :data="items"
+        border
         stripe
+        size="small"
         v-loading="loading"
         :row-class-name="rowClass"
       >
@@ -170,6 +172,7 @@ import { Edit, Delete, MoreFilled, CopyDocument, Plus, Document } from '@element
 import { useAuthStore } from '@/stores/auth';
 import { queryApi, type QueryItem } from '@/api/query';
 import { queryPageApi, parseConfig, type QueryPageConfig } from '@/api/queryPage';
+import { formatDateTime } from '@/utils/time';
 import PublishDialog, { type EditTarget } from './PublishDialog.vue';
 
 const { t } = useI18n();
@@ -353,11 +356,9 @@ async function onPublishUpdate(payload: { menuId: number; menuName: string; icon
 
 // ===== util =====
 
-function formatTime(s: string) {
-  if (!s) return '';
-  const d = new Date(s);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+/** 时间统一走 utils/time.formatDateTime：yyyy-MM-dd HH:mm:ss（AGENTS §8.3） */
+function formatTime(s?: string | null) {
+  return formatDateTime(s);
 }
 function truncate(s: string | null | undefined, n: number) {
   if (!s) return '';
@@ -411,7 +412,7 @@ onMounted(loadList);
 .qy-tag-disabled { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--color-warning, #f0a020); color: #fff; flex-shrink: 0; }
 .qy-desc-inline { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
 .ds-name {
-  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;

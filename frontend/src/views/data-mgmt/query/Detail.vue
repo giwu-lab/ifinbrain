@@ -270,6 +270,7 @@ import { http } from '@/api/http';
 // 路径走 utils/workers.ts 集中配置，可通过 VITE_MONACO_WORKER_URL 环境变量覆盖。
 import * as monaco from 'monaco-editor';
 import { MONACO_WORKER_URL } from '@/utils/workers';
+import { formatDateTime } from '@/utils/time';
 
 declare const self: { MonacoEnvironment?: any };
 
@@ -1000,10 +1001,7 @@ function formatCell(v: any): string {
   return String(v);
 }
 function formatTime(s: string) {
-  if (!s) return '';
-  const d = new Date(s);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatDateTime(s);
 }
 function formatStamp() {
   const d = new Date();
@@ -1028,7 +1026,7 @@ function relTime(s: string) {
   display: flex; flex-direction: column;
   height: calc(100vh - 60px);
   background: #FAFAF7;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-family);
 }
 
 /* top bar */
@@ -1153,7 +1151,7 @@ function relTime(s: string) {
 .qe-ds-label { color: #5C5C5C; }
 /* 与左侧「数据源 + select」拉开一档，组内按钮靠 6px 贴紧 —— 视觉上是一个动作组，不是一片散字 */
 .qe-ds-actions { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; }
-.qe-mode { margin-left: auto; color: #8A8A85; font-family: ui-monospace, monospace; font-size: 11px; }
+.qe-mode { margin-left: auto; color: #8A8A85; font-family: var(--font-mono); font-size: 11px; }
 
 .qe-editor-stage {
   background: #FAFAF7;
@@ -1223,7 +1221,7 @@ function relTime(s: string) {
 .qe-result-err {
   padding: 6px 8px; background: #FCF1F1; border-left: 3px solid #B73838;
   color: #B73838; font-size: 13px; margin: 8px 0;
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .qe-result-err pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
 .qe-result-pager { padding: 8px 0; justify-content: flex-end; }
@@ -1232,7 +1230,7 @@ function relTime(s: string) {
 :deep(.qe-result-table) > .el-table__inner-wrapper { overflow: auto; }
 :deep(.qe-result-table) .el-table { height: 100%; }
 
-.qe-cell { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; }
+.qe-cell { font-family: var(--font-mono); font-size: 13px; }
 .qe-cell.number { color: #2D5BFF; }
 .qe-cell.date, .qe-cell.datetime { color: #0E8F5C; }
 
@@ -1300,12 +1298,12 @@ function relTime(s: string) {
 .qe-input-item-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 /* 参数名组：文字 + ::type 徽标 + 铅笔，编辑态时只剩输入框 */
 .qe-param-id { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
-.qe-input-name { font-family: ui-monospace, monospace; font-size: 13px; color: #1A1A1A; font-weight: 500; }
+.qe-input-name { font-family: var(--font-mono); font-size: 13px; color: #1A1A1A; font-weight: 500; }
 /* 参数名可编辑态：等宽字体与只读态一致，避免改名后字重/字宽突变 */
 .qe-param-name-input { width: 132px; flex-shrink: 0; }
 .qe-param-name-input :deep(.el-input__wrapper) { padding: 1px 8px; background: #FFFFFF; }
 .qe-param-name-input :deep(.el-input__inner) {
-  font-family: ui-monospace, monospace; font-size: 13px; font-weight: 500;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 500;
 }
 /* 铅笔：默认几乎不可见，hover 参数行才显形 —— 保持工具条安静，但要用鼠标就能发现 */
 .qe-param-edit {
@@ -1351,8 +1349,8 @@ function relTime(s: string) {
 .qe-table-h:hover { background: #F0F0EB; }
 .qe-table-h .caret { font-size: 9px; color: #8A8A85; transition: transform 0.15s; width: 10px; display: inline-block; }
 .qe-table-h .caret.open { transform: rotate(90deg); }
-.qe-table-name { font-family: ui-monospace, monospace; font-weight: 500; color: #1A1A1A; }
-.qe-table-full { font-family: ui-monospace, monospace; }
+.qe-table-name { font-family: var(--font-mono); font-weight: 500; color: #1A1A1A; }
+.qe-table-full { font-family: var(--font-mono); }
 .qe-cols { padding: 1px 0 3px 8px; }
 .qe-col {
   display: flex; align-items: center; justify-content: space-between;
@@ -1360,6 +1358,6 @@ function relTime(s: string) {
   color: #1A1A1A;
 }
 .qe-col:hover { background: #F0F0EB; }
-.qe-col-name { font-family: ui-monospace, monospace; font-size: 12px; }
-.qe-col-type { font-family: ui-monospace, monospace; }
+.qe-col-name { font-family: var(--font-mono); font-size: 12px; }
+.qe-col-type { font-family: var(--font-mono); }
 </style>

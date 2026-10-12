@@ -140,6 +140,27 @@ export function useInvoiceStatus() {
   };
 }
 
+/** 领域 hook：发票费用类别 */
+export const DICT_INVOICE_EXPENSE_CATEGORY = 'invoice_expense_category';
+export function useInvoiceExpenseCategory() {
+  const { get } = useDict();
+  const items = computed(() => get(DICT_INVOICE_EXPENSE_CATEGORY));
+  return {
+    items,
+    /**
+     * el-select 的 options。
+     * value 故意取字典 value（= 中文文案，与 fapiao_cn 的 expense_category_label
+     * 逐字一致），而不是小写英文 code —— 上传页 v-model 绑的就是这一列，
+     * 解析返回「餐饮」必须能原样命中选项回显。value 为空的兜底到 label。
+     * get() 不按 status 过滤（store 层是全量快照），停用项在这里滤掉。
+     */
+    options: computed(() =>
+      items.value
+        .filter((i) => i.status === 1)
+        .map((i) => ({ label: i.label, value: i.value || i.label }))),
+  };
+}
+
 /** 领域 hook：文件格式 */
 export const DICT_FILE_FORMAT = 'file_format';
 export function useFileFormat() {

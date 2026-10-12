@@ -65,6 +65,6 @@ function emitPatch() {
 
 <style scoped>
 .edge-condition-config .muted { font-size: 11px; padding: 4px 0; }
-.mono { font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace; }
+.mono { font-family: var(--font-mono); }
 .hint { font-size: 11px; margin-top: 4px; }
 </style>

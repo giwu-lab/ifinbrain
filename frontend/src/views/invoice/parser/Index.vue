@@ -540,7 +540,7 @@ onMounted(reload);
 .test-url {
   font-size: 12px;
   color: var(--ink-3);
-  font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+  font-family: var(--font-mono);
   word-break: break-all;
 }
 
@@ -622,7 +622,7 @@ onMounted(reload);
 .status-value.off { color: var(--ink-3); }
 .status-value.warn { color: var(--warn); }
 .status-value.url {
-  font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   color: var(--ink-2);
   font-weight: 400;

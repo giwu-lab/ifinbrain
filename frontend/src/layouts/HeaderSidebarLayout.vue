@@ -68,11 +68,14 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { resolveElIcon } from '@/utils/icon';
+import { resolveMenuName } from '@/utils/menu';
 import { useAuthStore } from '@/stores/auth';
+import { useTabStore } from '@/stores/tab';
 import { useThemeStore } from '@/stores/theme';
 
 const { t } = useI18n();
 const auth = useAuthStore();
+const tabStore = useTabStore();
 const theme = useThemeStore();
 const route = useRoute();
 const router = useRouter();
@@ -84,21 +87,15 @@ function iconOf(name?: string) {
   return resolveElIcon(name);
 }
 
+// 菜单显示名解析搬到 @/utils/menu —— 4 个 layout + 两个发布对话框共用一份
 function menuName(m: { name: string; component?: string; path?: string }) {
-  const comp = m.component?.replace(/\//g, '.');
-  const candidates = [
-    comp ? `menu.${comp}` : null,
-    m.path && m.path !== '/' ? `menu.${m.path.replace(/^\//, '')}` : null,
-    m.path && m.path !== '/' ? `menu.${m.path.replace(/^\//, '').replace(/\//g, '.')}._` : null,
-  ].filter(Boolean) as string[];
-  for (const key of candidates) {
-    const translated = t(key);
-    if (translated !== key) return translated;
-  }
-  return m.name;
+  return resolveMenuName(m, t);
 }
 
 const breadcrumbLabel = computed(() => {
+  // 页面自设的标题优先（报表名 / 大屏名…）。必须和 TabBar 用同一份，
+  // 否则会出现「tab 写订单报表、面包屑写报表展示」这种自相矛盾。
+  if (tabStore.activeTitle) return tabStore.activeTitle;
   const m = route.meta as { name?: string; component?: string; path?: string; title?: string } | undefined;
   if (!m) return '';
   // name / title 都可能缺：缺 name 时也要走 menuName()，否则会直接把 meta.title

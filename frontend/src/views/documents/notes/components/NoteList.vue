@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n';
 import { Edit, Star, StarFilled, MoreFilled, Delete, Collection, User } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import type { NoteItem, NoteListScope, NoteStats } from '@/api/note';
+import { formatDateTime } from '@/utils/time';
 
 const props = defineProps<{
   rows: NoteItem[];
@@ -49,9 +50,9 @@ function scopeText(row: unknown) {
   return t(`note.scopeTypes.${r.scopeType}`);
 }
 
-function timeText(s?: string) {
-  if (!s) return '';
-  return s.replace('T', ' ').slice(5, 16);
+/** 时间统一走 utils/time.formatDateTime：yyyy-MM-dd HH:mm:ss（AGENTS §8.3） */
+function timeText(s?: string | null) {
+  return formatDateTime(s);
 }
 
 function onTabClick(key: NoteListScope) {
@@ -154,7 +155,7 @@ function onSearch(value: string) {
           </template>
         </el-table-column>
 
-        <el-table-column :label="t('note.lastEditor')" width="110">
+        <el-table-column :label="t('note.lastEditor')" width="170">
           <template #default="{ row }">
             <span class="mono-time">{{ timeText(row.updatedAt) }}</span>
           </template>

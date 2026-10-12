@@ -354,6 +354,118 @@ export function buildChartOption(
       };
     }
 
+    case 'stack': {
+      const shape = widget.extra?.shape === 'area' ? 'area' : 'bar';
+      const isArea = shape === 'area';
+      // 堆叠时 borderRadius 只给最后一组：ECharts 会对**每段**柱子上圆角，
+      // 全给的话堆叠层每段都鼓出一圈圆角，接缝处出现月牙缺口。
+      const last = p.series.length - 1;
+      return {
+        ...base,
+        tooltip: tooltipAxis,
+        legend: { show: p.series.length > 1, top: 0, textStyle: { color: c.textSecondary } },
+        grid: { left: 8, right: 12, top: p.series.length > 1 ? 28 : 12, bottom: 4, containLabel: true },
+        xAxis: {
+          type: 'category',
+          // 柱图要有留白，折线贴边才好看
+          boundaryGap: !isArea,
+          data: p.cats,
+          axisLabel: { color: c.textMuted, hideOverlap: true },
+          axisLine: { lineStyle: { color: c.border } },
+          axisTick: { show: false },
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: { lineStyle: { color: c.border, type: 'dashed' } },
+          axisLabel: { color: c.textMuted },
+        },
+        series: p.series.map((s, i) => (isArea
+          ? {
+              name: s.name,
+              type: 'line',
+              stack: 'total',
+              smooth: true,
+              showSymbol: p.cats.length <= 40,
+              lineStyle: { width: 2 },
+              areaStyle: { opacity: 0.28 },
+              ...(user.lineStyle || {}),
+            }
+          : {
+              name: s.name,
+              type: 'bar',
+              stack: 'total',
+              data: s.data,
+              barMaxWidth: 36,
+              itemStyle: i === last ? { borderRadius: [3, 3, 0, 0] } : undefined,
+              ...(user.barStyle || {}),
+            })),
+      };
+    }
+
+    case 'combo': {
+      // 柱线双轴。默认最后一组走右轴折线；extra.lineSeries 可指定下标。
+      // 只有一组指标时退化成纯折线 —— 画一根空轴 + 一个没有柱子的右轴毫无意义。
+      const raw = widget.extra?.lineSeries;
+      const lineAt = Number.isInteger(raw) && raw >= 0 && raw < p.series.length
+        ? raw
+        : p.series.length - 1;
+      const dual = p.series.length > 1;
+      return {
+        ...base,
+        tooltip: tooltipAxis,
+        legend: { show: dual, top: 0, textStyle: { color: c.textSecondary } },
+        grid: { left: 8, right: 12, top: dual ? 28 : 12, bottom: 4, containLabel: true },
+        xAxis: {
+          type: 'category',
+          data: p.cats,
+          axisLabel: { color: c.textMuted, hideOverlap: true },
+          axisLine: { lineStyle: { color: c.border } },
+          axisTick: { show: false },
+          // 双轴时轴指示器跨两轴联动，单轴时退回默认阴影
+          ...(dual ? { axisPointer: { type: 'cross' as const, label: { backgroundColor: c.textSecondary } } } : {}),
+        },
+        yAxis: dual
+          ? [
+              {
+                type: 'value',
+                splitLine: { lineStyle: { color: c.border, type: 'dashed' as const } },
+                axisLabel: { color: c.textMuted },
+              },
+              {
+                type: 'value',
+                // 右轴不画分割线，否则两条轴的虚线网格重叠成一片
+                splitLine: { show: false },
+                axisLabel: { color: c.textMuted },
+              },
+            ]
+          : [{
+              type: 'value',
+              splitLine: { lineStyle: { color: c.border, type: 'dashed' as const } },
+              axisLabel: { color: c.textMuted },
+            }],
+        series: p.series.map((s, i) => (i === lineAt
+          ? {
+              name: s.name,
+              type: 'line',
+              yAxisIndex: dual ? 1 : 0,
+              data: s.data,
+              smooth: widget.extra?.lineSmooth !== false,
+              showSymbol: p.cats.length <= 40,
+              lineStyle: { width: 2 },
+              ...(user.lineStyle || {}),
+            }
+          : {
+              name: s.name,
+              type: 'bar',
+              yAxisIndex: 0,
+              data: s.data,
+              barMaxWidth: 36,
+              itemStyle: { borderRadius: [3, 3, 0, 0] },
+              ...(user.barStyle || {}),
+            })),
+      };
+    }
+
     default:
       return null;
   }

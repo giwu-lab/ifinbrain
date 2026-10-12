@@ -5,6 +5,9 @@ import com.anomalyco.ifinbrain.web.client.FapiaoCnClient.ExtractItem;
 import com.anomalyco.ifinbrain.web.common.BizException;
 import com.anomalyco.ifinbrain.web.common.InvoiceExport;
 import com.anomalyco.ifinbrain.web.common.PageReq;
+import com.anomalyco.ifinbrain.web.design.flow.dto.StartFlowReq;
+import com.anomalyco.ifinbrain.web.design.flow.engine.FlowEngineService;
+import com.anomalyco.ifinbrain.web.design.flow.entity.SysFlowInstance;
 import com.anomalyco.ifinbrain.web.dto.invoice.InvoiceGroupDto;
 import com.anomalyco.ifinbrain.web.entity.InvoiceRecord;
 import com.anomalyco.ifinbrain.web.repository.InvoiceRecordRepository;
@@ -45,11 +48,22 @@ public class InvoiceService {
     private final FapiaoCnClient fapiaoClient;
     private final StorageSelector storage;
     private final PermissionChecker perm;
+    private final FlowEngineService flowEngine;
 
     private static final DateTimeFormatter KEY_TS = DateTimeFormatter.ofPattern("yyyy/MM/");
 
-    /** 发票正式落库路径前缀 —— 根目录/fapiao/（核销单号）/文件名，取消年/月归集。 */
+    /** 发票正式落库路径前缀 —— 根目录/fapiao/（报销单号）/文件名，取消年/月归集。 */
     private static final String INVOICE_KEY_PREFIX = "fapiao/";
+
+    /**
+     * 报销审批流程 code —— 对应 V38 预置的「报销审批示例」。
+     *
+     * <p>写死而非走字典：流程 code 是代码与 sys_flow_instance.flow_code 的契约，
+     * 一旦换 code，历史实例就再也匹配不上（{@link InvoiceReimburseListener} 的
+     * supports() 会直接跳过），属于会静默丢数据的改动，不适合做成运行时可配。
+     * 换流程请改这里 + 迁移，并保留旧 code 的监听。
+     */
+    private static final String EXPENSE_FLOW_CODE = "expense-sample";
 
     @Transactional(readOnly = true)
     public Page<InvoiceRecord> list(PageReq req) {
@@ -433,9 +447,13 @@ public List<InvoiceRecord> exportAll(PageReq req) {
                     .reviewer(rep.getReviewer())
                     .drawer(rep.getDrawer())
                     .message(rep.getMessage())
+                    .expenseCategoryLabel(rep.getExpenseCategoryLabel())
                     .verificationNo(rep.getVerificationNo())
                     .verifier(rep.getVerifier())
                     .verificationDate(rep.getVerificationDate())
+                    .formData(parseFormData(rep.getFormDataJson()))
+                    .reimburseStatus(rep.getReimburseStatus())
+                    .flowInstanceId(rep.getFlowInstanceId())
                     .createdAt(rep.getCreatedAt())
                     .updatedAt(rep.getUpdatedAt())
                     .build();
@@ -524,9 +542,14 @@ public List<InvoiceRecord> exportAll(PageReq req) {
     }
 
     /**
-     * 保存：把 pending 列表 + 核销三件套绑定后**重命名 storage 文件 + 落库**。
-     * 文件名格式：{发票号码}_{核销单号}.{原扩展名}，落到 storageKey = fapiao/{核销单号}/{新名}。
-     * 取消年/月目录归集——按核销单号直接放在 fapiao/ 下。
+     * 报销：把 pending 列表 + 报销三件套（报销单号/报销人/报销日期）绑定后
+     * **重命名 storage 文件 + 落库**。
+     * 文件名格式：{发票号码}_{报销单号}.{原扩展名}，落到 storageKey = fapiao/{报销单号}/{新名}。
+     * 取消年/月目录归集——按报销单号直接放在 fapiao/ 下。
+     *
+     * <p>注：DB 列名沿用历史 verification_no / verifier / verification_date，
+     * 语义即「报销单号 / 报销人 / 报销日期」，不再改列名——因为该单号同时是
+     * storageKey 的目录层级（见下），改列名会导致「DB 值 ≠ 磁盘目录」需搬文件。
      */
     @Transactional
     public List<InvoiceRecord> commit(CommitReq req) {
@@ -535,24 +558,31 @@ public List<InvoiceRecord> exportAll(PageReq req) {
             throw new BizException(400, "items is required");
         }
         if (req.getVerificationNo() == null || req.getVerificationNo().isBlank()) {
-            throw new BizException(400, "核销单号必填");
+            throw new BizException(400, "报销单号必填");
         }
         LocalDate vDate;
         if (req.getVerificationDate() == null || req.getVerificationDate().isBlank()) {
             vDate = LocalDate.now();
         } else {
             try { vDate = LocalDate.parse(req.getVerificationDate()); }
-            catch (Exception e) { throw new BizException(400, "核销日期必须是 YYYY-MM-DD"); }
+            catch (Exception e) { throw new BizException(400, "报销日期必须是 YYYY-MM-DD"); }
         }
         String verifier = req.getVerifier();
         String verNo = req.getVerificationNo().trim();
+        // 动态报销申请单：整批复用同一份（同一次提交填一张单）
+        String formDataJson = serializeFormData(req.getFormData());
+
+        // 开关：走审批流则先置 PENDING，等流程回写；不走则当场完成
+        boolean withFlow = Boolean.TRUE.equals(req.getWithFlow());
+        if (withFlow) perm.require("invoice:reimburse:submit");
+        String reimburseStatus = withFlow ? "PENDING" : "APPROVED";
 
         List<InvoiceRecord> created = new ArrayList<>();
         for (PendingItem pi : req.getItems()) {
             String tempKey = pi.getStorageKey();
             if (tempKey == null) throw new BizException(400, "storageKey missing");
 
-            // 重命名：发票号码_核销单号.{ext}；发票号码为空时退回原文件名
+            // 重命名：发票号码_报销单号.{ext}；发票号码为空时退回原文件名
             String invoiceNo = pi.getInvoiceNumber() == null ? "" : pi.getInvoiceNumber().trim();
             String orig = pi.getOriginalFilename() == null ? "file" : pi.getOriginalFilename();
             String ext = extension(orig);
@@ -610,14 +640,60 @@ public List<InvoiceRecord> exportAll(PageReq req) {
                     .reviewer(pi.getReviewer())
                     .drawer(pi.getDrawer())
                     .message(pi.getMessage())
+                    .expenseCategoryLabel(pi.getExpenseCategoryLabel())
                     .verificationNo(verNo)
                     .verifier(verifier)
                     .verificationDate(vDate)
+                    .formDataJson(formDataJson)
+                    .reimburseStatus(reimburseStatus)
                     .uploaderId(req.getUploaderId())
                     .build();
             created.add(invoiceRepo.save(rec));
         }
+
+        // 必须在**所有记录落库之后**再发起流程：流程可能当场跑完（START 直连 END），
+        // 监听器要按报销单号查 PENDING 行来回写，查不到就会漏更新。
+        if (withFlow) {
+            startReimburseFlow(verNo, formDataJson, created, req);
+        }
         return created;
+    }
+
+    /**
+     * 发起报销审批流程。
+     *
+     * <p>businessKey 用**报销单号**而非发票号：一次提交可能含多张发票共享同一报销单号，
+     * 一张报销单 = 一个流程实例，审批人点一次「通过」即可。
+     *
+     * <p>失败即整批回滚（方法整体在 {@code @Transactional} 内）：流程起不来却把发票
+     * 留在「审批中」是坏数据 —— 用户既看不到流程，也没地方重新发起。
+     */
+    private void startReimburseFlow(String reimbursementNo, String formDataJson,
+                                    List<InvoiceRecord> created, CommitReq req) {
+        Map<String, Object> vars = new LinkedHashMap<>();
+        if (formDataJson != null) {
+            try {
+                vars.putAll(new tools.jackson.databind.ObjectMapper().readValue(formDataJson,
+                        new tools.jackson.core.type.TypeReference<Map<String, Object>>() {}));
+            } catch (Exception e) {
+                throw new BizException(400, "报销申请单数据无法解析，未发起审批");
+            }
+        }
+        // 报销金额取该单下第一条的价税合计，供流程条件分支（如 amount > 5000）使用
+        if (!created.isEmpty() && created.get(0).getTotalAmount() != null) {
+            vars.put("amount", created.get(0).getTotalAmount());
+        }
+        vars.put("reimbursementNo", reimbursementNo);
+        vars.put("invoiceCount", created.size());
+
+        StartFlowReq startReq = new StartFlowReq();
+        startReq.setCode(EXPENSE_FLOW_CODE);
+        startReq.setBusinessKey(reimbursementNo);
+        startReq.setVariables(vars);
+
+        SysFlowInstance inst = flowEngine.start(startReq, perm.currentUsername());
+        // 批量更新而非改实体：避免脏检查把监听器已回写的状态覆盖回 PENDING
+        invoiceRepo.updateFlowInstanceIdByBusinessKey(reimbursementNo, inst.getId());
     }
 
     @Transactional
@@ -722,6 +798,7 @@ public List<InvoiceRecord> exportAll(PageReq req) {
         pi.setReviewer(r.getReviewer());
         pi.setDrawer(r.getDrawer());
         pi.setMessage(r.getMessage() == null ? "unknown" : r.getMessage());
+        pi.setExpenseCategoryLabel(r.getExpenseCategoryLabel());
     }
 
     private static String emptyToNull(String s) {
@@ -762,6 +839,39 @@ public List<InvoiceRecord> exportAll(PageReq req) {
         return i <= 0 ? n : n.substring(0, i);
     }
 
+    /**
+ * 报销申请单字段值 JSON 串 → Map。解析失败记 warn 并按「无申请单」处理：
+ * 列表页不该因为一条脏数据整页打不开。
+     */
+    private java.util.Map<String, Object> parseFormData(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return new tools.jackson.databind.ObjectMapper().readValue(json,
+                    new tools.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+        } catch (Exception e) {
+            log.warn("parseFormData failed, len={}: {}", json.length(), e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 报销申请单字段值 → JSON 字符串。
+     *
+     * <p>空/null → null（列留空），不要写 "{}"：列表侧判「有没有填申请单」直接看
+     * 列是否为 null，写 "{}" 会让未填单据也显示成已填。
+     *
+     * <p>序列化失败**不吞** —— 表单值写不进去等于用户白填了一遍，必须报错。
+     */
+    private String serializeFormData(java.util.Map<String, Object> formData) {
+        if (formData == null || formData.isEmpty()) return null;
+        try {
+            return new tools.jackson.databind.ObjectMapper().writeValueAsString(formData);
+        } catch (Exception e) {
+            log.error("commit: formData serialize failed: {}", e.getMessage(), e);
+            throw new BizException(400, "报销申请单数据格式有误，无法保存");
+        }
+    }
+
     private static String extension(String n) {
         int i = n.lastIndexOf('.');
         if (i < 0 || i == n.length() - 1) return "";
@@ -796,6 +906,8 @@ public List<InvoiceRecord> exportAll(PageReq req) {
         private String reviewer;
         private String drawer;
         private String message;
+        /** 费用类别（识别结果；老解析器不返回时为 null） */
+        private String expenseCategoryLabel;
         public PendingInvoice(String originalFilename, String sha256, String storageKey,
                               long sizeBytes, Long uploaderId) {
             this.originalFilename = originalFilename;
@@ -806,13 +918,20 @@ public List<InvoiceRecord> exportAll(PageReq req) {
         }
     }
 
-    /** Commit 请求体：核销三件套 + 待保存的 pending 项（前端从 upload-and-recognize 拿到的）。 */
+    /** Commit 请求体：报销三件套 + 待保存的 pending 项（前端从 upload-and-recognize 拿到的）。 */
     @lombok.Data
     public static class CommitReq {
         private List<PendingItem> items;
+        /** 报销单号（列名沿用历史 verification_no，语义=报销单号）；必填 */
         private String verificationNo;
+        /** 报销人（列名 verifier）；必填由前端校验，后端兜底允许空 */
         private String verifier;
-        private String verificationDate; // YYYY-MM-DD
+        /** 报销日期 YYYY-MM-DD（列名 verification_date）；空则取当天 */
+        private String verificationDate;
+        /** 动态「报销申请单」的字段值；key = 表单字段 key。可空（未配置表单时） */
+        private java.util.Map<String, Object> formData;
+        /** 是否同时发起审批流程：true=审批通过才算已报销；false=直接完成报销。默认 false */
+        private Boolean withFlow;
         private Long uploaderId;
     }
 
@@ -837,5 +956,7 @@ public List<InvoiceRecord> exportAll(PageReq req) {
         private String reviewer;
         private String drawer;
         private String message;
+        /** 费用类别（由前端带回，取自识别结果） */
+        private String expenseCategoryLabel;
     }
 }

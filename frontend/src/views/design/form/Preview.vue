@@ -129,6 +129,6 @@ onMounted(async () => {
   border-radius: var(--radius-xs);
   max-height: 240px;
   overflow: auto;
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
 }
 </style>

@@ -95,6 +95,24 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 - Controller `@RestController @RequestMapping("/api/<module>")`，方法返回 `Result.ok(...)` 公共信封
 - 新增 Repository：自动扫描 `@EnableJpaRepositories(basePackages = {...})` 在 `iFinBrainApplication.java`
 
+### 5.1 必填字段：前后端双侧校验
+
+用户可见的必填项**两侧都要声明**，只做一侧就会出现「前端一路放行、后端才报错」的割裂。
+
+| 层 | 做法 | 踩过的坑 |
+|---|---|---|
+| `CreateReq` | id 类字段 `@NotNull` + `@Positive` | 只写 `@NotNull`：传 `0` 会静默通过、再被 service 归一成 NULL，等于绕过必填 |
+| `UpdateReq` | **只写 `@Positive`，绝不写 `@NotNull`** | 加 `@NotNull` 会把每一次局部更新打成 400 —— update 是 partial-update 契约，null = 本次不改这个字段 |
+| service | 再挡一道不依赖校验器的防线 | 以为 `@Valid` 万无一失：Bean Validation 只覆盖走 `@Valid` 的 controller 入口，service 被别处直接复用时没有这层 |
+| 前端表单 | `el-form-item` 必须写 `prop="<field>"`，且 `rules` 里有同名条目 | 只加红星不写 `prop`：el-form 找不到字段，规则静默不生效 |
+| 非输入类控件 | `el-select` / `el-tree-select` / `el-switch` 的 rule 要显式写 `trigger: 'change'` | 只写默认 blur：选完之后错误提示不消失，得点别处才消 |
+
+**改动必须两侧联动**：后端一旦用 `@Positive` 关掉「传 0 = 清空」这条语义，前端同名字段的 `?? 0` 兜底要**同步删掉** —— 否则每次编辑都会 400，且报错信息（`deptId: 必须是正数`）完全指不到「你没选部门」这件事上。
+
+**存量不自动回填**：把字段改成必填只约束**新写入**，历史 NULL 行照常存在，所有读取路径（列表 `deptName` 解析、人员选择器的「未分配部门」桶等）必须继续容忍 null。需要清理另跑迁移。
+
+**参考实现**：`UserCreateReq.deptId` / `UserUpdateReq.deptId` / `UserService.requireDeptId` / `views/system/user/Index.vue` 的 `rules.deptId`。
+
 ---
 
 ## 6. 前端结构
@@ -125,7 +143,7 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 
 **affix（不可关闭）**：仅 `/dashboard`。`stores/tab.ts` 的 `openTab` 用 `route.path === '/dashboard'` 判定。
 
-**登出清理**：`auth.clear()` 末尾调 `useTabStore().reset()`，防止上一用户 tab 痕迹残留。
+**登出清理**：`auth.clear()` 末尾调 `useTabStore().reset()` + `useThemeStore().purge()`，防止上一用户 tab 痕迹 / 主题配色残留到下一个登录的人（见 §7.3.2.1）。
 
 **新增页面无需任何改动**：路由跳转自动登记 tab；只有当该页面需要 `defineOptions({ name: 'Unique' })` 才需补（暂时未启用，因为 `:key` 已保证缓存槽唯一）。
 
@@ -165,7 +183,7 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 | 项 | 标准 |
 |---|---|
 | 根 class | `page-container fade-in-up {domain}-page`（如 `ds` / `cat` / `user`） |
-| 页面头部 | **列表页取消**；操作按钮放容器内 `.table-actions`（右对齐） |
+| 页面头部 | **列表页取消**；操作按钮放容器内 `.table-actions`（主操作靠左，次要靠右，见下） |
 | 列表容器 | `.table-wrap`（全局类：1px 边框 + 圆角 + 12px padding + `overflow: visible`），**禁用 `<el-card>` / `.card-table`** |
 | 容器内分区 | 查询条件 → 表格 → 分页，三段靠「分割线 + 12px 间隙」分隔（见 §8.5.1） |
 | 容器专属布局 | 需要 `flex:1` / `margin-top` 等时叠加自有类：`class="table-wrap docs-table-wrap"`，**只写布局属性**，不重复写 padding / border / background |
@@ -180,6 +198,28 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 字典管理双栏（`system/dict`，左右分栏）、导入向导三步骤（`import/components/Step*`）、查询结果面板（`query/Detail`）、发票上传表单（`invoice/Upload`）。它们不是标准列表页，硬套容器反而破坏原有布局。
 
 > 新增列表页时，表格的「单行 + 省略号」「容器边框」「容器内分区」「分页间距」都不用写代码 —— 都已在 `global.css` 全局生效（§8.1.1 / §8.5.1）。你只需要关心列宽配的是 `min-width` 还是 `width`。
+
+**`.table-actions` 按钮规范（全局生效，页面只管排布）**：
+
+| 项 | 标准 |
+|---|---|
+| 主操作 | **最左**，`type="primary"` + `:icon="Plus"`，通常只有「新建」一个 |
+| 次要操作 / 搜索框 | **靠右**，用 `<div class="header-actions">` 包裹（`margin-left:auto` 已全局锁死） |
+| 新建按钮文案 | 用 `newXxx` 命名（`newUser` / `newRole` / `newMenu` / `newDept` / `newDatasource`）；❌ 禁止复用表格列名 key（如 `colName` = 「名称」，按钮会只显示两个字） |
+| 搜索框宽度 | 加 `class="actions-search"`（220px 已锁）；❌ 不写 `style="width:..."` 写死 |
+| 间距 | 由 flex `gap` 统一负责，`global.css` 已重置 EP 的 `.el-button + .el-button { margin-left:12px }`（否则叠成 24px） |
+
+```vue
+<div class="table-actions">
+  <el-button v-if="auth.hasPerm('x:create')" type="primary" :icon="Plus" @click="openCreate">
+    {{ t('x.newThing') }}
+  </el-button>
+  <div class="header-actions">
+    <el-input class="actions-search" v-model="keyword" clearable />
+    <el-button :icon="Refresh" @click="reload">{{ t('common.refresh') }}</el-button>
+  </div>
+</div>
+```
 
 ### 7.2 双层吸顶（`<el-table>` 列表页默认开启）
 
@@ -268,25 +308,46 @@ master key：`IFINBRAIN_MASTER_KEY` 环境变量（≥32 字节，SHA-256 → AE
 
 #### 7.3.2 Smart Dark Switch（用户友好型切换）
 
-在 `stores/theme.ts` 的 `update()` action 里：
+**判定基准是「生效模式」是否翻转，不是 `patch.mode` 字面量** —— `light/dark/auto(跟随系统)` 三条路径都要覆盖，判定逻辑收在 `colorsForMode(next, mode)` 一个纯函数里：
 
 ```ts
-// 切到 dark：自动应用深色 sidebar / header（仅在原值是白色默认时）
-if (patch.mode === 'dark' && settings.value.mode !== 'dark') {
-  if (looksLightish(next.headerColor)) next.headerColor = DARK_DEFAULTS.headerColor;
-  if (looksLightish(next.menuColor))   next.menuColor   = DARK_DEFAULTS.menuColor;
-  if (next.primaryColor === LIGHT_DEFAULTS.primaryColor) next.primaryColor = DARK_DEFAULTS.primaryColor;
-}
-// 切回 light：反向还原（若 header/menu 仍是深色默认 → 自动改回白色）
-if (patch.mode === 'light' && settings.value.mode === 'dark') {
-  if (looksDarkish(next.headerColor)) next.headerColor = LIGHT_DEFAULTS.headerColor;
-  if (looksDarkish(next.menuColor))   next.menuColor   = LIGHT_DEFAULTS.menuColor;
+// 生效模式翻转时（_lastEffective !== effectiveMode(merged)），色板跟着翻
+commit(nextEff === _lastEffective ? merged : colorsForMode(merged, nextEff));
+
+function colorsForMode(s, mode) {
+  if (mode === 'dark') {
+    if (looksLightish(s.headerColor)) s.headerColor = DARK_DEFAULTS.headerColor;
+    if (looksLightish(s.menuColor))   s.menuColor   = DARK_DEFAULTS.menuColor;
+    if (s.primaryColor === LIGHT_DEFAULTS.primaryColor) s.primaryColor = DARK_DEFAULTS.primaryColor;
+  } else {
+    if (looksDarkish(s.headerColor)) s.headerColor = LIGHT_DEFAULTS.headerColor;
+    if (looksDarkish(s.menuColor))   s.menuColor   = LIGHT_DEFAULTS.menuColor;
+  }
 }
 ```
 
 **`looksLightish(c)` / `looksDarkish(c)`** 用 RGB 均值判断，避免覆盖用户手动调过的个性化色。
 
-`reset()` 也根据当前 mode 选择 `DARK_DEFAULTS` / `LIGHT_DEFAULTS`，避免重置后颜色风格不匹配当前主题。
+`auto` 模式下系统主题变化（`matchMedia` change）也走 `colorsForMode`，否则会出现「浅色内容 + 深色侧栏」。
+
+#### 7.3.2.1 主题硬约束：模式与色板必须同侧（v1 踩过的坑）
+
+**症状**：demo 登录后侧栏/顶栏是黑的、内容区是白的。
+
+**根因**：`reset()` 一度「mode 归位成 light，但颜色按当前是 dark 取深色默认」——登出时调用它，把
+`{mode:'light', headerColor:'#1a1f2e', menuColor:'#0f172a'}` 写进 localStorage；再加上主题缓存是**全局单key**、DB 无记录时直接沿用本地缓存，于是这份坏状态泄漏给了下一个登录的人。
+
+**三条规则**：
+
+| 规则 | 实现 |
+|---|---|
+| 重置 / 改模式时 mode 与色板必须取**同一侧** | `reset()` 保留当前 mode，再 `colorsForMode(base, effectiveMode(base))` |
+| 主题缓存必须**带账号归属** | `ifinbrain.theme.owner` 存用户名；`hydrate(username)` 里 DB 无记录时，只有 owner 匹配才沿用本地缓存，否则回默认 |
+| 登出要**整体清掉**主题缓存 | `auth.clear()` 调 `theme.purge()`：删 storage + 落回默认色 + `loaded=false`。**不调后端 DELETE** —— 偏好是上一位用户自己的，下次登录由 hydrate 原样恢复 |
+
+另有 `reconcileStoredColors()` 做**加载自愈**：历史遗留的坏状态（颜色恰好等于 DARK/LIGHT 默认值却和生效模式反着）在 hydrate 时翻回同侧。只认「恰好等于默认值」，自定义色不动。
+
+> 同源问题：`scripts/dark-theme-shoot.mjs` 只改 localStorage 的 `mode`，会绕开色板联动 —— 现在 hydrate 会自愈，暗色截图的侧栏/顶栏也是深色的。
 
 #### 7.3.3 Element Plus 暗色组件全覆盖
 
@@ -406,6 +467,31 @@ node scripts/dark-theme-shoot.mjs
 
 **`@PrePersist/@PreUpdate` 维护 updated_at**：前端 store 在登录后 `theme.hydrate()` 拉 DB 偏好合并；登出 / reset 时调 `DELETE /api/preference`。
 
+### 7.6 登录失败静默（401 的坑）
+
+**现象**：登录页密码填错 / 用户名不存在，点「登录」后**毫无反应** —— 不报错、不跳转、按钮转一下又回来。
+
+**根因**：后端 `BizException(401, ...)` 被 `GlobalExceptionHandler` 映射成 **HTTP 401**（不是 200 + `code:401`），于是走 axios 的 **error 拦截器**；而 `api/http.ts` 里：
+
+```ts
+if (status === 401 && !original._retry) {
+  const refresh = localStorage.getItem('refreshToken');
+  if (!refresh) {
+    if (window.location.pathname !== '/login') window.location.href = '/login';
+    return Promise.reject(err);   // ← 登录页没有 refreshToken，从这里静默返回，没有 ElMessage
+  }
+  ...
+}
+```
+
+登录页天然没有 `refreshToken`，**永远走这条静默分支**。原来 `login/Index.vue` 的 catch 又只有 `console.error`，于是彻底无反馈。
+
+**结论**：登录页的错误提示必须**由页面自己兜**，不能指望全局拦截器。同时**不要透传后端 message**（`"Invalid username or password"` 是英文原文，中文界面上很突兀）。
+
+**已实现**：`login/Index.vue` 用 `loginErrorKey`（存 i18n key 而非文案，切语言时提示跟着变）+ 卡片内 `el-alert type="error"` 就地显示；用户一改输入就清掉，提交前也清一次。i18n：`login.invalidCredentials` / `login.loginFailed`（zh + en 两处）。
+
+> 同理：任何「本来就没有 token」的页面（登录页、刷新页）拿到的 401 都是静默的，别指望 `http.ts` 兜底。
+
 ---
 
 ## 8. 表格标准
@@ -425,6 +511,17 @@ node scripts/dark-theme-shoot.mjs
 | 行底边 | `1px solid var(--color-border-soft)` |
 | Hover | `var(--color-primary-soft)` |
 | **单元格内容** | **单行显示，超出 `...` 截断（全局锁定，见下）** |
+
+**全项目 40 处 `<el-table>` 都必须是 `border stripe size="small`**（2026-10-11 全量核对过）。漏 `size="small"` 的实际差异不是行高 —— `global.css` 的 `.el-table .el-table__cell { padding: 8px 0; line-height: 20px }` 与 EP 的 `.el-table--small .el-table__cell` 同为 `(0,2,0)`，而 global.css 在 EP 之后加载，所以行高两边一致；真正变的是 **`.cell` 的横向内边距**（`small`=8px / 默认=12px）。
+
+**❌ 页面禁止自己覆写行高 / cell 内边距**。踩过的坑：`system/dept` 和 `system/menu` 曾在 scoped 里写
+
+```css
+:deep(.dept-row.el-table__row td) { padding: 6px 0 !important; }
+:deep(.dept-row.el-table__row .cell) { padding: 0 12px !important; }
+```
+
+把行压得比别处**更紧凑**，且 `!important` 盖住全局标准 —— 这两个树表现在只保留 `padding-left` 的层级缩进，行高/cell 全部继承全局。**允许**覆写的只有树形缩进（`tr.el-table__row--level-N > td:first-child { padding-left }`）和表单设计器里的 `TableField.vue`（编辑态刻意紧凑，不属于列表页）。
 
 ### 8.1.1 单元格单行 + 省略号（全局强制）
 
@@ -471,6 +568,28 @@ if (flexColumns.length > 0 && fit) {
 - ✅ 一个表格里**至少要有一列 flex 列**（只有 min-width），否则表格不撑满
 - ✅ 需要记住用户拖拽后的宽度时，用 `useColumnWidths` 的 `minOf(key, fallback)`（语义=最小宽度）而不是 `widthOf`（语义=固定宽度）；`widthOf` 会把列锁死，重新造成留白
 - ❌ 整张表全部 `:width` → 右侧留白（invoice 页踩过这个坑）
+
+### 8.1.3 横向滚动条（底部常驻条带，不遮最后一行）
+
+EP 2.9 的表格横滚条是 `.el-scrollbar` 的绝对定位子元素（`bottom:2px; height:6px`），表格高度自适应时视口高度 == 内容高度，那 8px **直接压在最后一行的下半截上**。已在 `global.css` 全局修掉，页面不用写任何代码：
+
+```css
+.el-table--scrollable-x > .el-table__inner-wrapper > .el-table__body-wrapper > .el-scrollbar > .el-scrollbar__wrap {
+  box-sizing: border-box;
+  border-bottom: 8px solid transparent;
+}
+```
+
+| 设计点 | 原因 |
+|---|---|
+| 用 `border-bottom` 而不是 `padding-bottom` | 滚动容器的 border 在 scrollport **之外**、不随内容滚动 → 条带常驻（纵向滚到中间也不跑掉）；`padding-bottom` 在 scrollport **之内**，一滚就消失 |
+| 必须显式 `box-sizing: border-box` | EP 给 `max-height` 表格的 wrap 写的是**行内** `max-height`（见 `style-helper.mjs` 的 `scrollbarStyle`），content-box 下边框会加在盒子外侧、被 `overflow:hidden` 裁掉 |
+| 只在 `el-table--scrollable-x` 时生效 | EP 按 `layout.scrollX` 打这个类；不横向滚动的表格不会多出一条空白 |
+| 选择器写**整条直接子级链** | 将来若单元格内部放了 `el-scrollbar`，后代选择器会误给它也加边框 |
+
+**为什么不做成「滚条真的移到 `.el-table` 之外」**：bar 的祖先 `.el-scrollbar` 与 `.el-table__body-wrapper` 都带 `overflow:hidden`，后者对 `max-height` 表格还要靠它裁出可视高度；要让 bar 溢出必须逐层改 `visible`，会连带破坏 ① 内部纵向滚动表格的 `max-height` 裁剪（表格直接撑高）② `.el-table` 自身的 `border-radius` 裁剪（项目在 `.el-table` 上写的 `overflow: clip`）。当前方案视觉效果一致（滚动条贴着表格底部、位于最后一行下方），但零副作用。
+
+`layout.scrollX` 由列宽与表宽比较得出（`table-layout.mjs:107/122`），与视口**高度**无关，所以这条规则不会引起「加了边框 → 变可滚动 → 去掉边框」的来回抖动。
 
 ### 8.2 操作列（高频图标直显 + 删除在 `···` 下拉）
 
@@ -566,6 +685,49 @@ async function onCmd(cmd: string, row: T) {
              font-variant-numeric: tabular-nums; font-size: 13px;
              color: var(--color-text-secondary); }
 ```
+
+**时间显示格式（全项目统一，只能用 `utils/time`）**：
+
+| 语义 | 格式 | 函数 |
+|---|---|---|
+| **时间戳**（创建/更新/最后运行/截止时间…） | `yyyy-MM-dd HH:mm:ss` | `formatDateTime(s)` |
+| **纯日期**（创建日期、账期、归档日…） | `yyyy-MM-dd` | `formatDate(s)` |
+
+```ts
+// frontend/src/utils/time.ts —— 两个函数都接受 string / number / Date / null
+formatDateTime(row.updatedAt);   // 2026-10-09 14:23:05
+formatDate(row.createdDate);     // 2026-10-09
+```
+
+**三条硬规则**：
+
+- ❌ **禁止在 view 里手写 `new Date()` + 模板字符串拼时间**。改版前项目里有 8 处这样的实现，格式各不相同（`M/D HH:mm`、`MM-DD HH:mm`、`yyyy-MM-dd HH:mm`、只有 `HH:mm:ss`……），同一个「最后更新」在不同页面长得完全不一样
+- ❌ **禁止 `s.replace('T', ' ').slice(0, 19)`** 这种字符串截取。它只对 ISO 字符串有效，遇 `null` 会抛错，且绕过了时区转换
+- ✅ 页面里若已有 `formatTime` / `timeText` 之类的本地包装，**函数体只留一行 `return formatDateTime(s)`**，不要在包装里做格式加工 —— 这样全项目的差异只有一处，改一次即可
+
+**时间列的宽度下限**：`yyyy-MM-dd HH:mm:ss` 是 19 个等宽字符，`.mono-time` 13px 下约需 **150px**，加单元格左右 padding 后 **列宽不能低于 170px**，否则会被 §8.1.1 的单行省略号截掉秒数。统一用 `width="175"` 或 `min-width="175"`。
+
+> `formatDateTime` 对非法值返回 `'—'`，无法解析时原样返回入参 —— 脏数据不会让整列表页崩成 `Invalid Date`。
+
+**字体：只用两个 token，不要在 view 里写字体栈**
+
+`styles/global.css` 的 `:root` 里定义了两个，页面一律引用：
+
+| token | 值 | 用途 |
+|---|---|---|
+| `--font-family` | `'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, …` | 全局无衬线，作用在 `html, body, #app` |
+| `--font-mono` | `'SF Mono', 'JetBrains Mono', Menlo, Consolas, ui-monospace, monospace` | 时间列 / 代码块 / 连接串 |
+
+```vue
+/* ✅ */  .code { font-family: var(--font-mono); }
+/* ❌ */  .code { font-family: ui-monospace, 'JetBrains Mono', monospace; }
+```
+
+**为什么必须走 token（改版前的坑）**：
+
+1. **`ui-monospace` 是 CSS 通用族关键字，谁在前谁直接命中**，后面具名字体全部失效。改版前项目里有 9 种排列混用，其中一半以 `ui-monospace` 开头 —— 装了 JetBrains Mono 也永远用不上，同一份代码在不同页面渲染成两种字体。**具名字体必须排在 `ui-monospace` 之前**
+2. **`--font-family` 里的 `'Inter'` 只是意图声明**，项目并未加载任何 webfont（无 `@font-face` / `@import` / CDN 引用）。浏览器逐级回退后：Windows 实际命中 **Segoe UI**（中文再字体链接到微软雅黑），macOS 命中苹方，Linux 落到 Roboto / Helvetica Neue / Arial。想真正用上 Inter 必须自行引入 webfont
+3. 需要跟随父级无衬线（如富文本区、仪表盘小部件里刻意保持正文字体）时写 `font-family: inherit`，**不要**手抄一遍栈
 
 ### 8.4 详情面板 `el-descriptions`（M5 借鉴）
 
@@ -668,7 +830,26 @@ public PageResp<XxxDto> page(PageReq req) {
 | **入参** | `common.PageReq`：通用字段 `page` / `size` / `keyword` / `sortBy` / `sortDir`（⚠️ 类里还带着发票专用的 `seller` / `verificationNo` / 核销日期，那是发票模块的历史包袱，其它模块忽略即可） |
 | **size 护栏** | 必须走 `req.toPageable(...)` / `req.safeSize()`：size ≤ 0 会让 `PageRequest.of` 直接抛异常变 500，上限 `MAX_SIZE = 200` |
 | **Repository** | 继承的 `findAllBy(Pageable)` + 一个 `findByXxxContainingIgnoreCase(kw, Pageable)` 就够；不要自己拼 `PageRequest` 再 `findAll` |
-| **全量入口另开** | 下拉选项类（必须看全量才能渲染）走**独立接口**，别和列表页共用一个 `list()`。范例：`GET /datamgmt/datasources/options`、`GET /bi/dashboard/published`（BI 展示墙轮播用） |
+| **全量入口另开** | 下拉选项类（必须看全量才能渲染）走**独立接口**，别和列表页共用一个 `list()`。范例：`GET /datamgmt/datasources/options`、`GET /bi/dashboard/published`（BI 展示墙轮播用）、`GET /archives`（档案文件页的类目导航 + Pinia store 用） |
+
+**权限是动态拼码时，分页要先把过滤下推到 DB**（档案库 `documents:{slug}:view` 是典型）：
+
+逐行 `perm.has()` 过滤会**先取整表再过滤**，过滤完就无从分页 —— 页大小和 total 都会失真，用户只有 2 条可见数据时第 1 页永远拿不满 size。正确做法是用 `perm.currentPerms()` 取出全量权限码，反推出「有权 slug 集合」，再用 `SlugIn` 交给数据库切片：
+
+```java
+// PermissionChecker：新增 currentPerms()，读 AuthPrincipal.getPerms() 全量集合
+List<String> slugs = libraryRepo.findEnabledSlugs().stream()      // 只取一列，开销极小
+        .filter(s -> myPerms.contains("documents:" + s + ":view"))
+        .toList();
+if (slugs.isEmpty()) return PageResp.of(List.of(), 0, req.safePage(), req.safeSize());
+Page<X> p = repo.findAllByStatusAndSlugInOrderBySortAscIdAsc(ENABLED, slugs, req.toPageable());
+```
+
+**不适用分页的例外**（不要硬套）：
+
+- **文件夹浏览器**（`documents/list/Index.vue`）—— 调 `document-browse` 返回当前路径下的子目录 + 文件，是目录树导航不是平铺列表，分页在这里没有语义
+- **树形配置页**（`system/{dept,menu,dict}` 用 `el-tree`）、**表单渲染器子表**（`form/fields/TableField.vue`）、**导入向导各步骤**（`import/components/Step*`）、**授权对话框内的角色表**（流程 / 档案库的权限弹窗）
+- **详情面板 / 预览页 / 结果面板**（`query/Detail.vue`、`import/components/ImportHistory.vue`）
 
 **前端契约**（`api/*` + `types/index.ts` 的 `PageResp<T>`）：
 

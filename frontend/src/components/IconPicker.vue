@@ -241,7 +241,7 @@ function clear() {
   color: var(--color-primary);
 }
 .preview-name {
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text);
 }

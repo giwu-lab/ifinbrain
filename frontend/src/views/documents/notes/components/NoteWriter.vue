@@ -250,7 +250,7 @@ defineExpose({
 }
 
 .note-writer :deep(.md-lp-code) {
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   background: var(--color-primary-softer);
   color: var(--color-primary);
@@ -320,7 +320,7 @@ defineExpose({
   border-radius: var(--radius-sm);
   background: var(--color-bg);
   background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg));
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;
   color: var(--color-text);
@@ -423,7 +423,7 @@ defineExpose({
   /* 字形只有 12px，灰字细体几乎看不出是按钮 —— 加粗 + 提到主文本色才立得住 */
   font-weight: 700;
   color: var(--color-text);
-  font-family: 'SF Mono', Menlo, monospace;
+  font-family: var(--font-mono);
 }
 .note-writer :deep(.cm-fmt-btn:hover) {
   background: var(--color-primary-soft);

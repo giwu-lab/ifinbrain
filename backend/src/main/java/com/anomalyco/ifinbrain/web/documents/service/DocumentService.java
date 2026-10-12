@@ -1,6 +1,7 @@
 package com.anomalyco.ifinbrain.web.documents.service;
 
 import com.anomalyco.ifinbrain.web.common.BizException;
+import com.anomalyco.ifinbrain.web.common.PageReq;
 import com.anomalyco.ifinbrain.web.documents.dto.DocumentDto;
 import com.anomalyco.ifinbrain.web.documents.dto.DocumentBrowseDto;
 import com.anomalyco.ifinbrain.web.documents.dto.FolderDto;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -280,12 +282,12 @@ public class DocumentService {
     // ===================== 浏览（文件夹 + 文件） =====================
 
     /**
-     * 浏览档案库某路径下的内容：返回 immediate 子文件夹 + immediate 文件。
-     * - 子文件夹从 storage.listFolders(prefix) 来（真目录）
-     * - 文件从 sys_document 查（storage_key 深度匹配 prefix 深度 + 1）
+     * 浏览档案库某路径下的内容：返回 immediate 子文件夹 + immediate 文件（**分页**）。
+     * - 子文件夹从 storage.listFolders(prefix) 来（真目录）—— 不分页，导航项数量天然有限
+     * - 文件走 {@link DocumentRecordRepository#findImmediateFiles}，过滤与分页都在 DB 里完成
      */
     @Transactional(readOnly = true)
-    public DocumentBrowseDto browse(Long categoryId, String folderPath) {
+    public DocumentBrowseDto browse(Long categoryId, String folderPath, PageReq pageReq) {
         // 档案库级 view —— 防止直接 URL 访问泄漏
         requireLibraryPerm(categoryId, "view");
         ArchiveLibrary lib = libraryRepo.findById(categoryId)
@@ -302,23 +304,19 @@ public class DocumentService {
                         .build())
                 .toList();
 
-        // 文件：sys_document.storage_key LIKE prefix%
-        List<DocumentRecord> all = documentRepo.findByCategoryIdAndStorageKeyStartingWith(
-                categoryId, prefix);
-        List<DocumentDto> files = all.stream()
-                // 只保留 prefix 之后的 immediate 文件名（不含中间 /）
-                // —— 避免把子目录里的文件也带出来
-                // （flat 布局下 slashCount 区分不开 "documents/cw/file" 与 "documents/cw/demo/file"，
-                //  必须看 prefix 之后是否有子目录斜杠）
-                .filter(r -> !r.getStorageKey().substring(prefix.length()).contains("/"))
-                .map(DocumentDto::fromEntity)
-                .toList();
+        // 文件：DB 层过滤 immediate + 分页（不再全量捞出后在内存里 contains("/") 过滤）
+        Page<DocumentRecord> page = documentRepo.findImmediateFiles(
+                categoryId, prefix, pageReq.toPageable(Sort.by(Sort.Order.desc("createdAt"))));
+        List<DocumentDto> files = page.getContent().stream().map(DocumentDto::fromEntity).toList();
 
         return DocumentBrowseDto.builder()
                 .folders(folders)
                 .files(files)
                 .currentPath(normalizedFolder)
                 .categorySlug(lib.getSlug())
+                .total(page.getTotalElements())
+                .page(pageReq.safePage())
+                .size(pageReq.safeSize())
                 .build();
     }
 
