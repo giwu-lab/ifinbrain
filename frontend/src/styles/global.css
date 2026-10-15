@@ -295,11 +295,6 @@ body {
 .muted { color: var(--color-text-muted); }
 .text-secondary { color: var(--color-text-secondary); }
 .danger-text { color: var(--color-danger); }
-.success-text { color: var(--color-success); }
-.text-right { text-align: right; }
-.text-center { text-align: center; }
-.gap-2 { gap: var(--space-2); }
-.gap-3 { gap: var(--space-3); }
 
 /* ============== 表格列辅助类 ============== */
 /* 数字列：等宽数字 + 紧凑字距 */
@@ -315,6 +310,57 @@ body {
   font-variant-numeric: tabular-nums;
   font-size: 13px;
   color: var(--color-text-secondary);
+}
+
+/* ---- 「名称 + 代码」主标识单元格（标准来源：BI 大屏管理页）----
+ * 一列里上下两行：主行名称（粗体，必要时可点），次行代码（等宽小字弱化）。
+ * 收益：名称与代码本来就是一个实体的「主键 + 别名」，拆成两列会让用户
+ * 左右扫视去对齐同一行；合并成一列后视觉上自然成组，还省下一列宽度。
+ *
+ * 命名用 nc- 前缀而非 .name-cell —— 后者已被「图标 + 名称」横向布局
+ * （dept / menu / archive / documents list）占用，同名不同义会互相污染。
+ *
+ * 结构（页面只需写结构，不写样式）：
+ *   <div class="nc-cell">
+ *     <span class="nc-name">报表名</span>
+ *     <code class="nc-code">rpt_ab12</code>
+ *   </div>
+ */
+.nc-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* 单元格是单行省略（§8.1.1），子项各自独立截断而非整块溢出 */
+  min-width: 0;
+}
+.nc-name {
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/*
+ * 名称即详情入口时加 .nc-link。
+ * 用主色 + hover 下划线而不是按钮样式：它在「名称」列里就该读成标题，
+ * 做成按钮会和右边的操作图标抢视觉层级（AGENTS §7「不滥用 pill / 按钮」）。
+ */
+.nc-link {
+  color: var(--color-primary);
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.nc-link:hover {
+  border-bottom-color: var(--color-primary);
+}
+.nc-code {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ============== el-descriptions 详情面板（紧凑化） ============== */
@@ -609,8 +655,7 @@ body {
 /* ---- 标准分页 ----
  * .el-pagination 的右对齐 + 上间距已在「Element Plus 调优」区块定义，
  * 这里只补「分页跟在表格容器后面」这个场景的间距约定。 */
-.table-wrap + .el-pagination,
-.table-pagination {
+.table-wrap + .el-pagination {
   margin-top: var(--space-4);
 }
 

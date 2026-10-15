@@ -10,12 +10,18 @@
         >{{ t('design.flowCreate') }}</el-button>
       </div>
       <el-table :data="rows" v-loading="loading" border stripe size="small">
-        <el-table-column :label="t('design.flowColCode')" prop="code" min-width="160">
+        <!--
+          「名称 + 代码」合并成一列（AGENTS §8.1.4）：两者是同一实体的主键/别名，
+          分列会让人左右扫视去对齐同一行。样式见 global.css 的 .nc-cell。
+        -->
+        <el-table-column :label="t('design.flowColName')" min-width="200">
           <template #default="{ row }">
-            <code class="mono">{{ (row as FlowDefineItem).code }}</code>
+            <div class="nc-cell">
+              <span class="nc-name">{{ (row as FlowDefineItem).name }}</span>
+              <code class="nc-code">{{ (row as FlowDefineItem).code }}</code>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column :label="t('design.flowColName')" prop="name" min-width="160" />
         <el-table-column :label="t('design.flowColDescription')" prop="description" min-width="200" />
         <el-table-column :label="t('design.flowColNodes')" width="100" align="right">
           <template #default="{ row }">
@@ -372,14 +378,6 @@ onMounted(loadList);
 </script>
 
 <style scoped>
-.flow-page .page-header {
-  display: flex; justify-content: space-between; align-items: flex-end;
-  position: sticky; top: 0; z-index: 30;
-  background: var(--color-bg);
-  padding: 8px 0; margin-bottom: 0;
-}
-.flow-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
-.flow-page .page-desc  { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
 .header-actions { display: flex; gap: 8px; }
 
 /* 列表区：plain 1px 边框容器；避开 SaaS-card 套娃 */

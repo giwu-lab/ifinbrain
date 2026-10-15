@@ -235,15 +235,18 @@ async function onDelete(row: Report) {
       <el-table :data="rows" v-loading="loading" border stripe size="small">
         <el-table-column :label="t('report.col.name')" min-width="180">
           <template #default="{ row }">
-            <!--
-              报表名即播放页入口（新标签页）。
-              操作列只放 设计 / 复制 / 发布 / 删除 四个命令，
-              「查看」不再占一个图标位 —— 名称可点就够了，占位留给编辑类操作。
-            -->
-            <el-tooltip :content="t('report.view')" placement="top">
-              <span class="rp-name rp-name-link" @click="onView(row as Report)">{{ row.name }}</span>
-            </el-tooltip>
-            <div class="rp-code mono">{{ row.code }}</div>
+            <!-- 「名称 + 代码」两行主标识单元格，样式见 global.css 的 .nc-cell -->
+            <div class="nc-cell">
+              <!--
+                报表名即播放页入口（新标签页）。
+                操作列只放 设计 / 复制 / 发布 / 删除 四个命令，
+                「查看」不再占一个图标位 —— 名称可点就够了，占位留给编辑类操作。
+              -->
+              <el-tooltip :content="t('report.view')" placement="top">
+                <span class="nc-name nc-link" @click="onView(row as Report)">{{ row.name }}</span>
+              </el-tooltip>
+              <code class="nc-code">{{ row.code }}</code>
+            </div>
           </template>
         </el-table-column>
         <el-table-column :label="t('report.col.query')" min-width="150">
@@ -382,41 +385,8 @@ async function onDelete(row: Report) {
 </template>
 
 <style scoped>
-.rp-page .page-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: var(--color-bg);
-}
-
 .rp-table-wrap {
   margin-top: 16px;
-}
-
-.rp-name {
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-/*
-  报表名 = 播放页入口。
-  用主色 + hover 下划线而不是按钮样式：它在「名称」列里就该读成标题，
-  做成按钮会和右边的操作图标抢视觉层级。
-*/
-.rp-name-link {
-  color: var(--color-primary);
-  cursor: pointer;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.15s;
-}
-.rp-name-link:hover {
-  border-bottom-color: var(--color-primary);
-}
-
-.rp-code {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 .rp-status-on {

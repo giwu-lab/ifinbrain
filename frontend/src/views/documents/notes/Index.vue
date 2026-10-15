@@ -144,32 +144,6 @@ async function onCmd(cmd: string, row: NoteItem) {
 </template>
 
 <style scoped>
-/* ============== 页头（AGENTS §7.1 / §7.2，与 documents/list、data-mgmt/datasource 同规格） ============== */
-.note-page .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
-  /* 吸顶：标题 + 新建按钮始终可见 */
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: var(--color-bg);
-  padding: 8px 0;
-  margin-bottom: 0;
-}
-.note-page .page-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-}
-.note-page .page-desc {
-  margin: 4px 0 0;
-  font-size: 13px;
-  line-height: 1.4;
-}
 .note-page .header-actions {
   display: flex;
   align-items: center;

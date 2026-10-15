@@ -116,17 +116,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/*
- * 页面骨架：与 data-mgmt/datasource、data-mgmt/query 逐项对齐
- * （这三个类不在 global.css 里，是每个页面 scoped 自带的；漏写会让 h1/p 落回
- *  浏览器默认样式 —— h1 变 2em ≈ 32px、还带默认 margin，标题一眼就和别页不一样）。
- */
-.imp-page .page-header {
-  display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;
-}
-.imp-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.imp-page .page-desc  { margin: 4px 0 0; font-size: 13px; }
-
 .imp-tabs :deep(.el-tabs__header) { margin-bottom: 4px; }
 
 .imp-steps { margin: 12px 0 20px; }

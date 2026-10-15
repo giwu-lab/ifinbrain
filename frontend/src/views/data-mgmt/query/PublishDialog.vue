@@ -268,36 +268,40 @@ function onSubmit() {
 </script>
 
 <style scoped>
+/*
+ * 颜色一律走 token（AGENTS §7.3.4）：本文件原先写死 #F4F4EE / #FFFFFF /
+ * #1A1A1A 等亮色值，暗色模式下这些底色会原样透出，变成刺眼亮块。
+ */
 .pp-body { display: flex; flex-direction: column; gap: 18px; }
 .pp-section { display: flex; flex-direction: column; gap: 10px; }
 .pp-section-title {
-  font-size: 12px; font-weight: 600; color: #6B6B65;
+  font-size: 12px; font-weight: 600; color: var(--color-text-secondary);
   letter-spacing: 0.04em; margin: 0; text-transform: none;
   padding-bottom: 6px;
-  border-bottom: 1px solid #F0F0EB;
+  border-bottom: 1px solid var(--color-border-soft);
 }
 .form-row { display: flex; flex-direction: column; gap: 6px; }
-.form-label { font-size: 13px; font-weight: 500; color: #1A1A1A; }
+.form-label { font-size: 13px; font-weight: 500; color: var(--color-text); }
 
 .pp-query-fixed {
   display: flex; align-items: center; gap: 12px;
   padding: 6px 10px;
-  background: #F4F4EE;
+  background: var(--color-bg);
   border-radius: 3px;
   font-size: 13px;
   flex-wrap: wrap;
 }
 .pp-query-name {
-  font-weight: 600; color: #1A1A1A;
+  font-weight: 600; color: var(--color-text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0; flex: 0 1 auto;
 }
 .pp-query-ds {
   font-family: var(--font-mono);
   font-size: 12px;
-  background: #FFFFFF;
+  background: var(--color-bg-elev);
   padding: 1px 6px; border-radius: 2px;
-  border: 1px solid #E5E5E0;
+  border: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -310,10 +314,10 @@ function onSubmit() {
   gap: 8px;
 }
 .pp-field-source {
-  font-size: 13px; color: #6B6B65; font-family: var(--font-mono);
+  font-size: 13px; color: var(--color-text-secondary); font-family: var(--font-mono);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.pp-arrow { color: #C8C8C2; text-align: center; }
+.pp-arrow { color: var(--color-text-muted); text-align: center; }
 
 /* Columns */
 .pp-cols { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; }
@@ -323,17 +327,17 @@ function onSubmit() {
   gap: 10px;
   align-items: center;
 }
-.pp-col-head { padding: 0 0 6px; border-bottom: 1px solid #F0F0EB; }
+.pp-col-head { padding: 0 0 6px; border-bottom: 1px solid var(--color-border-soft); }
 .pp-col-head > span:first-child { padding-left: 4px; }
 .pp-col-row { padding: 4px 0; }
 .pp-col-src {
-  font-size: 12px; color: #6B6B65;
+  font-size: 12px; color: var(--color-text-secondary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   padding-left: 4px;
   font-family: var(--font-mono);
 }
 .mono { font-family: var(--font-mono); }
-.muted { color: #8A8A85; }
+.muted { color: var(--color-text-muted); }
 .small { font-size: 12px; }
 .xs { font-size: 11px; }
 </style>

@@ -58,9 +58,13 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="t('system.colDeptCode')" prop="code" width="150">
+        <!--
+          部门名称列已承载树形展开 + 图标 + 停用标签，代码不再并入（会过载）。
+          但代码展示口径与全局一致：等宽小字弱化，不用 chip 底色。
+        -->
+        <el-table-column :label="t('system.colDeptCode')" prop="code" min-width="150">
           <template #default="{ row }">
-            <code v-if="row.code" class="code-chip">{{ row.code }}</code>
+            <code v-if="row.code" class="nc-code dept-code">{{ row.code }}</code>
             <span v-else class="muted">—</span>
           </template>
         </el-table-column>
@@ -403,15 +407,8 @@ onMounted(reload);
 .name-cell { display: inline-flex; align-items: center; gap: 4px; }
 .name-icon { color: var(--color-primary); font-size: 16px; margin-right: 4px; }
 .strong { font-weight: 600; color: var(--color-text); }
-.code-chip {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  padding: 1px 6px;
-  background: var(--color-bg);
-  border: 1px solid var(--line-soft, #ebeef5);
-  border-radius: 3px;
-  color: var(--color-text-secondary);
-}
+/* 代码复用全局 .nc-code（等宽 + 弱化），此处只补 block 布局让 code 独立成行 */
+.dept-code { display: block; }
 .danger-text { color: var(--color-danger, #f56c6c); display: inline-flex; align-items: center; gap: 4px; }
 
 /* 与菜单页一致：用自定义 toggle 替代 EP 内置箭头 */

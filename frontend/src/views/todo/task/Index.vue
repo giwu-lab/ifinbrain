@@ -924,15 +924,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-
 /* —— 双层吸顶 —— */
-.todo-page .page-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: var(--color-bg);
-  padding-top: 4px;
-}
 .todo-table-wrap { margin-top: 16px; }
 :deep(.todo-table-wrap th.el-table__cell) {
   position: sticky;

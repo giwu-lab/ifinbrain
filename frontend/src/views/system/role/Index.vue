@@ -14,12 +14,18 @@
 
       <el-table :data="rows" v-loading="loading" border stripe size="small">
         <el-table-column prop="id" :label="t('system.colId')" width="80" />
-        <el-table-column :label="t('system.colCode')" prop="code" width="140">
+        <!--
+          「名称 + 代码」合并成一列（AGENTS §8.1.4）。代码原先用 el-tag 呈现，
+          但代码是标识符不是状态 —— 按 §7「不滥用 pill / tag」改为等宽弱化小字。
+        -->
+        <el-table-column :label="t('system.colName')" min-width="220">
           <template #default="{ row }">
-            <el-tag type="info" effect="plain" size="small" round>{{ row.code }}</el-tag>
+            <div class="nc-cell">
+              <span class="nc-name">{{ row.name }}</span>
+              <code class="nc-code">{{ row.code }}</code>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column :label="t('system.colName')" prop="name" width="160" />
         <el-table-column :label="t('system.colRemark')" prop="remark" width="280">
           <template #default="{ row }">
             <span v-if="row.remark" class="text-secondary">{{ row.remark }}</span>

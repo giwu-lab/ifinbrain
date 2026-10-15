@@ -21,19 +21,21 @@
         size="small"
         row-key="id"
       >
-        <el-table-column :label="t('documents.colArchiveName')" min-width="180">
+        <!--
+          「名称 + 路径标识」合并成一列（AGENTS §8.1.4）：两者是同一实体的主键/别名，
+          分列会让人左右扫视去对齐同一行。图标随名称走，仍在主行。
+        -->
+        <el-table-column :label="t('documents.colArchiveName')" min-width="240">
           <template #default="{ row }">
-            <div class="name-cell">
-              <el-icon class="name-icon" v-if="(row as ArchiveLibrary).icon">
-                <component :is="resolveIcon((row as ArchiveLibrary).icon)" />
-              </el-icon>
-              <span class="strong">{{ (row as ArchiveLibrary).name }}</span>
+            <div class="nc-cell">
+              <span class="nc-name archive-name-row">
+                <el-icon v-if="(row as ArchiveLibrary).icon" class="name-icon">
+                  <component :is="resolveIcon((row as ArchiveLibrary).icon)" />
+                </el-icon>
+                {{ (row as ArchiveLibrary).name }}
+              </span>
+              <code class="nc-code">{{ (row as ArchiveLibrary).slug }}</code>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('documents.colArchiveSlug')" prop="slug" width="200">
-          <template #default="{ row }">
-            <code class="mono">{{ (row as ArchiveLibrary).slug }}</code>
           </template>
         </el-table-column>
         <el-table-column :label="t('documents.colArchiveIcon')" prop="icon" width="100">
@@ -561,14 +563,16 @@ onMounted(reload);
  * 一大片空白，竖向看起来"没撑满"。全局 .table-wrap 本来就按内容高度渲染，
  * 行数少时容器跟着矮 —— 这才是与发票列表一致的观感。 */
 
-.name-cell {
-  display: inline-flex;
+/* 名称主行：图标与文字并排，图标不参与截断 */
+.archive-name-row {
+  display: flex;
   align-items: center;
   gap: 8px;
 }
 .name-icon {
   color: var(--color-primary);
   font-size: 16px;
+  flex-shrink: 0;
 }
 .strong {
   font-weight: 500;

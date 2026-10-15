@@ -117,9 +117,10 @@
             size="small"
             max-height="640"
             >
+            <!-- 代码是标识符不是状态：等宽弱化小字，不用 el-tag（AGENTS §7） -->
             <el-table-column :label="t('dict.colCode')" prop="code" min-width="120">
               <template #default="{ row }">
-                <el-tag size="small" effect="plain">{{ row.code }}</el-tag>
+                <code class="nc-code dict-code">{{ row.code }}</code>
               </template>
             </el-table-column>
             <el-table-column :label="t('dict.colLabel')" prop="label" min-width="160" />
@@ -679,6 +680,8 @@ watch(() => types.value.length, (n) => {
 }
 .dict-types { border-right: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; background: var(--color-bg-elev); }
 .dict-items { padding: 16px; min-width: 0; background: var(--color-bg-elev); }
+/* 代码复用全局 .nc-code（等宽 + 弱化），此处只补 block 布局让 code 独立成行 */
+.dict-code { display: block; }
 
 .pane-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; }
 .pane-title { font-weight: 600; font-size: 14px; color: var(--color-text); }

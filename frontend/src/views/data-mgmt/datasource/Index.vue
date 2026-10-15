@@ -561,12 +561,6 @@ onMounted(reload);
 </script>
 
 <style scoped>
-.ds-page .page-header {
-  display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;
-}
-.ds-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.ds-page .page-desc  { margin: 4px 0 0; font-size: 13px; }
-
 /* 列表区：plain 1px 边框容器；避开 SaaS-card 套娃 */
 .ds-table { width: 100%; }
 .ds-name { font-weight: 500; color: var(--color-text); }

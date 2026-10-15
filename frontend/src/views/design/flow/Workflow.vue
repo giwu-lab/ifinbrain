@@ -189,9 +189,10 @@
           <el-table :data="launchableFlows" v-loading="loadingLaunchable" border stripe size="small">
             <el-table-column :label="t('design.flowColFlow')" min-width="220">
               <template #default="{ row }">
-                <div class="flow-name-cell">
-                  <span class="flow-name">{{ (row as FlowDefineItem).name }}</span>
-                  <code class="mono muted small">{{ (row as FlowDefineItem).code }}</code>
+                <!-- 名称 + 代码用全局 .nc-cell（AGENTS §8.1.4），描述保留为第三行 -->
+                <div class="nc-cell flow-name-cell">
+                  <span class="nc-name">{{ (row as FlowDefineItem).name }}</span>
+                  <code class="nc-code">{{ (row as FlowDefineItem).code }}</code>
                   <div v-if="(row as FlowDefineItem).description" class="muted small flow-desc">
                     {{ (row as FlowDefineItem).description }}
                   </div>
@@ -680,15 +681,6 @@ watch(
 </script>
 
 <style scoped>
-.flow-rt-page .page-header {
-  display: flex; justify-content: space-between; align-items: flex-end;
-  position: sticky; top: 0; z-index: 30;
-  background: var(--color-bg);
-  padding: 8px 0; margin-bottom: 0;
-}
-.flow-rt-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
-.flow-rt-page .page-desc  { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
-
 /* 让弹窗打开时背景一致：page 自己撑满 viewport（减去 64px header + 48px 上下 padding），
    否则内容少时 main-inner 高度限制 + var(--color-bg) 会让弹窗下方出现大片"异样灰色" */
 .flow-rt-page {
@@ -729,10 +721,9 @@ margin: 8px 0 4px;
 }
 .flow-rt-page .empty-icon { font-size: 40px; color: var(--color-text-muted); }
 
-/* 流程清单（start tab）：name + code + description 三行布局 */
-.flow-name-cell { display: flex; flex-direction: column; gap: 2px; padding: 4px 0; }
-.flow-name { font-weight: 500; color: var(--color-text); }
-.flow-name-cell .mono { font-size: 12px; }
+/* 流程清单（start tab）：name + code + description 三行布局
+ * 名称 / 代码两行复用全局 .nc-cell，此处只保留本表特有的描述行与内边距。 */
+.flow-name-cell { padding: 4px 0; }
 .flow-desc {
   display: -webkit-box;
   -webkit-line-clamp: 2;

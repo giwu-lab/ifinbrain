@@ -17,19 +17,28 @@
         v-loading="loading"
         :row-class-name="rowClass"
       >
-<el-table-column :label="t('dataMgmt.qyFieldName')" min-width="180">
+        <!--
+          「名称 + 描述」两行主标识单元格（AGENTS §8.1.4 / §8.1.1）。
+          原先把「· 描述」挤在名称同一行，长描述会把名称挤没；
+          描述移到次行后，名称永远完整可读。
+        -->
+        <el-table-column :label="t('dataMgmt.qyFieldName')" min-width="220">
           <template #default="{ row }">
-            <div class="qy-name-row">
-              <span class="qy-name-text">{{ row.name }}</span>
-              <span v-if="row.status === 0" class="qy-tag-disabled">{{ t('dataMgmt.qyStatusDisabled') }}</span>
-              <span v-if="row.description" class="muted small qy-desc-inline">· {{ row.description }}</span>
+            <div class="nc-cell">
+              <span class="nc-name qy-name-row">
+                {{ row.name }}
+                <span v-if="row.status === 0" class="qy-tag-disabled">{{ t('dataMgmt.qyStatusDisabled') }}</span>
+              </span>
+              <span v-if="row.description" class="nc-code qy-desc">{{ row.description }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="t('dataMgmt.qyFieldDatasource')" width="160">
+        <el-table-column :label="t('dataMgmt.qyFieldDatasource')" width="180">
           <template #default="{ row }">
-            <code class="ds-name">{{ row.datasourceName }}</code>
-            <span class="db-type-tag">{{ row.dbType }}</span>
+            <div class="nc-cell">
+              <span class="nc-name">{{ row.datasourceName }}</span>
+              <span class="nc-code">{{ row.dbType }}</span>
+            </div>
           </template>
         </el-table-column>
         <el-table-column :label="t('dataMgmt.colParams')" width="56" align="right">
@@ -396,10 +405,6 @@ onMounted(loadList);
 </script>
 
 <style scoped>
-.qy-page .page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; }
-.qy-page .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.qy-page .page-desc { margin: 4px 0 0; font-size: 13px; }
-
 .qy-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -407,36 +412,21 @@ onMounted(loadList);
   overflow: hidden;
 }
 
+/* 名称主行：文字与停用徽标并排，文字过长时徽标不被挤掉 */
 .qy-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.qy-name-text { font-weight: 600; color: var(--color-text); white-space: nowrap; }
-.qy-tag-disabled { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--color-warning, #f0a020); color: #fff; flex-shrink: 0; }
-.qy-desc-inline { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
-.ds-name {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100px;
-}
-.db-type-tag {
-  font-size: 11px; padding: 1px 6px; border-radius: 4px;
-  background: var(--bg-soft, #f5f7fa); color: var(--color-text-muted, #909399);
-  margin-left: 6px;
-  white-space: nowrap;
+/* 停用徽标：用 warning-soft token 而非黄底白字（暗色下黄底白字不可读，AGENTS §7.3.4） */
+.qy-tag-disabled {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
   flex-shrink: 0;
 }
-
-/* 页面状态徽章 */
-.qy-page-status-on {
-  font-size: 11px; padding: 1px 8px; border-radius: 2px;
-  background: #E6F4EA; color: #0E8F5C;
-  font-weight: 500;
-}
-.qy-page-status-off {
-  font-size: 11px; padding: 1px 8px; border-radius: 2px;
-  background: #F0F0EB; color: #8A8A85;
-  font-weight: 500;
+/* 描述走次行：沿用 .nc-code 的等宽弱化，但描述是自然语言，需比例字体 */
+.qy-desc {
+  font-family: inherit;
+  color: var(--color-text-muted);
 }
 
 /* 页面操作列按钮容器 */
