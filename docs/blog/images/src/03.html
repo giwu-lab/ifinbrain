@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1280px; padding:48px 56px; background:#f5f7fb;
+         font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif; color:#1e293b; }
+  .head { border-left:5px solid #dc2626; padding-left:18px; margin-bottom:36px; }
+  .head h1 { font-size:30px; font-weight:700; letter-spacing:.5px; margin-bottom:8px; }
+  .head p { font-size:15px; color:#64748b; }
+
+  .pipeline { display:flex; align-items:stretch; margin-bottom:26px; }
+  .box { background:#fff; border:1px solid #e2e8f0; border-radius:9px; padding:16px 18px; }
+  .box .lbl { font-size:13px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .box .sub { font-size:12.5px; color:#94a3b8; }
+  .src { flex:1; }
+  .arrow { flex:0 0 34px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:22px; }
+
+  .gatewrap { display:flex; gap:24px; margin-bottom:26px; }
+  .gate { flex:1; background:#fff; border:1px solid #fecaca; border-radius:10px; overflow:hidden; }
+  .gate .hd { background:#fef2f2; border-bottom:1px solid #fecaca; padding:13px 20px; display:flex; align-items:center; gap:10px; }
+  .gate .ic { width:22px; height:22px; border-radius:4px; background:#dc2626; color:#fff; font-size:13px;
+              display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .gate .tt { font-size:16.5px; font-weight:700; color:#991b1b; }
+  .gate .bd { padding:18px 20px; }
+  .gate .bd p { font-size:13.5px; line-height:1.85; color:#475569; margin-bottom:12px; }
+  .gate .bd .tag { display:inline-block; font-family:Consolas,monospace; font-size:12.5px; background:#f1f5f9;
+                   border:1px solid #e2e8f0; border-radius:5px; padding:3px 9px; color:#0f172a; margin-right:6px; }
+  .gate .bd .res { margin-top:14px; padding-top:13px; border-top:1px dashed #fecaca; font-size:13px; color:#991b1b; }
+  .gate .bd .res b { color:#7f1d1d; }
+
+  .bottom { display:flex; gap:24px; }
+  .blk { flex:1; background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:20px 22px; }
+  .blk h4 { font-size:15.5px; font-weight:700; color:#0f172a; margin-bottom:10px; }
+  .blk p { font-size:13.2px; line-height:1.85; color:#64748b; }
+  .blk.green { border-left:4px solid #10b981; }
+  .blk.blue { border-left:4px solid #2563eb; }
+  .quote { margin-top:24px; background:#0f172a; border-radius:9px; padding:18px 26px; }
+  .quote p { color:#e2e8f0; font-size:15px; line-height:1.8; }
+  .quote p b { color:#60a5fa; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>双层查重：两道闸门，重复报销堵在入库之前</h1>
+    <p>把校验做在流程前面，同一个规则，晚一步执行成本差一个数量级</p>
+  </div>
+
+  <div class="pipeline">
+    <div class="box src"><div class="lbl">批量上传</div><div class="sub">PDF / XML / OFD · 单次 ≤ 50 个</div></div>
+    <div class="arrow">›</div>
+    <div class="box src"><div class="lbl">OCR 识别</div><div class="sub">提取发票号码 · 文件格式</div></div>
+    <div class="arrow">›</div>
+    <div class="box src" style="border-color:#fca5a5; background:#fef2f2;"><div class="lbl" style="color:#b91c1c;">进入双层查重</div><div class="sub" style="color:#dc2626;">任一命中即阻断</div></div>
+  </div>
+
+  <div class="gatewrap">
+    <div class="gate">
+      <div class="hd"><div class="ic">1</div><div class="tt">闸门一 · 本批次内查重</div></div>
+      <div class="bd">
+        <p>同一批次上传的文件里，若出现相同组合，标记为重复：</p>
+        <div><span class="tag">发票号码</span><span class="tag">＋</span><span class="tag">文件格式</span></div>
+        <div class="res">命中结果：<b>列出重复文件组，要求先移除再报销</b></div>
+      </div>
+    </div>
+    <div class="gate">
+      <div class="hd"><div class="ic">2</div><div class="tt">闸门二 · 全库查重</div></div>
+      <div class="bd">
+        <p>本批次出现的发票号码，查询历史数据中是否已存在：</p>
+        <div><span class="tag">发票号码集合</span><span class="tag">→</span><span class="tag">全库匹配</span></div>
+        <div class="res">命中结果：<b>列出系统内已有记录，禁止重复报销</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="blk green">
+      <h4>两道闸门同时有效</h4>
+      <p>任一命中即阻断提交，用户必须先处理重复项，系统<b>不允许「带病报销」</b>。既拦住同一批次的自我重复，也拦住跨批次、跨人、跨报销单号的重复。</p>
+    </div>
+    <div class="blk blue">
+      <h4>入库之后再兜一次底</h4>
+      <p>全库去重清理按「发票号码 ＋ 文件格式」分组，每组保留<b>最早入库</b>的一条，其余记录连同存储文件一并删除，并返回清理明细：清理组数、删除行数、删除文件数、是否有文件删失败。</p>
+    </div>
+  </div>
+
+  <div class="quote">
+    <p><b>把查重做在入库之前，把清理做在入库之后，两头堵死。</b></p>
+  </div>
+</body>
+</html>

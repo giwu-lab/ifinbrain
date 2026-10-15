@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html { width:2000px; height:900px; overflow:hidden; background:#ff00ff; }
+  body { width:2000px; height:900px; margin:0; padding:0; overflow:hidden; }
+
+  /* 设计坐标系仍按 900x383 写，zoom:2 让浏览器按 2 倍分辨率真实栅格化 */
+  .stage { position:relative; width:900px; height:383px; overflow:hidden; zoom:2;
+           font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif;
+           background:#f8fafc; }
+
+  /* 左半：漏 */
+  .left { position:absolute; left:0; top:0; width:450px; height:383px; overflow:hidden;
+          background:linear-gradient(160deg,#fef2f2,#fee2e2); }
+  .right { position:absolute; right:0; top:0; width:450px; height:383px; overflow:hidden;
+           background:linear-gradient(160deg,#eff4ff,#dbe6fe); }
+
+  .zone { position:absolute; top:50px; width:100%; text-align:center; }
+  .ztag { display:inline-block; font-size:14px; font-weight:700; letter-spacing:2px;
+          padding:5px 14px; border-radius:5px; margin-bottom:14px; }
+  .l .ztag { color:#b91c1c; background:#fff; border:1px solid #fca5a5; }
+  .r .ztag { color:#1d4ed8; background:#fff; border:1px solid #93c5fd; }
+  .zh { font-size:32px; font-weight:800; letter-spacing:1px; }
+  .l .zh { color:#991b1b; } .r .zh { color:#1e3a8a; }
+  .zdesc { font-size:14px; margin-top:8px; line-height:1.7; }
+  .l .zdesc { color:#b45309; } .r .zdesc { color:#475569; }
+
+  .mini { position:absolute; width:96px; height:74px; background:#fff; border-radius:6px;
+          box-shadow:0 4px 12px rgba(0,0,0,.10); padding:9px 8px; }
+  .mini .m1 { height:4px; background:#cbd5e1; border-radius:2px; margin-bottom:6px; }
+  .mini .m2 { height:4px; width:55%; background:#cbd5e1; border-radius:2px; }
+  .mini .m3 { position:absolute; right:8px; bottom:8px; height:7px; width:26px; border-radius:2px; }
+  .l .mini .m3 { background:#fca5a5; } .r .mini .m3 { background:#60a5fa; }
+
+  .x { position:absolute; font-size:19px; font-weight:800; color:#dc2626; opacity:.92; }
+  .v { position:absolute; font-size:17px; font-weight:800; color:#16a34a; opacity:.9; }
+
+  .seam { position:absolute; left:428px; top:0; width:44px; height:383px; z-index:9;
+          display:flex; align-items:center; justify-content:center; }
+  .arrowc { width:44px; height:44px; border-radius:50%; background:#fff; border:1px solid #e2e8f0;
+            box-shadow:0 4px 14px rgba(0,0,0,.10); display:flex; align-items:center;
+            justify-content:center; color:#2563eb; font-size:22px; font-weight:700; }
+
+  .top { position:absolute; left:0; top:0; width:900px; height:52px; z-index:10;
+         display:flex; align-items:center; justify-content:space-between; padding:0 34px;
+         background:rgba(15,23,42,.90); }
+  .top .s { color:#fff; font-size:16px; font-weight:700; letter-spacing:2px; }
+  .top .n { color:#93c5fd; font-size:13px; letter-spacing:1.2px; }
+</style>
+</head>
+<body>
+<!-- html 的洋红底是渲染边界标记：normalize_cover.py 靠它探测设计区实际像素尺寸。
+     不要改成透明。 -->
+  <div class="stage">
+    <div class="left l">
+      <div class="zone">
+        <div class="ztag">改造前</div>
+        <div class="zh">在 漏 水</div>
+        <div class="zdesc">手敲 · 翻找 · 靠自觉</div>
+      </div>
+      <div class="mini" style="left:52px;  top:214px; transform:rotate(-13deg);"><div class="m1"></div><div class="m2"></div><div class="m3"></div></div>
+      <div class="mini" style="left:172px; top:238px; transform:rotate(7deg);"><div class="m1"></div><div class="m2"></div><div class="m3"></div></div>
+      <div class="mini" style="left:292px; top:206px; transform:rotate(16deg);"><div class="m1"></div><div class="m2"></div><div class="m3"></div></div>
+      <div class="x" style="left:146px; top:200px;">×</div>
+      <div class="x" style="left:268px; top:262px;">×</div>
+    </div>
+
+    <div class="right r">
+      <div class="zone">
+        <div class="ztag">改造后</div>
+        <div class="zh">在 闭 环</div>
+        <div class="zdesc">识别 · 查重 · 归档 · 入账</div>
+      </div>
+      <div class="mini" style="left:66px;  top:224px; transform:rotate(-2deg);"><div class="m1"></div><div class="m2"></div><div class="m3"></div></div>
+      <div class="mini" style="left:190px; top:224px; transform:rotate(0deg);"><div class="m1"></div><div class="m2"></div><div class="m3"></div></div>
+      <div class="mini" style="left:314px; top:224px; transform:rotate(2deg);"><div class="m1"></div><div class="m2"></div><div class="m3"></div></div>
+      <div class="v" style="left:108px; top:196px;">✓</div>
+      <div class="v" style="left:232px; top:196px;">✓</div>
+      <div class="v" style="left:356px; top:196px;">✓</div>
+    </div>
+
+    <div class="seam"><div class="arrowc">›</div></div>
+
+    <div class="top">
+      <div class="s">发票管理及入账报销</div>
+      <div class="n">业务重塑系列 · 01</div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1280px; padding:48px 56px; background:#f5f7fb;
+         font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif; color:#1e293b; }
+  .head { border-left:5px solid #2563eb; padding-left:18px; margin-bottom:34px; }
+  .head h1 { font-size:30px; font-weight:700; letter-spacing:.5px; margin-bottom:8px; }
+  .head p { font-size:15px; color:#64748b; }
+
+  .cols { display:flex; gap:22px; }
+  .col { flex:1; border-radius:11px; overflow:hidden; background:#fff; border:1px solid #e2e8f0; }
+  .col .hd { padding:16px 22px; font-size:18px; font-weight:700; }
+  .col.before .hd { background:#fef2f2; color:#991b1b; border-bottom:1px solid #fecaca; }
+  .col.after .hd { background:#eff4ff; color:#1e40af; border-bottom:1px solid #c7d7fb; }
+  .col .row { padding:15px 22px; border-bottom:1px solid #f1f3f7; }
+  .col .row:last-child { border-bottom:none; }
+  .col .k { font-size:12.5px; font-weight:700; color:#94a3b8; letter-spacing:.5px; margin-bottom:6px; }
+  .col.before .v { font-size:14px; color:#7f1d1d; line-height:1.6; }
+  .col.after  .v { font-size:14px; color:#1e3a5f; line-height:1.6; }
+  .col.after .v b { color:#1d4ed8; }
+  .col.before .v b { color:#b91c1c; text-decoration:line-through; text-decoration-thickness:1px; }
+  .arrowcol { flex:0 0 40px; display:flex; align-items:center; justify-content:center; color:#cbd5e1; font-size:24px; }
+
+  .foot { margin-top:28px; display:flex; gap:20px; }
+  .fbox { flex:1; background:#fff; border:1px solid #e2e8f0; border-left:4px solid #2563eb;
+          border-radius:9px; padding:18px 22px; }
+  .fbox h4 { font-size:15px; font-weight:700; color:#0f172a; margin-bottom:8px; }
+  .fbox p { font-size:13.2px; line-height:1.85; color:#64748b; }
+  .quote { margin-top:26px; background:#0f172a; border-radius:9px; padding:20px 28px; text-align:center; }
+  .quote p { color:#e2e8f0; font-size:16px; line-height:1.8; }
+  .quote p b { color:#60a5fa; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>业务重塑前后对比</h1>
+    <p>同样的一个财务月，流程改造前与改造后的差别</p>
+  </div>
+
+  <div class="cols">
+    <div class="col before">
+      <div class="hd">改造前 · 人工台账</div>
+      <div class="row"><div class="k">录入方式</div><div class="v"><b>逐张打开文件手工敲</b>，十几个字段全靠眼睛</div></div>
+      <div class="row"><div class="k">查重手段</div><div class="v"><b>翻文件夹 + 查 Excel</b>，低命中率且易误判</div></div>
+      <div class="row"><div class="k">多格式处理</div><div class="v"><b>PDF/XML/OFD 各算一张</b>，台账张数对不上业务票数</div></div>
+      <div class="row"><div class="k">审批联动</div><div class="v"><b>两套系统互不相通</b>，结果靠人工回填</div></div>
+      <div class="row"><div class="k">归档方式</div><div class="v"><b>命名规范靠员工自觉</b>，脱轨文件永远进不了账</div></div>
+      <div class="row"><div class="k">发票识别服务</div><div class="v"><b>改配置要改代码</b>，换供应商即重装环境</div></div>
+      <div class="row"><div class="k">导出台账</div><div class="v"><b>一次性全量加载</b>，数据量一大就卡死或超时</div></div>
+    </div>
+
+    <div class="arrowcol">›</div>
+
+    <div class="col after">
+      <div class="hd">改造后 · iFinBrain</div>
+      <div class="row"><div class="k">录入方式</div><div class="v"><b>上传即 OCR 识别</b>，字段全部可编辑，机器打字、人来判断</div></div>
+      <div class="row"><div class="k">查重手段</div><div class="v"><b>批次内 + 全库双层查重</b>，命中即阻断提交，另有一键去重清理</div></div>
+      <div class="row"><div class="k">多格式处理</div><div class="v"><b>一个发票号一行</b>，PDF/XML/OFD 归一呈现</div></div>
+      <div class="row"><div class="k">审批联动</div><div class="v"><b>一张报销单一次审批</b>，状态自动回写未报销/审批中/已报销/已驳回</div></div>
+      <div class="row"><div class="k">归档方式</div><div class="v"><b>自动重命名并按报销单号归集</b>，归档结构等同业务结构</div></div>
+      <div class="row"><div class="k">发票识别服务</div><div class="v"><b>页面配置热生效</b>，API Key 加密存储永不回显</div></div>
+      <div class="row"><div class="k">导出台账</div><div class="v"><b>游标分批流式导出</b>，内存峰值与数据总量无关</div></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="fbox">
+      <h4>错误可诊断，而不是只给一句「失败了」</h4>
+      <p>识别失败被拆成三类，各自给出修复入口：<b>服务未配置</b>跳配置页；<b>API Key 已失效</b>（主密钥轮换导致无法解密）引导重填；<b>调用失败</b>引导检查地址与在线状态。</p>
+    </div>
+    <div class="fbox">
+      <h4>存储可热切换</h4>
+      <p>本地磁盘 / S3 兼容（MinIO、COS、OSS、OBS）页面配置后立即生效，新文件走新存储，历史文件保持不动，无需重启。</p>
+    </div>
+    <div class="fbox">
+      <h4>权限到操作级</h4>
+      <p>查看、上传、删除、提交报销各自独立权限点，前后端双重校验，按角色（admin / operator / viewer）分配。</p>
+    </div>
+  </div>
+
+  <div class="quote">
+    <p>发票管理的终点，不是「录入完成」，而是 <b>可入账、可归档、可分析</b>。</p>
+  </div>
+</body>
+</html>

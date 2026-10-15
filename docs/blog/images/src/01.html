@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1280px; padding:48px 56px; background:#f5f7fb;
+         font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif; color:#1e293b; }
+  .head { border-left:5px solid #2563eb; padding-left:18px; margin-bottom:38px; }
+  .head h1 { font-size:30px; font-weight:700; letter-spacing:.5px; margin-bottom:8px; }
+  .head p { font-size:15px; color:#64748b; }
+  .chain { display:flex; gap:0; align-items:stretch; margin-bottom:34px; }
+  .step { flex:1; min-width:0; }
+  .step .box { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px 12px;
+               text-align:center; position:relative; height:92px; display:flex; flex-direction:column;
+               justify-content:center; gap:6px; }
+  .step .idx { font-size:12px; color:#94a3b8; letter-spacing:1px; }
+  .step .nm { font-size:18px; font-weight:600; }
+  .arrow { flex:0 0 26px; display:flex; align-items:center; justify-content:center; color:#cbd5e1; font-size:18px; }
+  .leak { margin-top:12px; background:#fef2f2; border:1px dashed #fca5a5; border-radius:8px;
+          padding:12px 11px; height:158px; }
+  .leak .t { font-size:13px; font-weight:700; color:#dc2626; margin-bottom:8px; letter-spacing:.3px; }
+  .leak .d { font-size:12.5px; line-height:1.75; color:#7f1d1d; }
+  .band { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:22px 28px; }
+  .band .bt { font-size:15px; font-weight:700; color:#0f172a; margin-bottom:16px; }
+  .band .row { display:flex; gap:28px; }
+  .band .cell { flex:1; padding-left:14px; border-left:3px solid #ef4444; }
+  .band .cell h4 { font-size:14px; font-weight:700; color:#334155; margin-bottom:5px; }
+  .band .cell p { font-size:13px; line-height:1.7; color:#64748b; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>传统发票流程的六个漏水点</h1>
+    <p>问题不是「某一步慢」，而是六个环节各自漏水，且互相不感知</p>
+  </div>
+
+  <div class="chain">
+    <div class="step"><div class="box"><div class="idx">STEP 01</div><div class="nm">收集</div></div>
+      <div class="leak"><div class="t">介质混杂</div><div class="d">邮件附件、纸质联、微信转发混在一起，来源不可追溯</div></div></div>
+    <div class="arrow">›</div>
+    <div class="step"><div class="box"><div class="idx">STEP 02</div><div class="nm">录入</div></div>
+      <div class="leak"><div class="t">全靠人眼人手</div><div class="d">十余个字段逐个手敲，一张一张翻，错一个税号就是一条异常凭证</div></div></div>
+    <div class="arrow">›</div>
+    <div class="step"><div class="box"><div class="idx">STEP 03</div><div class="nm">查重</div></div>
+      <div class="leak"><div class="t">翻文件夹靠自觉</div><div class="d">靠人眼比对 Excel，低命中率、高耗时，还容易冤枉好人</div></div></div>
+    <div class="arrow">›</div>
+    <div class="step"><div class="box"><div class="idx">STEP 04</div><div class="nm">报销</div></div>
+      <div class="leak"><div class="t">审批两张皮</div><div class="d">发票在这套系统录，审批在另一套走，两边数据不同步</div></div></div>
+    <div class="arrow">›</div>
+    <div class="step"><div class="box"><div class="idx">STEP 05</div><div class="nm">审批</div></div>
+      <div class="leak"><div class="t">结果靠手填</div><div class="d">批没批要人工回填台账，内控统计得导两表再合并</div></div></div>
+    <div class="arrow">›</div>
+    <div class="step"><div class="box"><div class="idx">STEP 06</div><div class="nm">归档</div></div>
+      <div class="leak"><div class="t">命名靠软约定</div><div class="d">「扫描件20261014.pdf」进了文件夹，却永远没进账</div></div></div>
+  </div>
+
+  <div class="band">
+    <div class="bt">最终沉淀为三个后果</div>
+    <div class="row">
+      <div class="cell"><h4>录入质量塌方</h4><p>手工录入的错误无法系统性拦截，异常凭证在月末集中爆发</p></div>
+      <div class="cell"><h4>周期被拖长</h4><p>进度取决于最后一个加班的人，而不是流程本身的效率</p></div>
+      <div class="cell"><h4>审计说不清</h4><p>台账张数与业务票数对不上，追溯时无法还原完整证据链</p></div>
+    </div>
+  </div>
+</body>
+</html>

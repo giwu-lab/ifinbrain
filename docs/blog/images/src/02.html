@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1280px; padding:48px 56px; background:#f5f7fb;
+         font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif; color:#1e293b; }
+  .head { border-left:5px solid #2563eb; padding-left:18px; margin-bottom:36px; }
+  .head h1 { font-size:30px; font-weight:700; letter-spacing:.5px; margin-bottom:8px; }
+  .head p { font-size:15px; color:#64748b; }
+  .flow { display:flex; align-items:flex-start; margin-bottom:30px; }
+  .node { flex:1; min-width:0; }
+  .card { background:#fff; border:1px solid #dbe3ef; border-top:3px solid #2563eb; border-radius:9px;
+          padding:16px 14px; height:212px; }
+  .n { display:inline-block; font-size:12px; font-weight:700; color:#2563eb; background:#eff4ff;
+       padding:3px 9px; border-radius:5px; letter-spacing:.5px; margin-bottom:10px; }
+  .t { font-size:18px; font-weight:700; color:#0f172a; margin-bottom:9px; }
+  .d { font-size:12.5px; line-height:1.8; color:#64748b; }
+  .arrow { flex:0 0 30px; padding-top:82px; text-align:center; color:#94a3b8; font-size:20px; }
+  .gate { color:#dc2626; font-weight:700; }
+  .loop { margin-top:6px; background:#fff; border:1px solid #e2e8f0; border-left:4px solid #10b981;
+          border-radius:8px; padding:20px 26px; }
+  .loop h4 { font-size:16px; font-weight:700; color:#065f46; margin-bottom:8px; }
+  .loop p { font-size:13.5px; line-height:1.8; color:#475569; }
+  .loop code { font-family:Consolas,monospace; background:#f1f5f9; padding:1px 6px; border-radius:3px; color:#0f172a; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>iFinBrain 发票处理流水线</h1>
+    <p>把六个漏水点逐个焊死：先看清楚，再落账</p>
+  </div>
+
+  <div class="flow">
+    <div class="node"><div class="card">
+      <div class="n">01</div>
+      <div class="t">批量上传</div>
+      <div class="d">PDF / XML / OFD 拖入，单次最多 50 个文件；上传即调用 OCR 解析票面</div>
+    </div></div>
+    <div class="arrow">›</div>
+    <div class="node"><div class="card">
+      <div class="n">02</div>
+      <div class="t">识别可编辑</div>
+      <div class="d">发票号、票种、费用类别、购销方、税号、金额、大写金额等字段全部可手工修正</div>
+    </div></div>
+    <div class="arrow">›</div>
+    <div class="node"><div class="card" style="border-top-color:#dc2626;">
+      <div class="n" style="color:#dc2626; background:#fef2f2;">03</div>
+      <div class="t">双层查重</div>
+      <div class="d"><span class="gate">闸门一</span> 本批次内重复<br><span class="gate">闸门二</span> 全库已存在</div>
+    </div></div>
+    <div class="arrow">›</div>
+    <div class="node"><div class="card">
+      <div class="n">04</div>
+      <div class="t">报销建单</div>
+      <div class="d">报销单号 / 报销人 / 报销日期；可挂动态报销申请单与「发起审批」开关</div>
+    </div></div>
+    <div class="arrow">›</div>
+    <div class="node"><div class="card">
+      <div class="n">05</div>
+      <div class="t">审批流转</div>
+      <div class="d">业务键用报销单号，一张单一次审批；通过后状态自动回写为已报销</div>
+    </div></div>
+    <div class="arrow">›</div>
+    <div class="node"><div class="card">
+      <div class="n">06</div>
+      <div class="t">自动归档</div>
+      <div class="d">重命名为「发票号码_报销单号」，按报销单号归集；多格式合并为一行</div>
+    </div></div>
+  </div>
+
+  <div class="loop">
+    <h4>为什么识别阶段不直接落库？</h4>
+    <p>OCR 一定有识别不准的时候。如果识别结果直接落库，错误数据就污染了账——<strong>清理的成本远高于复核的成本</strong>。所以系统先把文件写入临时存储，前端展示可编辑的识别结果表，用户核对确认后再点「报销」正式入库。这就是「先看清楚，再落账」的底层原则。</p>
+  </div>
+</body>
+</html>

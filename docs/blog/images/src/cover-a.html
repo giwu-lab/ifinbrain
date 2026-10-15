@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  /* 渲染画布比设计稿大一圈，便于 normalize_cover.py 探测边界 */
+  html { width:2000px; height:900px; overflow:hidden; background:#ff00ff; }
+  body { width:2000px; height:900px; margin:0; padding:0; overflow:hidden; }
+
+  /* 设计坐标系仍按 900x383 写，zoom:2 让浏览器按 2 倍分辨率真实栅格化，
+     而不是把小图插值放大 —— 这是文字不发虚的关键 */
+  .stage { position:relative; width:900px; height:383px; overflow:hidden; zoom:2;
+           font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif;
+           background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 62%,#e0e7ff 100%); }
+
+  /* 左侧文字区 */
+  .left { position:absolute; left:52px; top:56px; width:468px; }
+  .badge { display:inline-flex; align-items:center; gap:8px; font-size:15px; font-weight:700;
+           color:#2563eb; letter-spacing:1.5px; margin-bottom:22px; }
+  .badge i { width:26px; height:2px; background:#2563eb; display:block; }
+  h1 { font-size:53px; line-height:1.26; font-weight:800; color:#0f172a; letter-spacing:1px; }
+  h1 em { font-style:normal; color:#2563eb; }
+  .sub { margin-top:20px; font-size:19px; color:#64748b; letter-spacing:.5px; }
+  .rule { margin-top:22px; width:74px; height:3px; background:#2563eb; }
+  .tags { margin-top:20px; display:flex; gap:9px; }
+  .tags span { font-size:14px; color:#1e40af; background:#fff; border:1px solid #c7d7fb;
+               padding:5px 12px; border-radius:5px; letter-spacing:.5px; }
+
+  /* 右侧图形区 */
+  .right { position:absolute; right:0; top:0; width:340px; height:383px; }
+  .card { position:absolute; width:158px; height:196px; background:#fff; border-radius:9px;
+          box-shadow:0 10px 26px rgba(30,58,95,.13); border:1px solid #e2e8f0; padding:15px 14px; }
+  .card .hd { height:5px; width:52%; background:#2563eb; border-radius:3px; margin-bottom:13px; }
+  .card .ln { height:5px; background:#e2e8f0; border-radius:3px; margin-bottom:8px; }
+  .card .ln.w60 { width:60%; } .card .ln.w80 { width:80%; } .card .ln.w45 { width:45%; }
+  .card .amt { position:absolute; right:14px; bottom:17px; font-size:19px; font-weight:800; color:#0f172a; }
+  .card .amt small { font-size:11px; color:#94a3b8; font-weight:400; margin-right:3px; }
+  .stamp { position:absolute; right:13px; top:13px; width:38px; height:38px; border:2.5px solid #dc2626;
+           border-radius:50%; color:#dc2626; font-size:10px; font-weight:700; display:flex;
+           align-items:center; justify-content:center; transform:rotate(-14deg); opacity:.85; }
+
+  .c1 { left:6px;  top:44px;  transform:rotate(-9deg); }
+  .c2 { left:92px; top:104px; transform:rotate(3deg);  z-index:3; }
+  .c3 { left:172px; top:52px;  transform:rotate(11deg); z-index:2; }
+
+  .flow { position:absolute; right:44px; bottom:26px; display:flex; align-items:center; gap:7px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:#2563eb; }
+  .bar { width:30px; height:2px; background:#93c5fd; }
+
+  .brand { position:absolute; right:26px; top:22px; font-size:14px; font-weight:700;
+           color:#475569; letter-spacing:.6px; display:flex; align-items:center; gap:7px; }
+  .brand em { font-style:normal; width:20px; height:20px; border-radius:5px; background:#2563eb;
+              display:inline-block; }
+</style>
+</head>
+<body>
+<!-- html 的洋红底是渲染边界标记：normalize_cover.py 靠它探测设计区实际像素尺寸，
+     以抵消浏览器面板的非 100% 缩放，裁剪后再归一化成目标尺寸。不要改成透明。 -->
+  <div class="stage">
+    <div class="left">
+      <div class="badge"><i></i>业务重塑系列 · 01</div>
+      <h1>发票管理<br>及<em>入账报销</em></h1>
+      <div class="rule"></div>
+      <div class="sub">从录入到入账，中间有六个漏水点</div>
+      <div class="tags"><span>数电票</span><span>OCR 识别</span><span>查重阻断</span></div>
+    </div>
+
+    <div class="right">
+      <div class="brand"><em></em>iFinBrain</div>
+      <div class="card c1">
+        <div class="stamp">已核销</div>
+        <div class="hd"></div><div class="ln w80"></div><div class="ln w60"></div><div class="ln w45"></div>
+        <div class="ln w60" style="margin-top:18px;"></div><div class="ln w45"></div>
+      </div>
+      <div class="card c2">
+        <div class="hd"></div><div class="ln w60"></div><div class="ln w80"></div><div class="ln w45"></div>
+        <div class="amt"><small>¥</small>1,120.50</div>
+      </div>
+      <div class="card c3">
+        <div class="stamp">已报销</div>
+        <div class="hd"></div><div class="ln w80"></div><div class="ln w60"></div><div class="ln w45"></div>
+        <div class="ln w80" style="margin-top:18px;"></div><div class="ln w60"></div>
+      </div>
+      <div class="flow"><div class="dot"></div><div class="bar"></div><div class="dot"></div><div class="bar"></div><div class="dot"></div></div>
+    </div>
+  </div>
+</body>
+</html>
