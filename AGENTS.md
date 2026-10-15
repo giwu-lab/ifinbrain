@@ -971,6 +971,10 @@ documents/list/Index.vue
 
 **License attribution**：见 `frontend/LICENSE-NOTICE` + `frontend/LICENSE-APACHE-2.0`（Apache-2.0 §4d 要求保留 NOTICE 与 license 文本）。
 
+> ⚠️ **别把这两个文件当成本项目协议**。本项目自身的协议是根目录 `LICENSE`（Apache-2.0 官方原文，202 行 / 11358 字节，SHA256 `CFC7749B…B523D30`）+ 根目录 `NOTICE`（版权 `Copyright 2026 giwu-lab`）。
+> `frontend/LICENSE-APACHE-2.0` 是 **file-viewer 第三方组件的裁剪版许可文本**（160 行，末尾多一行 `Copyright 2026 Flyfish Viewer`），
+> 比官方原文短，**不能复制到根目录当项目协议**——GitHub 识别不出、条款也缺项。两个文件都不得删除（Apache-2.0 §4d）。
+
 ### 10.3 其他
 
 - 时区：JVM 默认 `Asia/Shanghai`（`iFinBrainApplication.main` 强制设置），不依赖宿主机

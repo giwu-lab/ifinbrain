@@ -230,4 +230,7 @@ PG_PASSWORD=your-secret
 
 ## License
 
-MIT
+Apache-2.0。完整协议见 [`LICENSE`](LICENSE)，版权与第三方归属声明见 [`NOTICE`](NOTICE)。
+
+第三方组件：`frontend/LICENSE-NOTICE` 保留了 `@file-viewer/*`（Flyfish Dev）的 Apache-2.0 §4(d)
+归属声明，`frontend/LICENSE-APACHE-2.0` 为其许可文本，二者在任何分发或衍生作品中都必须保留。
