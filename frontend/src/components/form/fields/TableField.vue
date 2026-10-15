@@ -1,20 +1,29 @@
 <!--
-  TableField —— 表格（明细子表）控件
+  TableField —— 表格控件，两种模式：
 
-  值形状：对象数组，列 key 即行对象的属性名。
-    [ { name: '机票', amount: 1200 }, { name: '住宿', amount: 800 } ]
+  1) 展示模式（字段绑了 tableSource）：数据来自查询，填表人改不了。
+     这是「用表单展示一份查询结果」的用法 —— 比如报销单里把预算明细查出来直接看。
+     单元格渲染纯文本而不是禁用输入框：一屏灰色 disabled 输入框既难看又没法对齐。
 
-  单元格复用现有字段控件（cellRegistry），不重复实现 12 种输入：
-  每格把列定义包装成一个临时 FormFieldSchema 传进去。
+  2) 输入模式（没绑查询）：明细子表，填表人自己增删行、填单元格。
+     值形状：对象数组，列 key 即行对象的属性名。
+       [ { name: '机票', amount: 1200 }, { name: '住宿', amount: 800 } ]
+     单元格复用现有字段控件（cellRegistry），不重复实现 12 种输入：
+     每格把列定义包装成一个临时 FormFieldSchema 传进去。
 -->
 <template>
-  <div class="table-field">
+  <div class="table-field" ref="hostEl">
+    <p v-if="dynamic && error" class="table-field-error">{{ error }}</p>
+
     <el-table
+      v-if="!display"
       :data="rows"
       size="small"
       border
       class="table-field-grid"
       empty-text=""
+      flexible
+      :scrollbar-always-on="inputScrollX"
     >
       <el-table-column
         type="index"
@@ -71,11 +80,50 @@
       </el-table-column>
     </el-table>
 
-    <p v-if="!columns.length" class="table-field-hint muted">
+    <!-- 展示模式：只读表格 -->
+    <el-table
+      v-else
+      v-loading="loading"
+      :data="displayRows"
+      size="small"
+      border
+      stripe
+      class="table-field-grid"
+      :empty-text="t('formDesigner.table.displayEmpty')"
+      flexible
+      :scrollbar-always-on="displayScrollX"
+    >
+      <el-table-column
+        v-for="col in displayColumns"
+        :key="col.key"
+        :prop="col.key"
+        :label="col.label || col.key"
+        :width="col.width"
+        :min-width="col.width ? undefined : 140"
+        :align="col.type === 'NUMBER' ? 'right' : 'left'"
+        :formatter="cellFormatter(col)"
+        show-overflow-tooltip
+      />
+      <template #empty>
+        <span v-if="loading">{{ t('formDesigner.table.displayLoading') }}</span>
+      </template>
+    </el-table>
+
+    <p v-if="!columns.length && !display" class="table-field-hint muted">
       {{ t('formDesigner.table.noColumns') }}
     </p>
 
-    <div v-if="!readonly" class="table-field-actions">
+    <div v-if="dynamic && !loading && !error" class="table-field-meta muted small">
+      {{ t('formDesigner.table.displayRowCount', { n: queryRows.length }) }}
+      <span v-if="clipped" class="table-field-truncated">
+        {{ t('formDesigner.table.displayClipped', { shown: displayRows.length }) }}
+      </span>
+      <span v-else-if="truncated" class="table-field-truncated">
+        {{ t('formDesigner.table.displayTruncated') }}
+      </span>
+    </div>
+
+    <div v-if="!readonly && !display" class="table-field-actions">
       <el-button size="small" :icon="Plus" link type="primary" :disabled="!columns.length" @click="addRow">
         {{ t('formDesigner.table.addRow') }}
       </el-button>
@@ -85,10 +133,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Plus, Delete, Top, Bottom } from '@element-plus/icons-vue';
 import { resolveCell } from '../cellRegistry';
+import { useTableData } from '@/composables/useTableData';
+import { ACTIONS_COL_WIDTH, INDEX_COL_WIDTH, needsScrollX, tableMinWidth } from '@/utils/form/tableScroll';
 import type { FormFieldSchema, FormFieldColumn } from '@/api/formDesign';
 
 type TableRow = Record<string, any>;
@@ -97,11 +147,111 @@ const props = defineProps<{
   field: FormFieldSchema;
   modelValue?: TableRow[];
   readonly?: boolean;
+  /** 把 tableSource.params 里的 {{}} 求值成实际值；不传则按字面量取 */
+  resolveParam?: (raw: string) => string;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [TableRow[]] }>();
 const { t } = useI18n();
 
 const columns = computed<FormFieldColumn[]>(() => props.field.columns || []);
+
+/* ============ 横向滚动条 ============ */
+
+/**
+ * 容器实际宽度 —— 判定「要不要常驻横向滚动条」得跟它比。
+ *
+ * 用 ResizeObserver 而不是 onMounted 量一次：表单字段的格子宽度会随栅格列数、
+ * 窗口缩放、侧栏展开而变，量一次很快就对不上了。
+ */
+const hostEl = ref<HTMLElement>();
+const hostWidth = ref(0);
+let ro: ResizeObserver | null = null;
+
+onMounted(() => {
+  if (!hostEl.value || typeof ResizeObserver === 'undefined') return;
+  hostWidth.value = hostEl.value.clientWidth;
+  ro = new ResizeObserver(() => {
+    if (hostEl.value) hostWidth.value = hostEl.value.clientWidth;
+  });
+  ro.observe(hostEl.value);
+});
+
+onBeforeUnmount(() => {
+  ro?.disconnect();
+  ro = null;
+});
+
+/** 输入模式：左侧序号列 + 右侧操作列（只读时没有操作列） */
+const inputScrollX = computed(() =>
+  needsScrollX(
+    tableMinWidth({
+      columns: columns.value,
+      indexColWidth: INDEX_COL_WIDTH,
+      actionsColWidth: props.readonly ? 0 : ACTIONS_COL_WIDTH,
+    }),
+    hostWidth.value,
+  ),
+);
+
+/** 展示模式：纯数据表，两侧都没有固定列 */
+const displayScrollX = computed(() =>
+  needsScrollX(tableMinWidth({ columns: displayColumns.value }), hostWidth.value),
+);
+
+// 切换模式时重新量一次：新表格的容器宽度和上一张不一定一样
+watch(() => props.field.id, () => { hostWidth.value = hostEl.value?.clientWidth ?? 0; });
+
+/* ============ 展示模式（绑了查询） ============ */
+
+const fieldRef = computed(() => props.field);
+const { rows: queryRows, queryColumns, loading, error, truncated, dynamic } =
+  useTableData(fieldRef, props.resolveParam);
+
+/** 绑了查询 = 展示模式：数据来自查询，填表人改不了 */
+const display = computed(() => dynamic.value);
+
+/**
+ * 展示模式最多渲染多少行。
+ *
+ * el-table 不做虚拟滚动，DOM 节点数 ≈ 行数 × 列数。实测一条 609 行 × 14 列的查询
+ * 就是 8500+ 个节点，而后端本身就允许最多 1 万行 —— 不设上限的话，
+ * 绑个大查询的表单打开就会把页面拖死。
+ */
+const MAX_DISPLAY_ROWS = 200;
+
+const displayRows = computed<TableRow[]>(() => queryRows.value.slice(0, MAX_DISPLAY_ROWS));
+/** 数据被我们截断了（区别于后端自己截断的 truncated） */
+const clipped = computed(() => queryRows.value.length > MAX_DISPLAY_ROWS);
+
+/**
+ * 展示用的列：优先用字段自己配的列（设计者调过标题/宽度/顺序的可能和查询不一样，
+ * 那是刻意的，不该被查询覆盖）；字段压根没配列时用查询侧的兜底，
+ * 这样即便从没同步过也能先把数据显出来。
+ */
+const displayColumns = computed<FormFieldColumn[]>(() =>
+  columns.value.length ? columns.value : queryColumns.value,
+);
+
+/**
+ * 单元格取值 → 显示文案。
+ *
+ * 下拉类列（select/radio/checkbox）存的是 value，显示的应该是人话 label，
+ * 所以拿列上配的 options 反查一下；查不到就退回原值 —— 宁可显示原始值，
+ * 也不显示空白让人以为这一格没数据。
+ */
+function cellFormatter(col: FormFieldColumn) {
+  return (row: TableRow): string => {
+    const v = row?.[col.key];
+    if (v === null || v === undefined || v === '') return '';
+    if (col.options?.length) {
+      const hit = col.options.find((o) => o.value === v || o.value === String(v));
+      if (hit) return hit.label;
+    }
+    return String(v);
+  };
+}
+
+/* ============ 输入模式（没绑查询） ============ */
 
 /**
  * 永远返回数组。
@@ -181,6 +331,21 @@ function moveRow(rowIndex: number, dir: -1 | 1) {
   align-items: center;
   gap: 10px;
   margin-top: 6px;
+}
+/* 展示模式的行数 / 截断提示 */
+.table-field-meta {
+  margin: 6px 0 0;
+  display: flex;
+  gap: 8px;
+}
+.table-field-truncated { color: var(--color-warning, #e6a23c); }
+.table-field-error {
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--color-danger, #f56c6c);
+  background: var(--color-danger-light, #fef0f0);
+  border-radius: var(--radius-md, 4px);
 }
 .small { font-size: 12px; }
 .danger-icon :deep(.el-icon) { color: var(--color-danger, #f56c6c); }

@@ -114,6 +114,17 @@ public class FormFieldSchema {
      */
     private FormFieldOptionsSource optionsSource;
 
+    // ===================== 表格动态列源 =====================
+
+    /**
+     * 表格的动态列源（仅 {@link FieldType#TABLE}）：列由查询结果集自动匹配。
+     *
+     * <p><b>必须在本 DTO 上声明</b>：Jackson 默认静默丢弃未知字段。
+     * 与 {@link #optionsSource} 是同一套思路的表格版，区别是它匹配的是「列」
+     * 并且带一个动态更新开关（{@link FormFieldTableSource#autoSync}）。
+     */
+    private FormFieldTableSource tableSource;
+
     // ===================== 栅格布局 / 样式 =====================
 
     /**

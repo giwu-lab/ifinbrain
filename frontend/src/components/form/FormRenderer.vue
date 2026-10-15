@@ -63,6 +63,7 @@
                 :field="item.rf"
                 :model-value="formData[item.f.key]"
                 :readonly="readonly || item.disabled"
+                v-bind="item.extraProps"
                 @update:model-value="(v: any) => updateField(item.f.key, v)"
               />
             </div>
@@ -139,6 +140,22 @@ const formData = reactive<Record<string, any>>({ ...props.modelValue });
 const expr = useFormExpr(formData);
 
 /**
+ * 把数据源参数里的 `{{}}` 求值成实际值，传给需要它的字段组件
+ * （TABLE 的查询参数、select/radio/checkbox 的选项参数）。
+ *
+ * 为什么不直接在模板里写 :resolve-param="..."：`resolveParam` 必须是一个
+ * **稳定引用**，否则每次父组件重渲染都是新函数，字段组件内部那个
+ * `computed(() => resolveParam(v))` 的依赖就跟着断链，参数永远算不出新值。
+ *
+ * 为什么用 v-bind 展开而不是直接绑 prop：只有 4 个字段组件声明了 resolveParam，
+ * 直接绑会让其余 8 个组件把它当 fallthrough attr 写到根 DOM 上。
+ */
+const resolveParam = (raw: string): string => expr.text(raw, '');
+
+/** 会消费动态数据源参数、需要 resolveParam 的字段类型 */
+const RESOLVE_PARAM_TYPES = new Set(['TABLE', 'SELECT', 'RADIO', 'CHECKBOX']);
+
+/**
  * 栅格容器：24 列 + 固定行高。
  *
  * 用 CSS Grid 而非绝对定位 —— 百分比 + 栅格天然响应式，
@@ -194,6 +211,8 @@ const renderFields = computed(() =>
       required: expr.isRequired(f),
       // laidOutFields 保证每个字段都有 layout，这里不再需要满宽兜底
       placement: toGridPlacement(f.layout!, props.grid),
+      // 只给消费动态数据源的字段传 resolveParam，其余字段不接这个 prop
+      extraProps: RESOLVE_PARAM_TYPES.has(f.type) ? { resolveParam } : {},
       labelStyle: {
         color: st?.labelColor,
         fontSize: st?.fontSize ? `${st.fontSize}px` : undefined,

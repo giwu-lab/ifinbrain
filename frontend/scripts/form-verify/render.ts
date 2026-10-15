@@ -392,6 +392,210 @@ ok(
 );
 ok(g.t('formDesigner.cond.disabledWhenPh').includes('{{$form.locked}}'), 'cond.*Ph 渲染出成对的字面量 {{ }}');
 
+console.log('\n[11] 新建字段自动预填「显示名 + 标识key」');
+
+// 规则本身（编号 / 跳号 / 前缀）在 scripts/form-verify/identity.ts 覆盖；
+// 这里只验**接线**：store.addField 是否真的把默认值填进去，而不是还留空串。
+const { setActivePinia, createPinia: mkPinia } = await import('pinia');
+const { useFormDesignStore } = await vite.ssrLoadModule('/src/stores/formDesign.ts');
+setActivePinia(mkPinia());
+const store = useFormDesignStore();
+
+store.reset();
+ok(store.addField !== undefined, 'store 暴露 addField');
+store.addField('TEXT');
+store.addField('TEXT');
+store.addField('SELECT');
+store.addField('RICH_TEXT');
+
+eq(
+  store.fields.map((f: any) => f.key),
+  ['text1', 'text2', 'select1', 'richText1'],
+  '连续新建的 key 递增且不重复',
+);
+eq(
+  store.fields.map((f: any) => f.label),
+  ['单行文本 1', '单行文本 2', '下拉选择 1', '富文本 1'],
+  '显示名 = 类型显示名 + 同序号',
+);
+ok(
+  store.fields.every((f: any) => f.key && f.label),
+  '没有字段的 key/label 是空串',
+  JSON.stringify(store.fields.map((f: any) => [f.key, f.label])),
+);
+
+// 用户手改成 text1/text2 后再加，不能撞车
+store.updateField(store.fields[2].id, { key: 'text1' });
+store.addField('TEXT');
+ok(
+  store.fields.filter((f: any) => f.key === 'text1').length === 2,
+  '手改占用 text1 后，新字段跳到 text3 而不是撞车',
+  JSON.stringify(store.fields.map((f: any) => f.key)),
+);
+
+// i18n 单一数据源：类型显示名必须来自 locales，而不是 store 里写死中文
+ok(
+  g.t('formDesigner.field.key') === '标识key',
+  '属性面板「字段key」已更名为「标识key」',
+  g.t('formDesigner.field.key'),
+);
+ok(
+  g.t('formDesigner.type.TEXT') === '单行文本' && store.fields[0].label === g.t('formDesigner.type.TEXT') + ' 1',
+  '显示名里的类型名与 locale 文案一致（未硬编码）',
+  `${store.fields[0].label} / ${g.t('formDesigner.type.TEXT')}`,
+);
+
+// 英文侧必须同步（AGENTS.md：i18n 文案双语对齐）
+g.locale.value = 'en-US';
+ok(
+  g.t('formDesigner.field.key') === 'Identifier Key',
+  '英文侧同步更名为 Identifier Key',
+  g.t('formDesigner.field.key'),
+);
+ok(g.t('formDesigner.type.TEXT') === 'Single Line', '英文侧类型显示名可用', g.t('formDesigner.type.TEXT'));
+g.locale.value = 'zh-CN';
+eq(
+  store.fields.map((f: any) => f.key),
+  ['text1', 'text2', 'text1', 'richText1', 'text3'],
+  '手改占用 text1 后，新字段跳过被占用的号（text3）',
+);
+
+console.log('\n[12] 查询参数可绑定表单字段值（{{}} 求值后才发请求）');
+
+const { reactive, ref } = await import('vue');
+const apiMod: any = await vite.ssrLoadModule('/src/api/formDesign.ts');
+const exprMod: any = await vite.ssrLoadModule('/src/composables/useFormExpr.ts');
+const { useTableData }: any = await vite.ssrLoadModule('/src/composables/useTableData.ts');
+const { exprSlots, renameExprRefs } = exprMod;
+
+// 拦下真正发出去的请求体：只有它能证明「表达式已被求值成实际值」
+const origTableData = apiMod.formDesignApi.tableData;
+let captured: any = null;
+apiMod.formDesignApi.tableData = async (src: any) => {
+  captured = src;
+  return { columns: [], rows: [], truncated: false, rowCount: 0 };
+};
+
+const formData = reactive({ minId: 42, keyword: 'abc' });
+const e = exprMod.useFormExpr(formData);
+const tableField: any = ref({
+  id: 't1', type: 'TABLE', key: 'items', label: '明细',
+  tableSource: { queryId: 8, params: { minId: '{{ $form.minId }}', keyword: '固定值' } },
+});
+useTableData(tableField, (raw: string) => e.text(raw, ''));
+await new Promise((r) => setTimeout(r, 0));
+
+eq(
+  captured?.params,
+  { minId: '42', keyword: '固定值' },
+  '发请求时参数已求值：表达式 → 实际值，字面量原样透传',
+);
+ok('求值后 queryId 仍在', captured?.queryId === 8, JSON.stringify(captured));
+
+// 改被引用的字段 → 参数跟着变 → 缓存签名变了会重新取数（级联的关键）
+formData.minId = 100;
+await new Promise((r) => setTimeout(r, 0));
+eq(captured?.params?.minId, '100', '被引用字段改值后，参数跟着重新求值');
+
+apiMod.formDesignApi.tableData = origTableData;
+
+console.log('\n[13] 参数里的表达式纳入引用扫描与复制重写');
+
+// exprSlots 必须能看到藏在 Map 里的参数，否则校验与复制都看不见它们
+const slotField: any = {
+  id: 'f1', type: 'TABLE', key: 'items', label: '明细 {{ $form.title }}',
+  tableSource: { queryId: 1, params: { minId: '{{ $form.minId }}', kw: '常量' } },
+  optionsSource: { queryId: 2, labelField: 'a', valueField: 'b', params: { org: '{{ $form.dept }}' } },
+};
+eq(
+  exprSlots(slotField).map((s: any) => s.label).sort(),
+  ['label', 'optionsSource.params.org', 'tableSource.params.kw', 'tableSource.params.minId'],
+  'exprSlots 覆盖 label 与三个数据源参数',
+);
+
+// 复制字段时，藏在 params 里的引用也必须一起改写 —— 否则副本仍指向原字段
+const copyTarget: any = JSON.parse(JSON.stringify(slotField));
+renameExprRefs(copyTarget, 'minId', 'minId_copy');
+renameExprRefs(copyTarget, 'dept', 'dept_copy');
+renameExprRefs(copyTarget, 'title', 'title_copy');
+eq(copyTarget.tableSource.params.minId, '{{ $form.minId_copy }}', '重写 tableSource.params 里的引用');
+eq(copyTarget.optionsSource.params.org, '{{ $form.dept_copy }}', '重写 optionsSource.params 里的引用');
+eq(copyTarget.label, '明细 {{ $form.title_copy }}', '重写 label 里的引用');
+eq(copyTarget.tableSource.params.kw, '常量', '没被引用的参数原样保留');
+
+// 引用了不存在的字段要在保存前被拦下
+const badIssues = exprMod.useFormExpr({}).issues([
+  { id: 'f1', type: 'TABLE', key: 'items', label: '明细', tableSource: { queryId: 1, params: { minId: '{{ $form.nope }}' } } } as any,
+]);
+ok(
+  badIssues.some((i: any) => i.kind === 'undefined-ref' && i.detail === 'nope'),
+  '参数里引用不存在的字段会被 issues 抓出来',
+  JSON.stringify(badIssues),
+);
+ok(
+  badIssues[0]?.slotLabel === 'tableSource.params.minId',
+  '报错带上了参数位置名',
+  String(badIssues[0]?.slotLabel),
+);
+
+// store.duplicate：重写的是「指向被复制字段自己」的引用；
+// 指向别的字段的引用**本来就不该动**（副本本来就该跟着同一个源字段走）。
+store.reset();
+store.addField('TABLE');
+const dupTbl: any = store.fields[0];
+dupTbl.key = 'detail';
+dupTbl.label = '明细';
+dupTbl.tableSource = { queryId: 3, params: { v: '{{ $form.detail }}' } };
+store.duplicate(dupTbl.id);
+const duped: any = store.fields.find((f: any) => f.key?.endsWith('_copy'));
+eq(duped?.key, 'detail_copy', 'duplicate() 改了副本的 key');
+eq(
+  duped?.tableSource?.params?.v,
+  '{{ $form.detail_copy }}',
+  'duplicate() 重写了指向自己的引用（含查询参数）',
+);
+eq(
+  dupTbl.tableSource?.params?.v,
+  '{{ $form.detail }}',
+  '原件的引用不受影响',
+);
+
+// ---------------------------------------------------------------- [14] 宽表格常驻横向滚动条
+console.log('\n[14] 列过多时表格常驻横向滚动条');
+
+const TableField = (await vite.ssrLoadModule('/src/components/form/fields/TableField.vue')).default;
+
+async function renderTable(cols: any[], extraProps: Record<string, any> = {}): Promise<string> {
+  const app = createSSRApp({
+    render: () =>
+      h(TableField as any, {
+        field: { id: 'tt', type: 'TABLE', key: 'grid1', label: '明细', columns: cols },
+        modelValue: [],
+        ...extraProps,
+      }),
+  });
+  app.use(createPinia());
+  app.use(i18n as any);
+  return renderToString(app);
+}
+
+/**
+ * SSR 下拿不到容器宽度（ResizeObserver 不跑），tableScroll.needsScrollX 会按
+ * 「宽度未知 → 先当需要滚动」处理，所以宽表一定带 scrollbar-always-on。
+ * 窄表在这里也判为需要滚动 —— 真实浏览器里量到宽度后会自动关掉，
+ * 那条判定由 verify:table-scroll 的纯函数用例覆盖。
+ */
+const wideCols = Array.from({ length: 20 }, (_, i) => ({ key: `c${i}`, label: `列${i}`, type: 'TEXT' }));
+const wideHtml = await renderTable(wideCols);
+ok('20 列的表格带上了 scrollbar-always-on', /scrollbar-always-on/.test(wideHtml), wideHtml.slice(0, 300));
+
+const narrowHtml = await renderTable([{ key: 'a', label: 'A', type: 'TEXT' }]);
+ok('单列表格同样先按需要滚动处理（SSR 无宽度）', /scrollbar-always-on/.test(narrowHtml));
+
+const readonlyHtml = await renderTable(wideCols, { readonly: true });
+ok('只读态（无操作列）也能渲染出常驻滚动条', /scrollbar-always-on/.test(readonlyHtml));
+ok('只读态不渲染操作列', !/删除行|上移|下移/.test(readonlyHtml));
+
 // ---------------------------------------------------------------- 汇总
 await vite.close();
 console.log(`\n渲染层验证：通过 ${pass}，失败 ${failures.length}`);

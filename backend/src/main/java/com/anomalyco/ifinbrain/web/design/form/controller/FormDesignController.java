@@ -1,11 +1,14 @@
 package com.anomalyco.ifinbrain.web.design.form.controller;
 
 import com.anomalyco.ifinbrain.web.common.Result;
+import com.anomalyco.ifinbrain.web.datamgmt.dto.QueryResultDto;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormDesignCreateReq;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormDesignDto;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormDesignUpdateReq;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldOption;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldOptionsSource;
+import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldTableSource;
+import com.anomalyco.ifinbrain.web.design.form.dto.FormTableDataDto;
 import com.anomalyco.ifinbrain.web.design.form.service.FormDesignService;
 import com.anomalyco.ifinbrain.web.security.PermissionChecker;
 import jakarta.validation.Valid;
@@ -80,5 +83,27 @@ public class FormDesignController {
     @PostMapping("/options")
     public Result<List<FormFieldOption>> options(@RequestBody FormFieldOptionsSource src) {
         return Result.ok(service.options(src));
+    }
+
+    /**
+     * 按表格动态列源取回**列元数据**（表格组件「自动匹配字段」用）。
+     *
+     * <p>与 {@code /options} 是同一套权限与安全边界，只是返回的是结果集的列
+     * （key / 友好名 / 推测类型），不返回行。
+     */
+    @PostMapping("/table-columns")
+    public Result<List<QueryResultDto.Column>> tableColumns(@RequestBody FormFieldTableSource src) {
+        return Result.ok(service.tableColumns(src));
+    }
+
+    /**
+     * 取回查询数据本身，供表格**显示**（绑了查询的表格是展示组件，不是填写组件）。
+     *
+     * <p>与 {@code /table-columns} 的分工：那边只给列（设计期自动匹配列用），
+     * 这边给列 + 行（运行期显示用）。权限与安全边界一致。
+     */
+    @PostMapping("/table-data")
+    public Result<FormTableDataDto> tableData(@RequestBody FormFieldTableSource src) {
+        return Result.ok(service.tableData(src));
     }
 }

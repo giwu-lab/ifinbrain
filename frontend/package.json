@@ -12,8 +12,12 @@
     "verify:expr:core": "esbuild scripts/expr-verify/verify.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ifin-expr-core.mjs --log-level=warning && node node_modules/.cache/ifin-expr-core.mjs",
     "verify:expr:reactivity": "esbuild scripts/expr-verify/reactivity.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ifin-expr-reactivity.mjs --log-level=warning && node node_modules/.cache/ifin-expr-reactivity.mjs",
     "verify:layout": "esbuild scripts/form-verify/layout.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ifin-form-layout.mjs --log-level=warning && node node_modules/.cache/ifin-form-layout.mjs",
+    "verify:identity": "esbuild scripts/form-verify/identity.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ifin-form-identity.mjs --log-level=warning && node node_modules/.cache/ifin-form-identity.mjs",
+    "verify:table-columns": "esbuild scripts/form-verify/table-columns.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ifin-form-table-columns.mjs --log-level=warning && node node_modules/.cache/ifin-form-table-columns.mjs",
     "verify:render": "esbuild scripts/form-verify/render.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/ifin-form-render.mjs --log-level=warning && node node_modules/.cache/ifin-form-render.mjs",
-    "verify": "npm run verify:expr && npm run verify:layout && npm run verify:render"
+    "verify": "npm run verify:expr && npm run verify:layout && npm run verify:identity && npm run verify:table-columns && npm run verify:table-scroll && npm run verify:source-params && npm run verify:render",
+    "verify:source-params": "esbuild scripts/form-verify/source-params.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ifin-form-source-params.mjs --log-level=warning && node node_modules/.cache/ifin-form-source-params.mjs",
+    "verify:table-scroll": "esbuild scripts/form-verify/table-scroll.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ifin-form-table-scroll.mjs --log-level=warning && node node_modules/.cache/ifin-form-table-scroll.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",

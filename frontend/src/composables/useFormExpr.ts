@@ -23,6 +23,7 @@ import {
   evalText,
   hasExpression,
   referencedFieldKeys,
+  renameFieldKey,
   undefinedFieldRefs,
 } from '@/utils/expr';
 
@@ -53,6 +54,89 @@ export const EXPR_ATTRS: readonly ExprAttr[] = [
 /** 表达式命名空间：字段引用一律写成 `$form.<key>` */
 export const FORM_NS = '$form';
 
+/**
+ * 承载参数的动态数据源。
+ *
+ * 参数值同样可以写 `{{}}`（把查询参数绑到某个字段的值上），所以它们和 label
+ * 一样是表达式位置 —— 只是它们藏在一个 Map 里，不是字段的平铺属性。
+ */
+export type ExprParamHost = 'optionsSource' | 'tableSource';
+
+/**
+ * 字段上一个可能承载 `{{}}` 的位置。
+ *
+ * 做成「插槽」而不是继续往 EXPR_ATTRS 里塞属性名：params 是嵌套的 Map，
+ * 平铺的属性名表达不了「哪个数据源的哪个参数」，而校验 / 引用重写 / 复制字段
+ * 这三处都要按插槽遍历，塞不进去就只能各写一份 if，最后必然不同步。
+ */
+export interface ExprSlot {
+  /** 标量属性名；数据源参数为 null */
+  attr: ExprAttr | null;
+  /** 数据源名；标量属性为 null */
+  host: ExprParamHost | null;
+  /** 参数名；标量属性为 null */
+  param: string | null;
+  /** 该位置上的原始字符串 */
+  value: string;
+  /** 给人看的位置名（如 `label`、`tableSource.params.minId`），报错与提示用 */
+  label: string;
+}
+
+/** 列出字段上所有承载 `{{}}` 的位置（值非空的才算） */
+export function exprSlots(field: FormFieldSchema): ExprSlot[] {
+  const out: ExprSlot[] = [];
+
+  for (const attr of EXPR_ATTRS) {
+    const v = field[attr];
+    if (typeof v === 'string' && v !== '') out.push({ attr, host: null, param: null, value: v, label: attr });
+  }
+
+  const opts = field.optionsSource?.params;
+  if (opts) {
+    for (const [name, v] of Object.entries(opts)) {
+      if (typeof v === 'string' && v !== '') {
+        out.push({ attr: null, host: 'optionsSource', param: name, value: v, label: `optionsSource.params.${name}` });
+      }
+    }
+  }
+
+  const tbl = field.tableSource?.params;
+  if (tbl) {
+    for (const [name, v] of Object.entries(tbl)) {
+      if (typeof v === 'string' && v !== '') {
+        out.push({ attr: null, host: 'tableSource', param: name, value: v, label: `tableSource.params.${name}` });
+      }
+    }
+  }
+
+  return out;
+}
+
+/**
+ * 就地把字段里所有表达式的 `$form.from` 引用改成 `$form.to`。
+ *
+ * 复制字段时必须调用：否则副本仍指向原字段，用户看不出异常但数据是错的。
+ */
+export function renameExprRefs(field: FormFieldSchema, from: string, to: string): void {
+  if (!from || from === to) return;
+
+  const rename = (params: Record<string, string> | undefined) => {
+    if (!params) return;
+    for (const [k, v] of Object.entries(params)) {
+      if (typeof v === 'string' && v.includes(from)) params[k] = renameFieldKey(v, from, to);
+    }
+  };
+
+  for (const attr of EXPR_ATTRS) {
+    const v = field[attr];
+    if (typeof v === 'string' && v.includes(from)) {
+      (field as unknown as Record<string, unknown>)[attr] = renameFieldKey(v, from, to);
+    }
+  }
+  rename(field.optionsSource?.params);
+  rename(field.tableSource?.params);
+}
+
 /** 除表单数据外额外注入表达式的变量（如 `$user`） */
 export interface FormExprExtras {
   [key: string]: unknown;
@@ -70,8 +154,10 @@ export interface ExprIssue {
   fieldId: string;
   /** 字段 key（便于用户定位，可能为空） */
   fieldKey: string;
-  /** 出问题的属性名 */
-  attr: ExprAttr;
+  /** 出问题的属性名；数据源参数为 null（用 slotLabel 表述） */
+  attr: ExprAttr | null;
+  /** 位置名（label / tableSource.params.minId …），报错与提示直接展示 */
+  slotLabel: string;
   /**
    * undefined-ref —— 引用了 schema 中不存在的字段，detail 是那个 key
    * eval-error   —— 表达式本身语法/求值出错，detail 是原始错误串（技术信息，不翻译）
@@ -158,9 +244,9 @@ export function useFormExpr(
     return !!field.requiredWhen && flag(field.requiredWhen);
   }
 
-  /** 该字段是否有任何属性承载了表达式（含布尔条件） */
+  /** 该字段是否有任何属性承载了表达式（含数据源参数绑定） */
   function hasAnyExpr(field: FormFieldSchema): boolean {
-    return EXPR_ATTRS.some((attr) => hasExpression(field[attr]));
+    return exprSlots(field).some((s) => hasExpression(s.value));
   }
 
   /** 该字段是否有**文本类**表达式 —— 只有这类才需要构造解析后的字段对象 */
@@ -228,10 +314,9 @@ export function useFormExpr(
     const known = new Set(fields.map((f) => f.key).filter(Boolean));
     const out = new Map<string, string[]>();
     for (const field of fields) {
-      for (const attr of EXPR_ATTRS) {
-        const src = field[attr];
-        if (!hasExpression(src)) continue;
-        const missing = undefinedFieldRefs(src, known);
+      for (const slot of exprSlots(field)) {
+        if (!hasExpression(slot.value)) continue;
+        const missing = undefinedFieldRefs(slot.value, known);
         if (missing.length) {
           out.set(field.id, [...(out.get(field.id) ?? []), ...missing]);
         }
@@ -251,19 +336,25 @@ export function useFormExpr(
     const known = new Set(fields.map((f) => f.key).filter(Boolean));
 
     for (const field of fields) {
-      for (const attr of EXPR_ATTRS) {
-        const src = field[attr];
+      for (const slot of exprSlots(field)) {
+        const src = slot.value;
         if (!hasExpression(src)) continue;
 
         const missing = undefinedFieldRefs(src, known);
         for (const key of missing) {
-          result.push({ fieldId: field.id, fieldKey: field.key, attr, kind: 'undefined-ref', detail: key });
+          result.push({
+            fieldId: field.id, fieldKey: field.key, attr: slot.attr, slotLabel: slot.label,
+            kind: 'undefined-ref', detail: key,
+          });
         }
 
         // 语法错误：拿空数据试跑一次即可暴露，不依赖用户填了什么
         const probe = evalDefault(src, { [FORM_NS]: {} }, sandboxOptions);
         if (probe.hasError() && !missing.length) {
-          result.push({ fieldId: field.id, fieldKey: field.key, attr, kind: 'eval-error', detail: probe.msg! });
+          result.push({
+            fieldId: field.id, fieldKey: field.key, attr: slot.attr, slotLabel: slot.label,
+            kind: 'eval-error', detail: probe.msg!,
+          });
         }
       }
     }
@@ -302,8 +393,8 @@ export function useFormExpr(
  */
 export function fieldReferences(field: FormFieldSchema): string[] {
   const keys = new Set<string>();
-  for (const attr of EXPR_ATTRS) {
-    for (const k of referencedFieldKeys(field[attr] ?? '')) keys.add(k);
+  for (const slot of exprSlots(field)) {
+    for (const k of referencedFieldKeys(slot.value)) keys.add(k);
   }
   return [...keys];
 }

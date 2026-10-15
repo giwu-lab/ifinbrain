@@ -73,6 +73,54 @@ export interface FormFieldOptionsSource {
 }
 
 /**
+ * 表格的动态列源 —— 与后端 `design/form/dto/FormFieldTableSource.java` 一一对应。
+ *
+ * 与 optionsSource 同构，区别是：它匹配的是「列」而不是「选项」，并且多一个动态更新开关。
+ * 与静态 `columns` 不是覆盖关系，而是**选择性同步**（规则见 utils/form/tableColumns.ts）。
+ */
+export interface FormFieldTableSource {
+  /** 指向 sys_query.id；不内嵌 SQL，查询改了就自动生效 */
+  queryId: number;
+  /** 查询参数值（对应 sys_query.params_schema[].name） */
+  params?: Record<string, string>;
+  /**
+   * 动态更新：查询列变了是否自动同步表格列。
+   *
+   * 默认关是有意的 —— 同步会删列，而删列对已填过数据的单子是有影响的，
+   * 不该由系统在后台悄悄做。关着也随时能点「立即同步」手动同步一次。
+   */
+  autoSync?: boolean;
+  /** 服务端缓存秒数；不填用后端默认 */
+  cacheSec?: number;
+}
+
+/**
+ * 查询结果集的一列（后端 `QueryResultDto.Column` 的前端形态）。
+ *
+ * `type` 是服务端推测的类型：string | number | date | datetime | boolean | unknown。
+ */
+export interface QueryColumn {
+  key: string;
+  label?: string;
+  type?: string;
+  width?: number | null;
+  align?: string | null;
+}
+
+/**
+ * 表格显示的查询数据（后端 `FormTableDataDto`）。
+ *
+ * 行的形状刻意做成「列 key → 值」而不是 BI 那边的下标数组：表格列是设计者可配的
+ * （能改顺序、删列），按下标取必然错位。这样也和表格字段本来的值形状一致。
+ */
+export interface FormTableData {
+  columns: FormFieldColumn[];
+  rows: Record<string, any>[];
+  truncated: boolean;
+  rowCount: number;
+}
+
+/**
  * 字段在栅格中的位置（24 列栅格，与 el-form 的 span 口径一致）。
  *
  * 缺省表示「还没排版」，加载时由 `utils/form/layout.ts#migrateFields`
@@ -132,6 +180,8 @@ export interface FormFieldSchema {
   requireAllCells?: boolean;
   /** 动态选项源（SELECT/RADIO/CHECKBOX）；与静态 options 二选一 */
   optionsSource?: FormFieldOptionsSource;
+  /** 表格动态列源（仅 TABLE）：列由查询结果集自动匹配，带动态更新开关 */
+  tableSource?: FormFieldTableSource;
 
   /** 栅格位置（可选，加载时自动迁移） */
   layout?: FormFieldLayout;
@@ -204,6 +254,24 @@ export const formDesignApi = {
    */
   options: (src: FormFieldOptionsSource) =>
     http.post<any, FormFieldOption[]>('/design/forms/options', src),
+
+  /**
+   * 按表格动态列源取回**列元数据**（不返回行）。
+   *
+   * 表格组件「自动匹配字段」与「立即同步」都靠它：拿到的是这条查询现在有哪些列。
+   * 入参同样是字段 schema 里的 tableSource 原样，权限与 /design/forms/options 一致。
+   */
+  tableColumns: (src: FormFieldTableSource) =>
+    http.post<any, QueryColumn[]>('/design/forms/table-columns', src),
+
+  /**
+   * 取回查询数据本身，供表格**显示**（绑了查询的表格是展示组件，不是填写组件）。
+   *
+   * 与 tableColumns 的分工：那边只要列（设计期匹配列用，不值得把行也传回来），
+   * 这边给列 + 行（运行期显示用）。
+   */
+  tableData: (src: FormFieldTableSource) =>
+    http.post<any, FormTableData>('/design/forms/table-data', src),
 };
 
 /**

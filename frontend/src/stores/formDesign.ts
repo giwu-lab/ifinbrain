@@ -16,10 +16,21 @@ import {
   migrateFields,
   type FormGridLayout,
 } from '@/utils/form/layout';
-import { renameFieldKey } from '@/utils/expr';
-import { EXPR_ATTRS, useFormExpr } from '@/composables/useFormExpr';
+import { renameExprRefs } from '@/composables/useFormExpr';
+import { defaultIdentity } from '@/utils/form/identity';
+import { i18n } from '@/i18n';
+import { useFormExpr } from '@/composables/useFormExpr';
 
 let fieldSeq = 0;
+
+/**
+ * 取一条文案。
+ *
+ * vue-i18n 的 `global.t` 在本仓 vue-tsc 下被解析成不可调用（`api/http.ts:131`
+ * 有同一个 TS2349，是既有类型缺口）。这里显式取一次可调用签名，
+ * 免得业务代码里到处散 any。
+ */
+const tr = (key: string): string => (i18n.global.t as unknown as (k: string) => string)(key);
 
 function newFieldId(): string {
   return `f_${Date.now().toString(36)}_${(fieldSeq++).toString(36)}`;
@@ -188,6 +199,15 @@ export const useFormDesignStore = defineStore('formDesign', () => {
 
   function addField(type: FieldType, insertAt?: number) {
     const f = makeDefaultField(type);
+    // 显示名 / 标识 key 由系统按规则预填（utils/form/identity），不再留空。
+    // 类型显示名走 i18n 单一数据源，不在 store 里另存一份中英文表。
+    const ident = defaultIdentity(
+      type,
+      fields.value.map((x) => x.key),
+      tr(`formDesigner.type.${type}`),
+    );
+    f.key = ident.key;
+    f.label = ident.label;
     const span = defaultSpan(type);
     f.layout = findFreeSlot(occupied(), span, 1, grid.value);
     if (insertAt == null || insertAt < 0 || insertAt > fields.value.length) {
@@ -282,9 +302,7 @@ export const useFormDesignStore = defineStore('formDesign', () => {
     const copy = JSON.parse(JSON.stringify(src));
     copy.id = newFieldId();
     const newKey = `${copy.key}_copy`;
-    for (const attr of EXPR_ATTRS) {
-      copy[attr] = renameFieldKey(copy[attr] ?? '', src.key, newKey);
-    }
+    renameExprRefs(copy, src.key, newKey);
     copy.key = newKey;
     copy.label = `${copy.label} (copy)`;
     // 复制件必须落到一个空位，不能沿用原坐标 —— 否则会和原件重叠
@@ -334,7 +352,7 @@ export const useFormDesignStore = defineStore('formDesign', () => {
       const detail = it.kind === 'undefined-ref'
         ? `{{$form.${it.detail}}} 引用了不存在的字段 "${it.detail}"`
         : it.detail;
-      return `表达式错误 (${it.attr}): ${detail}`;
+      return `表达式错误 (${it.slotLabel}): ${detail}`;
     }
 
     return null;

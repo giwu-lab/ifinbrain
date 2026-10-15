@@ -23,12 +23,12 @@ import { useI18n } from 'vue-i18n';
 import { useFieldOptions } from '@/composables/useFieldOptions';
 import type { FormFieldSchema } from '@/api/formDesign';
 
-const props = defineProps<{ field: FormFieldSchema; modelValue?: string; readonly?: boolean }>();
+const props = defineProps<{ field: FormFieldSchema; modelValue?: string; readonly?: boolean; resolveParam?: (raw: string) => string }>();
 const emit = defineEmits<{ 'update:modelValue': [string] }>();
 const { t } = useI18n();
 
 // 配了 optionsSource 就取动态选项，没配直接用 schema 里的静态 options（零请求）
-const { options, loading } = useFieldOptions(toRef(props, 'field'));
+const { options, loading } = useFieldOptions(toRef(props, 'field'), props.resolveParam);
 
 const model = computed<string>({
   get: () => props.modelValue ?? props.field.defaultValue ?? '',

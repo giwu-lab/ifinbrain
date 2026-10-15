@@ -12,6 +12,8 @@ import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldColumn;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldOption;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldOptionsSource;
 import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldSchema;
+import com.anomalyco.ifinbrain.web.design.form.dto.FormFieldTableSource;
+import com.anomalyco.ifinbrain.web.design.form.dto.FormTableDataDto;
 import com.anomalyco.ifinbrain.web.design.form.entity.SysFormDesign;
 import com.anomalyco.ifinbrain.web.design.form.enums.FieldType;
 import com.anomalyco.ifinbrain.web.design.form.repository.SysFormDesignRepository;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -182,6 +185,9 @@ public class FormDesignService {
             }
             if (f.getType() == FieldType.TABLE) {
                 validateColumns(f);
+                if (f.getTableSource() != null) {
+                    validateTableSource(f.getTableSource(), "（key=" + f.getKey() + "）");
+                }
             }
         }
     }
@@ -280,6 +286,120 @@ public class FormDesignService {
                     .build());
         }
         return out;
+    }
+
+    /**
+     * 表格动态列源校验。与 {@link #validateOptionsSource} 同一套思路，
+     * 只是列源不需要 labelField/valueField —— 整张结果集的列都要。
+     */
+    private void validateTableSource(FormFieldTableSource src, String where) {
+        if (src == null) {
+            throw new BizException(400, "tableSource 为空" + where);
+        }
+        if (src.getQueryId() == null || src.getQueryId() <= 0) {
+            throw new BizException(400, "tableSource.queryId 无效" + where);
+        }
+    }
+
+    /**
+     * 按表格动态列源取回**列元数据**（自动匹配表格列用）。
+     *
+     * <p>只返回列（key / 友好名 / 推测类型），不返回行：设计器要的是
+     * 「这条查询有哪些列」，拿去生成表格列定义。行数据是运行态的事，不归这里管。
+     *
+     * <p>权限与取数路径都和 {@link #options} 完全一致（{@code design:form:view} +
+     * {@code BiDataService#queryAuthorized}），安全边界不变：填表人不能自己挑 query，
+     * queryId 来自设计期固化的 schema。
+     */
+    @Transactional(readOnly = true)
+    public List<QueryResultDto.Column> tableColumns(FormFieldTableSource src) {
+        perm.require("design:form:view");
+        validateTableSource(src, "");
+        BiDataQueryReq req = new BiDataQueryReq();
+        req.setQueryId(src.getQueryId());
+        req.setParams(src.getParams());
+        req.setCacheSec(src.getCacheSec());
+
+        BiDataResp resp = biDataService.queryAuthorized(req);
+        List<QueryResultDto.Column> cols = resp.getColumns();
+        return cols == null ? List.of() : cols;
+    }
+
+    /**
+     * 取回**查询数据本身**给表格显示 —— 绑了查询的表格是展示组件，不是填写组件。
+     *
+     * <p>与 {@link #tableColumns} 的分工：那边只给列元数据（设计期自动匹配列用，
+     * 不想为了拿列把一堆行也传回来），这边给列 + 行（运行期显示用）。
+     *
+     * <p>行的形状在这里从 BI 的下标数组转成「列 key → 值」：
+     * 表格列是设计者可配的（能改顺序、删列），按下标取必然错位。
+     * 转换后它和表格字段本来的值形状一致，前端拿到直接渲染。
+     */
+    @Transactional(readOnly = true)
+    public FormTableDataDto tableData(FormFieldTableSource src) {
+        perm.require("design:form:view");
+        validateTableSource(src, "");
+
+        BiDataQueryReq req = new BiDataQueryReq();
+        req.setQueryId(src.getQueryId());
+        req.setParams(src.getParams());
+        req.setCacheSec(src.getCacheSec());
+        BiDataResp resp = biDataService.queryAuthorized(req);
+
+        List<QueryResultDto.Column> src2 = resp.getColumns();
+        if (src2 == null || src2.isEmpty()) {
+            return FormTableDataDto.builder().columns(List.of()).rows(List.of())
+                    .rowCount(0).truncated(resp.isTruncated()).build();
+        }
+
+        // 列：与前端 utils/form/tableColumns.ts#fieldTypeOfQueryColumn 同一套映射，
+        // 改一处必须改另一处（后端没有运行环境去调前端那份，只能靠测试盯住）。
+        List<FormFieldColumn> columns = new ArrayList<>(src2.size());
+        for (QueryResultDto.Column c : src2) {
+            String key = c.getKey() == null ? "" : c.getKey().trim();
+            if (key.isEmpty()) continue;
+            columns.add(FormFieldColumn.builder()
+                    .key(key)
+                    .label(c.getLabel() == null || c.getLabel().isBlank() ? key : c.getLabel())
+                    .type(cellTypeOf(c.getType()))
+                    .width(c.getWidth())
+                    .build());
+        }
+
+        // 行：下标数组 → 列 key 映射
+        List<List<Object>> rawRows = resp.getRows();
+        List<Map<String, Object>> rows = new ArrayList<>();
+        if (rawRows != null) {
+            for (List<Object> row : rawRows) {
+                if (row == null) continue;
+                Map<String, Object> m = new LinkedHashMap<>();
+                for (int i = 0; i < columns.size(); i++) {
+                    // columns 已滤掉空 key，索引可能与 src2 不再对齐 —— 用 key 反查原始列位
+                    String key = columns.get(i).getKey();
+                    int idx = columnIndex(src2, key);
+                    m.put(key, (idx >= 0 && idx < row.size()) ? row.get(idx) : null);
+                }
+                rows.add(m);
+            }
+        }
+
+        return FormTableDataDto.builder()
+                .columns(columns)
+                .rows(rows)
+                .rowCount(rows.size())
+                .truncated(resp.isTruncated())
+                .build();
+    }
+
+    /** 查询列的推测类型 → 表格单元格控件类型。boolean/unknown 落 TEXT（同前端那份） */
+    private FieldType cellTypeOf(String queryType) {
+        if (queryType == null) return FieldType.TEXT;
+        return switch (queryType.toLowerCase()) {
+            case "number" -> FieldType.NUMBER;
+            case "date" -> FieldType.DATE;
+            case "datetime" -> FieldType.DATETIME;
+            default -> FieldType.TEXT;
+        };
     }
 
     /** 按列名找下标；找不到返回 -1 */

@@ -59,7 +59,7 @@
 
           <el-alert
             v-for="issue in exprIssues"
-            :key="issue.attr + issue.detail"
+            :key="issue.slotLabel + issue.detail"
             :title="issueText(issue)"
             :type="issue.kind === 'undefined-ref' ? 'warning' : 'error'"
             :closable="false"
@@ -147,6 +147,30 @@
                   @change="(v: number | undefined) => patchSource({ cacheSec: v ?? undefined })"
                 />
               </el-form-item>
+
+              <!-- 查询参数 → 绑定表单某个字段的值（与表格的表参数同一套机制） -->
+              <template v-if="paramsSchemaOf('optionsSource').length">
+                <p class="props-hint">{{ t('formDesigner.sourceParams.hint') }}</p>
+                <el-form-item
+                  v-for="p in paramsSchemaOf('optionsSource')"
+                  :key="'os_' + p.name"
+                  :label="p.label || p.name"
+                  :required="p.required"
+                >
+                  <el-select
+                    :model-value="paramValue('optionsSource', p.name)"
+                    :placeholder="p.placeholder || p.name"
+                    filterable
+                    allow-create
+                    clearable
+                    default-first-option
+                    style="width: 100%;"
+                    @update:model-value="(v: string | undefined) => setParam('optionsSource', p.name, v)"
+                  >
+                    <el-option v-for="r in paramRefOptions()" :key="r" :value="r" :label="r" />
+                  </el-select>
+                </el-form-item>
+              </template>
             </el-form>
           </template>
         </div>
@@ -282,6 +306,99 @@
           </el-form>
         </div>
 
+        <!-- ============ 表格动态列源 ============ -->
+        <div v-if="isTable && canBindQuery" class="props-section">
+          <div class="props-section-label">{{ t('formDesigner.tableSource.section') }}</div>
+          <el-form label-position="top" size="small" class="props-form">
+            <el-form-item>
+              <el-switch
+                :model-value="!!local.tableSource"
+                :active-text="t('formDesigner.tableSource.enable')"
+                @change="onToggleTableSource"
+              />
+            </el-form-item>
+          </el-form>
+
+          <template v-if="local.tableSource">
+            <p class="props-hint">{{ t('formDesigner.tableSource.hint') }}</p>
+            <el-form label-position="top" size="small" class="props-form">
+              <el-form-item :label="t('formDesigner.tableSource.query')">
+                <el-select
+                  :model-value="local.tableSource.queryId"
+                  :placeholder="t('formDesigner.tableSource.queryPh')"
+                  filterable
+                  style="width: 100%;"
+                  @change="onTableQueryChange"
+                >
+                  <el-option
+                    v-for="q in queryChoices"
+                    :key="q.id"
+                    :value="q.id"
+                    :label="q.name"
+                  />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item :label="t('formDesigner.tableSource.autoSync')">
+                <el-switch
+                  :model-value="!!local.tableSource.autoSync"
+                  :active-text="t('formDesigner.tableSource.autoSyncOn')"
+                  @change="onAutoSyncChange"
+                />
+              </el-form-item>
+              <p class="props-hint">{{ t('formDesigner.tableSource.autoSyncHint') }}</p>
+
+              <el-form-item :label="t('formDesigner.tableSource.cacheSec')">
+                <el-input-number
+                  :model-value="local.tableSource.cacheSec"
+                  :min="0"
+                  :max="300"
+                  controls-position="right"
+                  style="width: 100%;"
+                  @change="(v: number | undefined) => patchTableSource({ cacheSec: v ?? undefined })"
+                />
+              </el-form-item>
+
+              <!-- 查询参数 → 绑定表单某个字段的值 -->
+              <template v-if="paramsSchemaOf('tableSource').length">
+                <p class="props-hint">{{ t('formDesigner.sourceParams.hint') }}</p>
+                <el-form-item
+                  v-for="p in paramsSchemaOf('tableSource')"
+                  :key="'ts_' + p.name"
+                  :label="p.label || p.name"
+                  :required="p.required"
+                >
+                  <el-select
+                    :model-value="paramValue('tableSource', p.name)"
+                    :placeholder="p.placeholder || p.name"
+                    filterable
+                    allow-create
+                    clearable
+                    default-first-option
+                    style="width: 100%;"
+                    @update:model-value="(v: string | undefined) => setParam('tableSource', p.name, v)"
+                  >
+                    <el-option v-for="r in paramRefOptions()" :key="r" :value="r" :label="r" />
+                  </el-select>
+                </el-form-item>
+              </template>
+
+              <el-form-item>
+                <el-button
+                  size="small"
+                  :icon="Refresh"
+                  :loading="syncingColumns"
+                  :disabled="!local.tableSource.queryId"
+                  @click="syncTableColumns(true)"
+                >
+                  {{ t('formDesigner.tableSource.syncNow') }}
+                </el-button>
+              </el-form-item>
+              <p v-if="columnSyncSummary" class="props-hint">{{ columnSyncSummary }}</p>
+            </el-form>
+          </template>
+        </div>
+
         <!-- ============ 表格列 ============ -->
         <div v-if="isTable" class="props-section">
           <div class="props-section-label">{{ t('formDesigner.table.sectionColumns') }}</div>
@@ -391,11 +508,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Document, Delete, Plus } from '@element-plus/icons-vue';
-import { COLUMN_TYPES, type FormFieldSchema, type FieldType, type FormFieldValidator, type FormFieldOption, type FormFieldColumn, type FormFieldLayout, type FormFieldStyle, type FormGridConfig } from '@/api/formDesign';
-import { useFormExpr, type ExprIssue } from '@/composables/useFormExpr';
-import { hasExpression } from '@/utils/expr';
+import { Document, Delete, Plus, Refresh } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { COLUMN_TYPES, formDesignApi, type FormFieldSchema, type FieldType, type FormFieldValidator, type FormFieldOption, type FormFieldColumn, type FormFieldLayout, type FormFieldStyle, type FormGridConfig } from '@/api/formDesign';
+import { useFormExpr, type ExprIssue, type ExprParamHost } from '@/composables/useFormExpr';
 import { GRID_COLS } from '@/utils/form/layout';
+import { mergeTableColumns, tableColumnsInSync } from '@/utils/form/tableColumns';
+import { designTimeParams } from '@/utils/form/sourceParams';
 import { biApi, type BiQueryOption } from '@/api/bi';
 import { useAuthStore } from '@/stores/auth';
 
@@ -410,7 +529,7 @@ const props = defineProps<{
   grid?: FormGridConfig;
 }>();
 const emit = defineEmits<{ patch: [Partial<FormFieldSchema>] }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const auth = useAuthStore();
 
 const local = reactive<FormFieldSchema>({
@@ -419,7 +538,7 @@ const local = reactive<FormFieldSchema>({
   options: undefined, validator: undefined, fullWidth: true,
   columns: undefined, requireAllCells: false,
   visibleWhen: undefined, disabledWhen: undefined, requiredWhen: undefined,
-  optionsSource: undefined,
+  optionsSource: undefined, tableSource: undefined,
 });
 
 const isTable = computed(() => local.type === 'TABLE');
@@ -558,6 +677,156 @@ function removeOption(idx: number) {
 function colNeedsOptions(col: FormFieldColumn): boolean {
   return col.type === 'SELECT' || col.type === 'RADIO' || col.type === 'CHECKBOX';
 }
+
+/* ============ 表格动态列源 ============ */
+
+const syncingColumns = ref(false);
+const columnSyncSummary = ref('');
+
+/** 开关切换：关掉时整个 tableSource 置空，而不是留着半截配置 */
+function onToggleTableSource(on: boolean | string | number) {
+  // queryId 先占位为 0：后端保存时会校验 > 0，用户没选完就保存会得到明确报错，
+  // 比静默存个 null 强。autoSync 默认关 —— 同步会删列，不该在后台悄悄做。
+  local.tableSource = on ? { queryId: 0, autoSync: false } : undefined;
+  columnSyncSummary.value = '';
+  emitPatch();
+}
+
+/** 局部更新 tableSource（保留其它已填的字段） */
+function patchTableSource(patch: Partial<NonNullable<FormFieldSchema['tableSource']>>) {
+  local.tableSource = { ...(local.tableSource ?? { queryId: 0 }), ...patch };
+  emitPatch();
+}
+
+/* ============ 查询参数绑定到字段值 ============ */
+
+/**
+ * 当前所选查询的参数定义。
+ *
+ * 来源是 `biApi.queryOptions()` 返回的 paramsSchema —— 那条列表接口本来就带
+ * params_schema，不用为了填参数再单独拉一次查询详情。
+ */
+function paramsSchemaOf(host: ExprParamHost) {
+  const qid = host === 'optionsSource' ? local.optionsSource?.queryId : local.tableSource?.queryId;
+  if (!qid) return [] as NonNullable<BiQueryOption['paramsSchema']>;
+  return queryChoices.value.find((q) => q.id === qid)?.paramsSchema ?? [];
+}
+
+/** 可绑定的字段引用，形如 `{{ $form.xxx }}` —— 与表达式区用的是同一批候选 */
+function paramRefOptions(): string[] {
+  return refCandidates.value.map((k) => `{{ $form.${k} }}`);
+}
+
+function paramValue(host: ExprParamHost, name: string): string {
+  const params = host === 'optionsSource' ? local.optionsSource?.params : local.tableSource?.params;
+  return params?.[name] ?? '';
+}
+
+function setParam(host: ExprParamHost, name: string, v: string | undefined) {
+  // 两个分支各自收窄 —— 先取 union 再回写会让 TS 认不出该赋给哪个类型
+  const params: Record<string, string> = {
+    ...(host === 'optionsSource' ? local.optionsSource?.params : local.tableSource?.params),
+  };
+  // 清空就删键而不是存空串："" 与「没配过」在存下来的 schema 里必须能分辨
+  if (v === '' || v === undefined) delete params[name];
+  else params[name] = v;
+
+  if (host === 'optionsSource') {
+    if (!local.optionsSource) return;
+    local.optionsSource = { ...local.optionsSource, params };
+  } else {
+    if (!local.tableSource) return;
+    local.tableSource = { ...local.tableSource, params };
+  }
+  emitPatch();
+}
+
+function onAutoSyncChange(on: boolean | string | number) {
+  patchTableSource({ autoSync: !!on });
+}
+
+/**
+ * 换查询是显式动作 —— 一定同步一次，不用管 autoSync 开关。
+ * 不然用户刚绑完查询却发现列还是老的，会以为功能没生效。
+ */
+async function onTableQueryChange(v: number) {
+  patchTableSource({ queryId: v });
+  await syncTableColumns();
+}
+
+/**
+ * 把参数名拼成当前语言的列表写法（「a、b」/「a, b」）。
+ *
+ * 两个不用现成方案的理由：
+ * 1. vue-i18n 11 对 `{names}` 传数组是按普通插值处理，渲染出来是 `["a","b"]` 这种 JSON；
+ * 2. `Intl.ListFormat` 的 zh-CN + `unit` 风格在 Node 的 ICU 下直接不给分隔符
+ *    （format(['a','b']) 得到 "ab"），而浏览器 ICU 版本不同结果可能又不一样 ——
+ *    同一句话在不同机器上长得不一样，比多写一个分隔符表糟糕得多。
+ */
+const LIST_SEP: Record<string, string> = {
+  'zh-CN': '、', 'zh-TW': '、', 'zh-HK': '、', ja: '、', ko: ', ',
+};
+
+function listNames(names: string[]): string {
+  const key = locale.value ?? '';
+  const sep = LIST_SEP[key] ?? LIST_SEP[key.split('-')[0]] ?? ', ';
+  return names.join(sep);
+}
+
+/**
+ * 拉查询列并做**选择性同步**。
+ *
+ * @param manual 用户点了「立即同步」。即使判定已经对上也照样跑并回报结果 ——
+ *               点了按钮不给反馈是最容易被当成「点了没反应」的地方。
+ */
+async function syncTableColumns(manual = false): Promise<void> {
+  const src = local.tableSource;
+  if (!src || !src.queryId) return;
+
+  const { send, skipped } = designTimeParams(src.params);
+
+  syncingColumns.value = true;
+  columnSyncSummary.value = '';
+  try {
+    const incoming = (await formDesignApi.tableColumns({ ...src, params: send })) || [];
+
+    if (!manual && tableColumnsInSync(local.columns, incoming)) {
+      columnSyncSummary.value = t('formDesigner.tableSource.alreadyInSync');
+      return;
+    }
+
+    const r = mergeTableColumns(local.columns, incoming);
+    local.columns = r.columns;
+    columnSyncSummary.value = t('formDesigner.tableSource.syncResult', {
+      added: r.added.length,
+      removed: r.removed.length,
+      kept: r.kept.length,
+    });
+    emitPatch();
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || e?.message || String(e);
+    columnSyncSummary.value = t('formDesigner.tableSource.syncFailed', { msg })
+      + (skipped.length ? t('formDesigner.tableSource.syncSkipped', { names: listNames(skipped) }) : '');
+  } finally {
+    syncingColumns.value = false;
+  }
+}
+
+/**
+ * 选了表格字段且开了动态更新 → 自动补齐一次。
+ *
+ * 挂在 field 的 watch 上而不是 Designer 的 load 上：同步只会新增/删除列，
+ * 用户切走再切回来就等于「重新看一眼对不对得上」，正好是 autoSync 想要的时机；
+ * 而每次进设计器都对所有表格发请求，在只有一两个表格时纯属浪费。
+ */
+watch(
+  () => [props.field?.id, props.field?.tableSource?.queryId, props.field?.tableSource?.autoSync] as const,
+  ([id, queryId, autoSync]) => {
+    columnSyncSummary.value = '';
+    if (!id || !autoSync || !queryId) return;
+    void syncTableColumns();
+  },
+);
 
 function addColumn() {
   if (!local.columns) local.columns = [];
