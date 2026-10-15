@@ -1,7 +1,8 @@
 ﻿# dev.ps1 — iFinBrain dev mode control script (Windows PowerShell 5.1+)
 # 用法： powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 {start-be|stop-be|status|start-fe|stop-fe}
 #
-# 对应 Linux 版 scripts/dev.sh；Maven 绿色安装在 D:\workspace\tools\maven
+# 对应 Linux 版 scripts/dev.sh；Maven 不再硬编码路径，由 resolve_maven_bin 动态定位
+#   定位顺序：MAVEN_HOME / M2_HOME → PATH 上的 mvn.cmd → 常见绿色安装目录
 #   端口：后端 8080 / 前端 5173 / fapiao_cn 8091（外部服务）
 
 $ErrorActionPreference = 'Stop'
@@ -13,7 +14,27 @@ $FE_PID   = Join-Path $LOG_DIR 'frontend.pid'
 $BE_LOG   = Join-Path $LOG_DIR 'backend.log'
 $FE_LOG   = Join-Path $LOG_DIR 'frontend.log'
 
-$MAVEN_BIN = 'D:\workspace\tools\maven\bin'
+# ─── Maven 定位：不硬编码安装路径 ───
+function resolve_maven_bin {
+  foreach ($k in 'MAVEN_HOME', 'M2_HOME') {
+    $v = [Environment]::GetEnvironmentVariable($k)
+    if ($v) {
+      $bin = Join-Path $v 'bin'
+      if (Test-Path (Join-Path $bin 'mvn.cmd')) { return $bin }
+    }
+  }
+  $cmd = Get-Command mvn.cmd -ErrorAction SilentlyContinue
+  if ($cmd) { return (Split-Path -Parent $cmd.Source) }
+  foreach ($c in 'D:\devtools\maven\bin', 'C:\devtools\maven\bin', 'C:\tools\apache-maven\bin') {
+    if (Test-Path (Join-Path $c 'mvn.cmd')) { return $c }
+  }
+  return $null
+}
+
+$MAVEN_BIN = resolve_maven_bin
+if (-not $MAVEN_BIN) {
+  Write-Host '[dev.ps1] WARNING: Maven 未找到（MAVEN_HOME / PATH / 常见目录均未命中），后端构建会失败' -ForegroundColor Red
+}
 $JAVA_HOME = 'C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot'
 $NODE_DIR  = 'C:\Program Files\nodejs'
 
